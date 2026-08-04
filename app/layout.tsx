@@ -22,5 +22,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function RootLayout({children}:{children:React.ReactNode}) {
-  return <html lang="en"><body className={`${sans.variable} ${serif.variable}`}>{children}</body></html>;
+  return <html lang="zh-CN"><body className={`${sans.variable} ${serif.variable}`}>{children}</body></html>;
 }

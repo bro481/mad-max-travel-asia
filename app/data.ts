@@ -1,5 +1,5 @@
 export type Lang = "en" | "zh";
-export type Localized = { en:string; zh:string };
+export type Localized = { zh:string; en:string };
 export type IconItem = { name:Localized; icon:string };
 export type Room = {
   id:string; name:Localized; location:Localized; image:string; images:string[];
@@ -10,7 +10,7 @@ export type Room = {
 
 const u=(id:string,w=1400)=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
 const extra=["photo-1600210492486-724fe5c67fb0","photo-1600607687920-4e2a09cf159d","photo-1600566753190-17f0baa2a6c3","photo-1600566753086-00f18fb6b3ea","photo-1600607688969-a5bfcd646154","photo-1615874694520-474822394e73","photo-1600607687939-ce8a6c25118c","photo-1600566753051-f0b89df2dd90"];
-const amenity=(en:string,zh:string,icon:string):IconItem=>({name:{en,zh},icon});
+const amenity=(en:string,zh:string,icon:string):IconItem=>({name:{zh,en},icon});
 const commonAmenities=[amenity("High-speed WiFi","高速 WiFi","⌁"),amenity("Air Conditioning","空调","❄"),amenity("Fully Equipped Kitchen","设备齐全的厨房","⌂"),amenity("Smart TV","智能电视","▣"),amenity("Washer","洗衣机","◉"),amenity("Hair Dryer","吹风机","≈")];
 const placeSets={
   kl:[{name:{en:"Petronas Twin Towers",zh:"吉隆坡双子塔"},distance:{en:"5 mins drive",zh:"驾车约 5 分钟"},icon:"🏢"},{name:{en:"Pavilion Kuala Lumpur",zh:"柏威年购物中心"},distance:{en:"8 mins drive",zh:"驾车约 8 分钟"},icon:"🛍"},{name:{en:"KLIA Airport",zh:"吉隆坡国际机场"},distance:{en:"45 mins drive",zh:"驾车约 45 分钟"},icon:"✈"}],
@@ -24,9 +24,9 @@ const highlights={
 };
 
 function makeRoom(id:string,nameEn:string,nameZh:string,loc:"kl"|"kk"|"semporna",cover:string,guests:number,bedrooms:number,beds:number,bathrooms:number,descriptionEn:string,descriptionZh:string):Room{
-  const location=loc==="kl"?{en:"Kuala Lumpur",zh:"吉隆坡"}:loc==="kk"?{en:"Kota Kinabalu",zh:"亚庇"}:{en:"Semporna",zh:"仙本那"};
+  const location=loc==="kl"?{zh:"吉隆坡",en:"Kuala Lumpur"}:loc==="kk"?{zh:"亚庇",en:"Kota Kinabalu"}:{zh:"仙本那",en:"Semporna"};
   const image=u(cover);
-  return {id,name:{en:nameEn,zh:nameZh},location,image,images:[cover,...extra.filter(x=>x!==cover)].map((x,i)=>u(x,i===0?1800:1200)),guests,bedrooms,beds,bathrooms,description:{en:descriptionEn,zh:descriptionZh},amenities:commonAmenities,highlights:highlights[loc],nearbyPlaces:placeSets[loc]};
+  return {id,name:{zh:nameZh,en:nameEn},location,image,images:[cover,...extra.filter(x=>x!==cover)].map((x,i)=>u(x,i===0?1800:1200)),guests,bedrooms,beds,bathrooms,description:{zh:descriptionZh,en:descriptionEn},amenities:commonAmenities,highlights:highlights[loc],nearbyPlaces:placeSets[loc]};
 }
 
 export const rooms:Room[]=[
