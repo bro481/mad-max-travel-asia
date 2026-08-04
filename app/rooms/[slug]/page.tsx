@@ -1,7 +1,8 @@
 import { rooms } from "../../data";
+import { RoomDetail } from "./room-detail";
 
-export default async function RoomPage({params}:{params:Promise<{slug:string}>}) {
+export default async function RoomPage({params}:{params:Promise<{slug:string}>}){
   const {slug}=await params; const room=rooms.find(r=>r.id===slug);
-  if(!room) return <main className="not-found"><h1>Room not found</h1><a className="button" href="/#stays">Explore our stays</a></main>;
-  return <><header><a className="logo" href="/"><span className="logo-mark">⌂</span><span><b>MY MALAYSIA</b><small>STAY &amp; TRAVEL</small></span></a><a className="button header-cta" href="/#contact">Submit inquiry</a></header><main className="room-detail"><a className="back-link" href="/#stays">← Back to all stays</a><div className="gallery">{room.gallery.map((img,i)=><img key={img} src={img} alt={`${room.name} ${i+1}`}/>)}</div><div className="detail-content"><div className="detail-copy"><p className="detail-location">{room.location}, Malaysia</p><h1>{room.name}</h1><div className="detail-stats"><span>♙ {room.guests} guests</span><span>▣ {room.bedrooms} bedrooms</span><span>▰ {room.beds} beds</span><span>◫ {room.bathrooms} bathrooms</span></div><h2>About this place</h2><p>{room.description}</p><h2>Amenities</h2><div className="amenities">{room.amenities.map(a=><span key={a}>✓ &nbsp;{a}</span>)}</div><h2>Location</h2><div className="map"><b>{room.location}, Malaysia</b><br/>Exact location shared after inquiry</div></div><aside className="detail-aside"><p className="eyebrow">Your Malaysia stay</p><h2>Interested in this room?</h2><p>Tell us your dates and group size. We’ll reply personally with availability and the details you need.</p><a className="button" href={`/#contact`}>Inquire about this room</a></aside></div></main></>;
+  if(!room)return <main className="not-found"><h1>Room not found</h1><a className="button" href="/#stays">Explore our stays</a></main>;
+  return <RoomDetail room={room}/>;
 }

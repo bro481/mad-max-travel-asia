@@ -1,28 +1,52 @@
+export type Lang = "en" | "zh";
+export type Localized = { en:string; zh:string };
+export type IconItem = { name:Localized; icon:string };
 export type Room = {
-  id: string; name: string; location: string; image: string; gallery: string[];
-  guests: number; bedrooms: number; beds: number; bathrooms: number; description: string; amenities: string[];
+  id:string; name:Localized; location:Localized; image:string; images:string[];
+  guests:number; bedrooms:number; beds:number; bathrooms:number;
+  description:Localized; amenities:IconItem[]; highlights:IconItem[];
+  nearbyPlaces:{name:Localized;distance:Localized;icon:string}[];
 };
 
-const u = (id: string, w = 1200) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
+const u=(id:string,w=1400)=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
+const extra=["photo-1600210492486-724fe5c67fb0","photo-1600607687920-4e2a09cf159d","photo-1600566753190-17f0baa2a6c3","photo-1600566753086-00f18fb6b3ea","photo-1600607688969-a5bfcd646154","photo-1615874694520-474822394e73","photo-1600607687939-ce8a6c25118c","photo-1600566753051-f0b89df2dd90"];
+const amenity=(en:string,zh:string,icon:string):IconItem=>({name:{en,zh},icon});
+const commonAmenities=[amenity("High-speed WiFi","高速 WiFi","⌁"),amenity("Air Conditioning","空调","❄"),amenity("Fully Equipped Kitchen","设备齐全的厨房","⌂"),amenity("Smart TV","智能电视","▣"),amenity("Washer","洗衣机","◉"),amenity("Hair Dryer","吹风机","≈")];
+const placeSets={
+  kl:[{name:{en:"Petronas Twin Towers",zh:"吉隆坡双子塔"},distance:{en:"5 mins drive",zh:"驾车约 5 分钟"},icon:"🏢"},{name:{en:"Pavilion Kuala Lumpur",zh:"柏威年购物中心"},distance:{en:"8 mins drive",zh:"驾车约 8 分钟"},icon:"🛍"},{name:{en:"KLIA Airport",zh:"吉隆坡国际机场"},distance:{en:"45 mins drive",zh:"驾车约 45 分钟"},icon:"✈"}],
+  kk:[{name:{en:"KK Waterfront",zh:"亚庇海滨"},distance:{en:"6 mins drive",zh:"驾车约 6 分钟"},icon:"🌊"},{name:{en:"Jesselton Point",zh:"哲斯顿港码头"},distance:{en:"9 mins drive",zh:"驾车约 9 分钟"},icon:"⛵"},{name:{en:"Kota Kinabalu Airport",zh:"亚庇国际机场"},distance:{en:"15 mins drive",zh:"驾车约 15 分钟"},icon:"✈"}],
+  semporna:[{name:{en:"Semporna Jetty",zh:"仙本那码头"},distance:{en:"5 mins drive",zh:"驾车约 5 分钟"},icon:"⛵"},{name:{en:"Seafood Market",zh:"海鲜市场"},distance:{en:"8 mins drive",zh:"驾车约 8 分钟"},icon:"🦐"},{name:{en:"Tawau Airport",zh:"斗湖机场"},distance:{en:"80 mins drive",zh:"驾车约 80 分钟"},icon:"✈"}],
+};
+const highlights={
+  kl:[amenity("City View","城市景观","✨"),amenity("Near KLCC","靠近 KLCC","🌇"),amenity("Easy Parking","停车方便","🚗"),amenity("Shopping Nearby","邻近购物中心","🛒")],
+  kk:[amenity("Sunset Views","日落景观","🌅"),amenity("Near Waterfront","靠近海滨","🌊"),amenity("Easy Parking","停车方便","🚗"),amenity("Island Access","方便跳岛","⛵")],
+  semporna:[amenity("Near the Jetty","靠近码头","⛵"),amenity("Island Transfers","可安排跳岛接送","🚤"),amenity("Local Food Nearby","邻近当地美食","🍜"),amenity("Host Support","当地房东协助","💬")],
+};
 
-export const rooms: Room[] = [
-  { id:"kl-city-apartment", name:"KL City Apartment", location:"Kuala Lumpur", image:u("photo-1600210492486-724fe5c67fb0"), gallery:[u("photo-1600210492486-724fe5c67fb0",1600),u("photo-1600607687920-4e2a09cf159d"),u("photo-1600566753190-17f0baa2a6c3")], guests:4, bedrooms:2, beds:2, bathrooms:2, description:"A calm, light-filled city home with everything you need for an easy Kuala Lumpur stay. Close to dining, shopping and the city's best-connected neighbourhoods.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Washer","City View"] },
-  { id:"kl-cozy-suite", name:"KL Cozy Suite", location:"Kuala Lumpur", image:u("photo-1600566753086-00f18fb6b3ea"), gallery:[u("photo-1600566753086-00f18fb6b3ea",1600),u("photo-1600607688969-a5bfcd646154"),u("photo-1615874694520-474822394e73")], guests:3, bedrooms:1, beds:2, bathrooms:1, description:"A warm, thoughtfully styled suite for couples and small families, with a comfortable living area and convenient city access.", amenities:["WiFi","Air Conditioning","Kitchenette","Smart TV","Washer","Pool"] },
-  { id:"kl-family-residence", name:"KL Family Residence", location:"Kuala Lumpur", image:u("photo-1600607687939-ce8a6c25118c"), gallery:[u("photo-1600607687939-ce8a6c25118c",1600),u("photo-1600566753051-f0b89df2dd90"),u("photo-1600585154340-be6161a56a0c")], guests:6, bedrooms:3, beds:4, bathrooms:2, description:"A spacious family residence designed for unhurried time together, with generous bedrooms and a fully equipped kitchen.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Washer","Family Friendly"] },
-  { id:"kl-modern-loft", name:"KL Modern Loft", location:"Kuala Lumpur", image:u("photo-1600210491369-e753d80a41f3"), gallery:[u("photo-1600210491369-e753d80a41f3",1600),u("photo-1600566753190-17f0baa2a6c3"),u("photo-1600566753086-00f18fb6b3ea")], guests:4, bedrooms:2, beds:2, bathrooms:2, description:"Clean lines, soft textures and open-plan living make this modern loft a restful base in the heart of Kuala Lumpur.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Washer","Workspace"] },
-  { id:"kk-seaview-suite", name:"KK Seaview Suite", location:"Kota Kinabalu", image:u("photo-1600607688960-e095ff83135c"), gallery:[u("photo-1600607688960-e095ff83135c",1600),u("photo-1600607687920-4e2a09cf159d"),u("photo-1600607688969-a5bfcd646154")], guests:4, bedrooms:2, beds:2, bathrooms:2, description:"Wake to sea views from this bright Kota Kinabalu suite, made for easy mornings and relaxed evenings after exploring Sabah.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Washer","Sea View"] },
-  { id:"kk-cozy-home", name:"KK Cozy Home", location:"Kota Kinabalu", image:u("photo-1616486338812-3dadae4b4ace"), gallery:[u("photo-1616486338812-3dadae4b4ace",1600),u("photo-1600566753051-f0b89df2dd90"),u("photo-1600210492486-724fe5c67fb0")], guests:3, bedrooms:1, beds:2, bathrooms:1, description:"A comfortable local home with warm interiors and a practical layout, ideal for a short city break or longer Sabah stay.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Washer","Parking"] },
-  { id:"kk-family-loft", name:"KK Family Loft", location:"Kota Kinabalu", image:u("photo-1600566753051-f0b89df2dd90"), gallery:[u("photo-1600566753051-f0b89df2dd90",1600),u("photo-1600210492486-724fe5c67fb0"),u("photo-1600607687939-ce8a6c25118c")], guests:6, bedrooms:3, beds:4, bathrooms:2, description:"Roomy, welcoming and close to the waterfront, this loft gives families a simple, comfortable home base in KK.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Washer","Family Friendly"] },
-  { id:"kk-ocean-view-villa", name:"KK Ocean View Villa", location:"Kota Kinabalu", image:u("photo-1600047509807-ba8f99d2cdde"), gallery:[u("photo-1600047509807-ba8f99d2cdde",1600),u("photo-1600607688960-e095ff83135c"),u("photo-1600585154340-be6161a56a0c")], guests:4, bedrooms:2, beds:2, bathrooms:2, description:"A private villa with generous sea-facing spaces, soft natural light and a breezy atmosphere for a slower Sabah stay.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Private Pool","Ocean View"] },
-  { id:"semporna-ocean-stay", name:"Semporna Ocean Stay", location:"Semporna", image:u("photo-1544551763-46a013bb70d5"), gallery:[u("photo-1544551763-46a013bb70d5",1600),u("photo-1530789253388-582c481c54b0"),u("photo-1510414842594-a61c69b5ae57")], guests:4, bedrooms:2, beds:2, bathrooms:1, description:"A simple coastal stay for island-bound travellers, with easy access to Semporna jetty and local connections.", amenities:["WiFi","Air Conditioning","Breakfast","Hot Water","Luggage Storage","Jetty Access"] },
-  { id:"semporna-dive-lodge", name:"Semporna Dive Lodge", location:"Semporna", image:u("photo-1600607687644-c7171b42498f"), gallery:[u("photo-1600607687644-c7171b42498f",1600),u("photo-1600566753086-00f18fb6b3ea"),u("photo-1544551763-46a013bb70d5")], guests:3, bedrooms:1, beds:2, bathrooms:1, description:"A laid-back lodge for divers and island explorers, offering a comfortable place to reset between sea days.", amenities:["WiFi","Air Conditioning","Breakfast","Gear Storage","Hot Water","Transfer Help"] },
-  { id:"semporna-family-house", name:"Semporna Family House", location:"Semporna", image:u("photo-1600585154340-be6161a56a0c"), gallery:[u("photo-1600585154340-be6161a56a0c",1600),u("photo-1600607687939-ce8a6c25118c"),u("photo-1600566753051-f0b89df2dd90")], guests:6, bedrooms:3, beds:4, bathrooms:2, description:"A welcoming family house with room to gather, rest and prepare for island adventures around Semporna.", amenities:["WiFi","Air Conditioning","Kitchen","Smart TV","Washer","Family Friendly"] },
-  { id:"semporna-island-villa", name:"Semporna Island Villa", location:"Semporna", image:u("photo-1507525428034-b723cf961d3e"), gallery:[u("photo-1507525428034-b723cf961d3e",1600),u("photo-1544551763-46a013bb70d5"),u("photo-1530789253388-582c481c54b0")], guests:4, bedrooms:2, beds:2, bathrooms:2, description:"An intimate island escape surrounded by clear water and tropical calm, arranged with local boat transfers for a seamless stay.", amenities:["Breakfast","Air Conditioning","Sea View","Boat Transfer","Hot Water","Private Deck"] },
+function makeRoom(id:string,nameEn:string,nameZh:string,loc:"kl"|"kk"|"semporna",cover:string,guests:number,bedrooms:number,beds:number,bathrooms:number,descriptionEn:string,descriptionZh:string):Room{
+  const location=loc==="kl"?{en:"Kuala Lumpur",zh:"吉隆坡"}:loc==="kk"?{en:"Kota Kinabalu",zh:"亚庇"}:{en:"Semporna",zh:"仙本那"};
+  const image=u(cover);
+  return {id,name:{en:nameEn,zh:nameZh},location,image,images:[cover,...extra.filter(x=>x!==cover)].map((x,i)=>u(x,i===0?1800:1200)),guests,bedrooms,beds,bathrooms,description:{en:descriptionEn,zh:descriptionZh},amenities:commonAmenities,highlights:highlights[loc],nearbyPlaces:placeSets[loc]};
+}
+
+export const rooms:Room[]=[
+  makeRoom("kl-city-apartment","KL City Apartment","吉隆坡城市公寓","kl","photo-1600210492486-724fe5c67fb0",4,2,2,2,"A calm, light-filled city apartment in central Kuala Lumpur. Thoughtfully equipped for families and friends who want an easy, comfortable stay close to the city's best dining and shopping.","位于吉隆坡市中心的明亮舒适公寓，设备齐全，适合家庭和朋友入住，轻松前往城市热门餐厅与购物中心。"),
+  makeRoom("kl-cozy-suite","KL Cozy Suite","吉隆坡温馨套房","kl","photo-1600566753086-00f18fb6b3ea",3,1,2,1,"A warm, thoughtfully styled suite for couples and small families, with a comfortable living area and convenient city access.","温暖而精心布置的套房，适合情侣或小家庭，拥有舒适起居空间，前往市区十分方便。"),
+  makeRoom("kl-family-residence","KL Family Residence","吉隆坡家庭住宅","kl","photo-1600607687939-ce8a6c25118c",6,3,4,2,"A spacious family residence designed for unhurried time together, with generous bedrooms and a fully equipped kitchen.","宽敞的家庭住宅，卧室舒适并配有完整厨房，适合家人朋友一起享受悠闲时光。"),
+  makeRoom("kl-modern-loft","KL Modern Loft","吉隆坡现代阁楼","kl","photo-1600210491369-e753d80a41f3",4,2,2,2,"Clean lines, soft textures and open-plan living make this modern loft a restful base in the heart of Kuala Lumpur.","现代开放式空间结合柔和材质与简洁线条，是探索吉隆坡后放松休息的理想住处。"),
+  makeRoom("kk-seaview-suite","KK Seaview Suite","亚庇海景套房","kk","photo-1600607688960-e095ff83135c",4,2,2,2,"Wake to sea views from this bright Kota Kinabalu suite, made for easy mornings and relaxed evenings after exploring Sabah.","在明亮的亚庇海景套房醒来，轻松开启一天，并在探索沙巴之后享受悠闲夜晚。"),
+  makeRoom("kk-cozy-home","KK Cozy Home","亚庇温馨之家","kk","photo-1616486338812-3dadae4b4ace",3,1,2,1,"A comfortable local home with warm interiors and a practical layout, ideal for a short city break or longer Sabah stay.","温暖舒适、布局实用的当地住宅，适合亚庇短途度假或较长时间入住。"),
+  makeRoom("kk-family-loft","KK Family Loft","亚庇家庭阁楼","kk","photo-1600566753051-f0b89df2dd90",6,3,4,2,"Roomy, welcoming and close to the waterfront, this loft gives families a simple, comfortable home base in KK.","宽敞温馨且靠近海滨，为家庭旅客提供一个简单舒适的亚庇落脚点。"),
+  makeRoom("kk-ocean-view-villa","KK Ocean View Villa","亚庇海景别墅","kk","photo-1600047509807-ba8f99d2cdde",4,2,2,2,"A private villa with generous sea-facing spaces, soft natural light and a breezy atmosphere for a slower Sabah stay.","拥有宽敞海景空间与柔和自然光的私人别墅，适合享受慢节奏的沙巴假期。"),
+  makeRoom("semporna-ocean-stay","Semporna Ocean Stay","仙本那海边住宿","semporna","photo-1544551763-46a013bb70d5",4,2,2,1,"A simple coastal stay for island-bound travellers, with easy access to Semporna jetty and local connections.","为跳岛旅客准备的舒适海边住宿，方便前往仙本那码头及连接当地交通。"),
+  makeRoom("semporna-dive-lodge","Semporna Dive Lodge","仙本那潜水小屋","semporna","photo-1600607687644-c7171b42498f",3,1,2,1,"A laid-back lodge for divers and island explorers, offering a comfortable place to reset between sea days.","专为潜水客和跳岛旅客打造的悠闲小屋，让你在海上行程之间舒适休息。"),
+  makeRoom("semporna-family-house","Semporna Family House","仙本那家庭之家","semporna","photo-1600585154340-be6161a56a0c",6,3,4,2,"A welcoming family house with room to gather, rest and prepare for island adventures around Semporna.","温馨宽敞的家庭住宅，适合相聚休息，并为仙本那跳岛行程做好准备。"),
+  makeRoom("semporna-island-villa","Semporna Island Villa","仙本那海岛别墅","semporna","photo-1507525428034-b723cf961d3e",4,2,2,2,"An intimate island escape surrounded by clear water and tropical calm, with local boat transfers arranged for a seamless stay.","被清澈海水与热带宁静环绕的精致海岛别墅，可协助安排当地船只接送。"),
 ];
 
-export const services = [
-  { name:"Airport Transfer", description:"Airport pickup and drop-off in KL, KK and Tawau.", image:u("photo-1549317661-bd32c8ce0db2") },
-  { name:"Private Car", description:"Flexible itinerary with an experienced local driver.", image:u("photo-1550355291-bbee04a92027") },
-  { name:"Island Transfer", description:"Boat transfer to islands and popular destinations.", image:u("photo-1544550285-f813152fb2fd") },
-  { name:"Day Trip", description:"Melaka day trip, Singapore transfer and more.", image:u("photo-1596422846543-75c6fc197f07") },
+export const services=[
+  {name:{en:"Airport Transfer",zh:"机场接送"},description:{en:"Airport pickup and drop-off in KL, KK and Tawau.",zh:"提供吉隆坡、亚庇及斗湖机场接送。"},image:u("photo-1549317661-bd32c8ce0db2")},
+  {name:{en:"Private Car",zh:"私人包车"},description:{en:"Flexible itinerary with an experienced local driver.",zh:"当地司机接送，行程灵活安排。"},image:u("photo-1550355291-bbee04a92027")},
+  {name:{en:"Island Transfer",zh:"海岛接送"},description:{en:"Boat transfer to islands and popular destinations.",zh:"提供热门海岛及目的地船只接送。"},image:u("photo-1544550285-f813152fb2fd")},
+  {name:{en:"Day Trip",zh:"一日游"},description:{en:"Melaka day trip, Singapore transfer and more.",zh:"马六甲一日游、新加坡接送及更多服务。"},image:u("photo-1596422846543-75c6fc197f07")},
 ];
