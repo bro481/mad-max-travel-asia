@@ -2,31 +2,33 @@ export type Lang = "en" | "zh";
 export type Localized = { zh:string; en:string };
 export type IconItem = { name:Localized; icon:string };
 export type Room = {
-  id:string; name:Localized; location:Localized; image:string; images:string[];
+  id:string; name:Localized; location:Localized; area:Localized; image:string; images:string[];
   guests:number; bedrooms:number; beds:number; bathrooms:number;
   description:Localized; amenities:IconItem[]; highlights:IconItem[];
-  nearbyPlaces:{name:Localized;distance:Localized;icon:string}[];
+  nearbyPlaces:{name:Localized;category:Localized;distance:Localized;icon:string}[];
 };
 
 const u=(id:string,w=1400)=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
 const extra=["photo-1600210492486-724fe5c67fb0","photo-1600607687920-4e2a09cf159d","photo-1600566753190-17f0baa2a6c3","photo-1600566753086-00f18fb6b3ea","photo-1600607688969-a5bfcd646154","photo-1615874694520-474822394e73","photo-1600607687939-ce8a6c25118c","photo-1600566753051-f0b89df2dd90"];
 const amenity=(en:string,zh:string,icon:string):IconItem=>({name:{zh,en},icon});
-const commonAmenities=[amenity("High-speed WiFi","高速 WiFi","⌁"),amenity("Air Conditioning","空调","❄"),amenity("Fully Equipped Kitchen","设备齐全的厨房","⌂"),amenity("Smart TV","智能电视","▣"),amenity("Washer","洗衣机","◉"),amenity("Hair Dryer","吹风机","≈")];
+const commonAmenities=[amenity("High-speed WiFi","高速 WiFi","⌁"),amenity("Air Conditioning","空调","❄"),amenity("Fully Equipped Kitchen","设备齐全的厨房","⌂"),amenity("Smart TV","智能电视","▣"),amenity("Washer","洗衣机","◉"),amenity("Hair Dryer","吹风机","≈"),amenity("Family Friendly","亲子友好","♙"),amenity("Long-stay Ready","适合长住","◷"),amenity("Free Parking","免费停车","P")];
 const placeSets={
-  kl:[{name:{en:"Petronas Twin Towers",zh:"吉隆坡双子塔"},distance:{en:"5 mins drive",zh:"驾车约 5 分钟"},icon:"🏢"},{name:{en:"Pavilion Kuala Lumpur",zh:"柏威年购物中心"},distance:{en:"8 mins drive",zh:"驾车约 8 分钟"},icon:"🛍"},{name:{en:"KLIA Airport",zh:"吉隆坡国际机场"},distance:{en:"45 mins drive",zh:"驾车约 45 分钟"},icon:"✈"}],
-  kk:[{name:{en:"KK Waterfront",zh:"亚庇海滨"},distance:{en:"6 mins drive",zh:"驾车约 6 分钟"},icon:"🌊"},{name:{en:"Jesselton Point",zh:"哲斯顿港码头"},distance:{en:"9 mins drive",zh:"驾车约 9 分钟"},icon:"⛵"},{name:{en:"Kota Kinabalu Airport",zh:"亚庇国际机场"},distance:{en:"15 mins drive",zh:"驾车约 15 分钟"},icon:"✈"}],
-  semporna:[{name:{en:"Semporna Jetty",zh:"仙本那码头"},distance:{en:"5 mins drive",zh:"驾车约 5 分钟"},icon:"⛵"},{name:{en:"Seafood Market",zh:"海鲜市场"},distance:{en:"8 mins drive",zh:"驾车约 8 分钟"},icon:"🦐"},{name:{en:"Tawau Airport",zh:"斗湖机场"},distance:{en:"80 mins drive",zh:"驾车约 80 分钟"},icon:"✈"}],
+  kl:[{name:{zh:"吉隆坡双子塔",en:"Petronas Twin Towers"},category:{zh:"城市地标",en:"City landmark"},distance:{zh:"驾车约 5 分钟",en:"5 mins drive"},icon:"🏙"},{name:{zh:"Pavilion 购物中心",en:"Pavilion Kuala Lumpur"},category:{zh:"购物餐饮",en:"Shopping & dining"},distance:{zh:"驾车约 8 分钟",en:"8 mins drive"},icon:"🛍"},{name:{zh:"吉隆坡国际机场",en:"KLIA Airport"},category:{zh:"机场交通",en:"Airport connection"},distance:{zh:"驾车约 45 分钟",en:"45 mins drive"},icon:"✈"}],
+  kk:[{name:{zh:"亚庇海滨",en:"KK Waterfront"},category:{zh:"日落与餐饮",en:"Sunset & dining"},distance:{zh:"驾车约 6 分钟",en:"6 mins drive"},icon:"🌊"},{name:{zh:"哲斯顿港码头",en:"Jesselton Point"},category:{zh:"跳岛出发点",en:"Island departure point"},distance:{zh:"驾车约 9 分钟",en:"9 mins drive"},icon:"⛵"},{name:{zh:"亚庇国际机场",en:"Kota Kinabalu Airport"},category:{zh:"机场交通",en:"Airport connection"},distance:{zh:"驾车约 15 分钟",en:"15 mins drive"},icon:"✈"}],
+  semporna:[{name:{zh:"仙本那码头",en:"Semporna Jetty"},category:{zh:"跳岛出发点",en:"Island departure point"},distance:{zh:"驾车约 5 分钟",en:"5 mins drive"},icon:"⛵"},{name:{zh:"仙本那海鲜市场",en:"Seafood Market"},category:{zh:"当地美食",en:"Local seafood"},distance:{zh:"驾车约 8 分钟",en:"8 mins drive"},icon:"🦐"},{name:{zh:"斗湖机场",en:"Tawau Airport"},category:{zh:"机场交通",en:"Airport connection"},distance:{zh:"驾车约 80 分钟",en:"80 mins drive"},icon:"✈"}],
 };
 const highlights={
-  kl:[amenity("City View","城市景观","✨"),amenity("Near KLCC","靠近 KLCC","🌇"),amenity("Easy Parking","停车方便","🚗"),amenity("Shopping Nearby","邻近购物中心","🛒")],
+  kl:[amenity("City View","城市景观","✨"),amenity("Central Location","市中心位置","📍"),amenity("Free Parking","免费停车","🚗"),amenity("Easy Shopping","购物方便","🛍")],
   kk:[amenity("Sunset Views","日落景观","🌅"),amenity("Near Waterfront","靠近海滨","🌊"),amenity("Easy Parking","停车方便","🚗"),amenity("Island Access","方便跳岛","⛵")],
   semporna:[amenity("Near the Jetty","靠近码头","⛵"),amenity("Island Transfers","可安排跳岛接送","🚤"),amenity("Local Food Nearby","邻近当地美食","🍜"),amenity("Host Support","当地房东协助","💬")],
 };
 
 function makeRoom(id:string,nameEn:string,nameZh:string,loc:"kl"|"kk"|"semporna",cover:string,guests:number,bedrooms:number,beds:number,bathrooms:number,descriptionEn:string,descriptionZh:string):Room{
   const location=loc==="kl"?{zh:"吉隆坡",en:"Kuala Lumpur"}:loc==="kk"?{zh:"亚庇",en:"Kota Kinabalu"}:{zh:"仙本那",en:"Semporna"};
+  const areaMap:Record<string,Localized>={"kl-city-apartment":{zh:"KLCC 附近",en:"Near KLCC"},"kl-cozy-suite":{zh:"武吉免登",en:"Bukit Bintang"},"kl-family-residence":{zh:"市中心",en:"City Centre"},"kl-modern-loft":{zh:"满家乐",en:"Mont Kiara"},"kk-seaview-suite":{zh:"海滨区",en:"Waterfront"},"kk-cozy-home":{zh:"市中心",en:"City Centre"},"kk-family-loft":{zh:"哲斯顿港附近",en:"Near Jesselton Point"},"kk-ocean-view-villa":{zh:"丹绒亚路",en:"Tanjung Aru"},"semporna-ocean-stay":{zh:"码头附近",en:"Near the Jetty"},"semporna-dive-lodge":{zh:"市中心",en:"Town Centre"},"semporna-family-house":{zh:"安静住宅区",en:"Quiet Residential Area"},"semporna-island-villa":{zh:"海岛区域",en:"Island Area"}};
+  const extraDescription=loc==="kl"?{zh:"适合第一次来到吉隆坡的家庭和朋友旅行。房间拥有舒适的生活空间，附近交通便利，可以轻松前往购物中心、餐厅和城市景点。",en:"A welcoming choice for families and friends visiting Kuala Lumpur for the first time, with comfortable living space and easy access to shopping, dining and city sights."}:loc==="kk"?{zh:"适合家庭、情侣和朋友探索亚庇，既方便前往海滨与码头，也能在一天行程后享受轻松舒适的休息空间。",en:"A comfortable base for families, couples and friends exploring Kota Kinabalu, with easy access to the waterfront and a relaxing place to return to."}:{zh:"适合准备跳岛、潜水或轻松度假的旅客，前往码头和当地餐饮都很方便，也可协助安排接送与当地行程。",en:"Ideal for island hopping, diving or a relaxed coastal break, with convenient jetty access and help arranging local transfers and activities."};
   const image=u(cover);
-  return {id,name:{zh:nameZh,en:nameEn},location,image,images:[cover,...extra.filter(x=>x!==cover)].map((x,i)=>u(x,i===0?1800:1200)),guests,bedrooms,beds,bathrooms,description:{zh:descriptionZh,en:descriptionEn},amenities:commonAmenities,highlights:highlights[loc],nearbyPlaces:placeSets[loc]};
+  return {id,name:{zh:nameZh,en:nameEn},location,area:areaMap[id],image,images:[cover,...extra.filter(x=>x!==cover)].map((x,i)=>u(x,i===0?1800:1200)),guests,bedrooms,beds,bathrooms,description:{zh:`${descriptionZh}${extraDescription.zh}`,en:`${descriptionEn} ${extraDescription.en}`},amenities:commonAmenities,highlights:highlights[loc],nearbyPlaces:placeSets[loc]};
 }
 
 export const rooms:Room[]=[
