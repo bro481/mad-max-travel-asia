@@ -13,11 +13,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const base = new URL(`${protocol}://${host}`);
   return {
     metadataBase: base,
-    title: "MY Malaysia | Stay & Travel",
+    title: "MAD MAX | Malaysia Stay",
     description: "Comfortable stays and private local travel services in Kuala Lumpur, Kota Kinabalu and Semporna.",
     icons: { icon:"/favicon.svg", shortcut:"/favicon.svg" },
-    openGraph: { title:"MY Malaysia | Stay & Travel", description:"Stay comfortably, travel easily across Malaysia.", images:[{url:"/og.png",width:1200,height:630}] },
-    twitter: { card:"summary_large_image", title:"MY Malaysia | Stay & Travel", description:"Stay comfortably, travel easily across Malaysia.", images:["/og.png"] },
+    openGraph: { title:"MAD MAX | Malaysia Stay", description:"Stay comfortably, travel easily across Malaysia.", images:[{url:"/og.png",width:1200,height:630}] },
+    twitter: { card:"summary_large_image", title:"MAD MAX | Malaysia Stay", description:"Stay comfortably, travel easily across Malaysia.", images:["/og.png"] },
   };
 }
 
