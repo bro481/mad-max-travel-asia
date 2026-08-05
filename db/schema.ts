@@ -11,3 +11,14 @@ export const inquiries = sqliteTable("inquiries", {
   message: text("message"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const inquiryRequests = sqliteTable("inquiry_requests", {
+  id: integer("id").primaryKey({ autoIncrement:true }),
+  name: text("name").notNull(),
+  contact: text("contact").notNull(),
+  destinations: text("destinations").notNull(),
+  services: text("services").notNull(),
+  travelTime: text("travel_time"),
+  message: text("message"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
