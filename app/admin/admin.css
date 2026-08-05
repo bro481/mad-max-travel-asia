@@ -504,18 +504,26 @@
   background: white;
   border: 1px solid var(--a-line);
   border-radius: 13px;
+  display: flex;
+  flex-direction: column;
+  min-height: 430px;
   overflow: hidden;
 }
 .property-cover {
-  height: 180px;
+  flex: 0 0 210px;
+  height: 210px;
   background: #e9ecee;
   position: relative;
   display: grid;
   place-items: center;
   color: #999;
+  overflow: hidden;
 }
 .property-cover img {
   height: 100%;
+  object-fit: cover;
+  object-position: center;
+  width: 100%;
 }
 .property-cover i {
   position: absolute;
@@ -534,14 +542,26 @@
   color: #8b5e37;
 }
 .property-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 218px;
   padding: 17px;
 }
 .property-card-body > small {
   color: var(--a-muted);
+  display: block;
+  line-height: 18px;
+  min-height: 18px;
 }
 .property-card-body h2 {
   font: 600 21px var(--font-serif);
   margin: 7px 0;
+  min-height: 50px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .property-card-body p {
   font-size: 11px;
@@ -557,7 +577,7 @@
 }
 .card-actions {
   border-top: 1px solid var(--a-line);
-  margin-top: 15px;
+  margin-top: auto;
   padding-top: 13px;
   display: flex;
   gap: 12px;
