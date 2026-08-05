@@ -49,8 +49,18 @@ const amenityOptions = [
 ];
 export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
   const [data, setData] = useState(initial || blank);
+  const [propertyId, setPropertyId] = useState<number | null>(
+    initial?.id ?? null,
+  );
   const [step, setStep] = useState(0);
-  const [saving, setSaving] = useState(false);
+  const [savingMode, setSavingMode] = useState<"draft" | "published" | null>(
+    null,
+  );
+  const [saveNotice, setSaveNotice] = useState<{
+    type: "success" | "error";
+    message: string;
+    href?: string;
+  } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [imageMessage, setImageMessage] = useState("");
   const [importCode, setImportCode] = useState("");
@@ -64,29 +74,61 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
   const set = (key: string, value: unknown) =>
     setData((x) => ({ ...x, [key]: value }));
   const save = async (status?: PropertyRecord["status"]) => {
-    setSaving(true);
+    const mode = status === "published" ? "published" : "draft";
+    setSavingMode(mode);
+    setSaveNotice(null);
     const next = { ...data, status: status || data.status };
-    if (initial) {
-      await fetch(`/api/admin/properties/${initial.id}`, {
+    try {
+      let id = propertyId;
+      let saved = next;
+      if (!id) {
+        const response = await fetch("/api/admin/properties", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(next),
+        });
+        const created = (await response.json()) as {
+          id?: number;
+          slug?: string;
+          error?: string;
+        };
+        if (!response.ok || !created.id)
+          throw new Error(created.error || "无法创建房源");
+        id = created.id;
+        saved = { ...next, slug: created.slug || next.slug };
+      }
+      const response = await fetch(`/api/admin/properties/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+        body: JSON.stringify(saved),
       });
-      setData(next);
-      setSaving(false);
-    } else {
-      const r = await fetch("/api/admin/properties", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(result.error || "服务器未能保存房源");
+      }
+      setPropertyId(id);
+      setData(saved);
+      window.history.replaceState({}, "", `/admin/properties/${id}`);
+      setSaveNotice({
+        type: "success",
+        message:
+          mode === "published"
+            ? "发布成功，前台房源已经更新。"
+            : "草稿保存成功。",
+        href:
+          mode === "published" && saved.slug
+            ? `/rooms/${saved.slug}`
+            : undefined,
       });
-      const result = await r.json();
-      await fetch(`/api/admin/properties/${result.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(next),
+    } catch (error) {
+      setSaveNotice({
+        type: "error",
+        message: `${mode === "published" ? "发布" : "保存"}失败：${error instanceof Error ? error.message : "请稍后重试"}`,
       });
-      location.href = `/admin/properties/${result.id}`;
+    } finally {
+      setSavingMode(null);
     }
   };
   const upload = async (files: FileList | File[], replaceAt?: number) => {
@@ -299,19 +341,37 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
           <button
             className="admin-secondary"
             onClick={() => save()}
-            disabled={saving}
+            disabled={savingMode !== null}
           >
-            {saving ? "保存中…" : "保存草稿"}
+            {savingMode === "draft" ? "保存中…" : "保存草稿"}
           </button>
           <button
             className="admin-primary"
             onClick={() => save("published")}
-            disabled={saving}
+            disabled={savingMode !== null}
           >
-            发布房源
+            {savingMode === "published" ? "发布中…" : "发布房源"}
           </button>
         </div>
       </div>
+      {saveNotice && (
+        <div
+          className={`save-notice ${saveNotice.type}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span>{saveNotice.type === "success" ? "✓" : "!"}</span>
+          <strong>{saveNotice.message}</strong>
+          {saveNotice.href && (
+            <a href={saveNotice.href} target="_blank" rel="noreferrer">
+              查看前台
+            </a>
+          )}
+          <button onClick={() => setSaveNotice(null)} aria-label="关闭提示">
+            ×
+          </button>
+        </div>
+      )}
       <div className="editor-layout">
         <aside className="step-nav">
           {steps.map((x, i) => (
