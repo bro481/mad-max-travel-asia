@@ -49,14 +49,32 @@ start.addEventListener("click", async () => {
         }
 
         const found = new Set();
+        const visiblePhotos = new Set();
         const collectVisible = () => {
           document.querySelectorAll("img").forEach((image) => {
+            const likelyPhoto =
+              image.naturalWidth >= 480 ||
+              image.getBoundingClientRect().width >= 220;
             [image.currentSrc, image.src, image.getAttribute("data-original-uri")]
               .filter(Boolean)
-              .forEach((url) => found.add(url));
+              .forEach((url) => {
+                found.add(url);
+                if (
+                  likelyPhoto &&
+                  url.includes("a0.muscache.com/im/pictures/")
+                )
+                  visiblePhotos.add(url);
+              });
             (image.srcset || "").split(",").forEach((entry) => {
               const url = entry.trim().split(/\s+/)[0];
-              if (url) found.add(url);
+              if (url) {
+                found.add(url);
+                if (
+                  likelyPhoto &&
+                  url.includes("a0.muscache.com/im/pictures/")
+                )
+                  visiblePhotos.add(url);
+              }
             });
           });
           performance
@@ -66,7 +84,7 @@ start.addEventListener("click", async () => {
 
         let stablePasses = 0;
         let previousCount = 0;
-        for (let pass = 0; pass < 80 && stablePasses < 4; pass += 1) {
+        for (let pass = 0; pass < 140 && stablePasses < 4; pass += 1) {
           collectVisible();
           const scrollables = [
             document.scrollingElement,
@@ -93,7 +111,6 @@ start.addEventListener("click", async () => {
           collectVisible();
           stablePasses =
             found.size === previousCount && !moved ? stablePasses + 1 : 0;
-          if (found.size === previousCount && moved) stablePasses += 1;
           previousCount = found.size;
         }
 
@@ -106,14 +123,15 @@ start.addEventListener("click", async () => {
             /https:\/\/a0\.muscache\.com\/im\/pictures\/[^"'\\\s<>()]+/gi,
           ) || [];
         matches.forEach((url) => found.add(url));
-        const clean = [...found]
+        const roomMatched = [...found].filter(
+          (url) =>
+            url.includes(`/Hosting-${roomId}/`) ||
+            url.includes(`/Hosting%20${roomId}/`),
+        );
+        const clean = [...visiblePhotos, ...roomMatched]
           .filter(Boolean)
           .map((url) => url.replace(/&amp;/g, "&").split("?")[0])
-          .filter(
-            (url) =>
-              url.includes(`/Hosting-${roomId}/`) ||
-              url.includes(`/Hosting%20${roomId}/`),
-          );
+          .filter((url) => url.includes("a0.muscache.com/im/pictures/"));
         return { roomId, urls: [...new Set(clean)], scanned: found.size };
       },
     });
