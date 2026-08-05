@@ -793,6 +793,7 @@ footer > small {
   width: 1px;
   background: var(--line);
 }
+.mobile-language{display:none}
 .room-detail {
   max-width: 1380px;
   margin: auto;
@@ -1079,15 +1080,7 @@ footer > small {
   }
 }
 @media (max-width: 760px) {
-  header > .header-right .language-switch {
-    position: absolute;
-    top: 70px;
-    right: 16px;
-    background: white;
-    padding: 6px 10px;
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-  }
+  header > .header-right .desktop-language{display:none}.mobile-language{display:flex;margin:8px 13px 5px;padding-top:14px;border-top:1px solid var(--line)}
   .room-detail {
     padding: 70px 16px 0;
   }
