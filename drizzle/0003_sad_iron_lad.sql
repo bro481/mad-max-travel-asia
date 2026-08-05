@@ -1,0 +1,1 @@
+ALTER TABLE `properties` ADD `image_categories` text DEFAULT '{}' NOT NULL;

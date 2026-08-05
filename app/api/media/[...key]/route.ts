@@ -1,0 +1,2 @@
+import {env} from "cloudflare:workers";import {NextResponse} from "next/server";
+export async function GET(_:Request,{params}:{params:Promise<{key:string[]}>}){const {key}=await params;const object=await env.IMAGES.get(key.join("/"));if(!object)return new NextResponse("Not found",{status:404});return new NextResponse(object.body,{headers:{"Content-Type":object.httpMetadata?.contentType||"application/octet-stream","Cache-Control":"public, max-age=31536000, immutable"}})}
