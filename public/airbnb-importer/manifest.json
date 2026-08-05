@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "MY Malaysia · Airbnb 图片导入",
-  "version": "1.1.0",
+  "version": "1.2.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArlmdIPhTsFnmtiZeEeL0gvqf4HP4aq5dU8VJMScK2njkKmXa6QGbhdr6rLxMeo/zlW+Ym9P3xV9Xi0VqaF1/XBO0CLnE0F6FqELcs+GU4OqMllN8SkFNt+4+4Pu0qThv59tNxSq4F9YvODFu+sE97VW8SL4GZpHFmSMGQyXxXZEEkhSFBpqLxqp7pv3MLxSZWEQFWCi2iFco3PyeLPLD2A4Y2D6Gi6YIOLI9x/o4EwsZNq/C613aprORZpVphBk70U3pYvsM0IlwnLPHZFv2AmnExdwgIpWYo89F+zRl8S4L2yLe7YJdeHz6cv3dHbOJu9y9rvgtJvn0UHp9+QuzGQIDAQAB",
   "description": "把当前 Airbnb 房源页面中的图片安全导入 MY Malaysia 后台。",
   "permissions": ["activeTab", "scripting"],
   "host_permissions": ["https://*.airbnb.com/*", "https://a0.muscache.com/*", "https://my-malaysia-stay-travel.dj202429336.chatgpt.site/*"],

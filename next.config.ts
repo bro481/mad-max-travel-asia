@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "ghndlmbjjkdonkbbbadnpapgdgncfchf",
+        "dcpcjabgpocjmbiaadhjdnjkiofmmkcj",
+        "jnndkdhenmlaelfpmecpllolcjoalmc",
+      ],
+      bodySizeLimit: "20mb",
+    },
+  },
 };
 
 export default nextConfig;
