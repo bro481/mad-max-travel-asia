@@ -48,3 +48,13 @@ export const properties = sqliteTable("properties", {
   status: text("status").notNull().default("draft"),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const imageImportSessions = sqliteTable("image_import_sessions", {
+  id: integer("id").primaryKey({ autoIncrement:true }),
+  code: text("code").notNull().unique(),
+  propertyId: integer("property_id"),
+  images: text("images").notNull().default("[]"),
+  expiresAt: text("expires_at").notNull(),
+  completedAt: text("completed_at"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});

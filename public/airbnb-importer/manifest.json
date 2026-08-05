@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "MY Malaysia · Airbnb 图片导入",
+  "version": "1.0.0",
+  "description": "把当前 Airbnb 房源页面中的图片安全导入 MY Malaysia 后台。",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://*.airbnb.com/*", "https://a0.muscache.com/*", "https://my-malaysia-stay-travel.dj202429336.chatgpt.site/*"],
+  "action": {"default_title": "导入 Airbnb 图片", "default_popup": "popup.html"}
+}
