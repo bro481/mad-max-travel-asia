@@ -1,2 +1,3 @@
-import { notFound } from "next/navigation";import { getProperty } from "../../../../db/properties";import { PropertyEditor } from "../property-editor";
-export default async function EditProperty({params}:{params:Promise<{id:string}>}){const {id}=await params;const item=await getProperty(Number(id));if(!item)notFound();return <PropertyEditor initial={item}/>}
+"use client";
+import {useEffect,useState} from "react";import {useParams} from "next/navigation";import type {PropertyRecord} from "../../../../db/properties";import { PropertyEditor } from "../property-editor";
+export default function EditProperty(){const params=useParams<{id:string}>();const [item,setItem]=useState<PropertyRecord|null>(null);useEffect(()=>{fetch(`/api/admin/properties/${params.id}`).then(async r=>{if(r.status===401){location.href=`/signin-with-chatgpt?return_to=${encodeURIComponent(`/admin/properties/${params.id}`)}`;return null}return r.json()}).then(setItem)},[params.id]);return item?<PropertyEditor initial={item}/>:<div className="admin-loading">正在加载房源…</div>}
