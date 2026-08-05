@@ -1,4 +1,4 @@
-MY Malaysia · Airbnb 图片导入扩展
+MAD MAX Malaysia Stay · Airbnb 图片导入扩展
 
 安装：
 1. 打开 chrome://extensions
@@ -7,7 +7,7 @@ MY Malaysia · Airbnb 图片导入扩展
 4. 选择本文件夹 airbnb-importer
 
 使用：
-1. 在 MY Malaysia 后台房源图片页生成一次性导入码
+1. 在 MAD MAX Malaysia Stay 后台房源图片页生成一次性导入码
 2. 打开 Airbnb 房源，并点击“显示所有照片”让图片加载
 3. 点击浏览器工具栏中的扩展，输入导入码
 4. 点击“扫描并导入当前房源”
