@@ -13,6 +13,27 @@ const steps = [
   "参考价格",
   "发布",
 ];
+const amenityOptions = [
+  "高速 WiFi",
+  "空调",
+  "设备齐全的厨房",
+  "洗衣机",
+  "免费停车",
+  "电视",
+  "吹风机",
+  "亲子友好",
+];
+const highlightTemplates = [
+  { title: "KLCC 城市景观", description: "可欣赏吉隆坡城市天际线与夜景" },
+  { title: "明亮通透", description: "大面积采光，空间明亮舒适" },
+  { title: "市中心便利位置", description: "购物、餐饮和热门景点都很方便" },
+  { title: "适合家庭与朋友", description: "宽敞公共空间，适合多人同行入住" },
+];
+const nearbyTemplates = [
+  { name: "KLCC 双子塔", type: "景点", distance: "约 5 分钟车程" },
+  { name: "Pavilion 商场", type: "购物", distance: "约 8 分钟车程" },
+  { name: "7-Eleven", type: "便利店", distance: "步行约 3 分钟" },
+];
 const blank: Omit<PropertyRecord, "id" | "updatedAt"> = {
   slug: "",
   nameZh: "",
@@ -30,23 +51,13 @@ const blank: Omit<PropertyRecord, "id" | "updatedAt"> = {
   bathrooms: 1,
   descriptionZh: "",
   descriptionEn: "",
-  amenities: [],
-  highlights: [],
-  nearby: [],
+  amenities: [...amenityOptions],
+  highlights: highlightTemplates.map((item) => ({ ...item })),
+  nearby: nearbyTemplates.map((item) => ({ ...item })),
   priceFrom: 0,
   priceNote: "旺季价格请咨询",
   status: "draft",
 };
-const amenityOptions = [
-  "高速 WiFi",
-  "空调",
-  "设备齐全的厨房",
-  "洗衣机",
-  "免费停车",
-  "电视",
-  "吹风机",
-  "亲子友好",
-];
 export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
   const [data, setData] = useState(initial || blank);
   const [propertyId, setPropertyId] = useState<number | null>(
@@ -65,9 +76,9 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
   const [imageMessage, setImageMessage] = useState("");
   const [importCode, setImportCode] = useState("");
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  const [brightness, setBrightness] = useState(112);
-  const [contrast, setContrast] = useState(103);
-  const [saturation, setSaturation] = useState(106);
+  const [brightness, setBrightness] = useState(118);
+  const [contrast, setContrast] = useState(94);
+  const [saturation, setSaturation] = useState(104);
   const fileInput = useRef<HTMLInputElement>(null);
   const replaceInput = useRef<HTMLInputElement>(null);
   const [replaceIndex, setReplaceIndex] = useState<number | null>(null);
@@ -192,9 +203,9 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
   };
   const preset = (name: "bright" | "natural" | "warm") => {
     if (name === "bright") {
-      setBrightness(115);
-      setContrast(104);
-      setSaturation(108);
+      setBrightness(118);
+      setContrast(94);
+      setSaturation(104);
     } else if (name === "warm") {
       setBrightness(108);
       setContrast(103);
@@ -777,6 +788,7 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
               items={data.highlights}
               onChange={(x) => set("highlights", x)}
               labels={["标题", "描述"]}
+              templates={highlightTemplates}
             />
           )}
           {step === 6 && (
@@ -786,6 +798,7 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
               items={data.nearby}
               onChange={(x) => set("nearby", x)}
               labels={["地点名称", "类型", "距离"]}
+              templates={nearbyTemplates}
             />
           )}
           {step === 7 && (
@@ -925,12 +938,14 @@ function Repeater({
   items,
   onChange,
   labels,
+  templates,
 }: {
   title: string;
   hint: string;
   items: Record<string, string>[];
   onChange: (x: Record<string, string>[]) => void;
   labels: string[];
+  templates?: Record<string, string>[];
 }) {
   const keys =
     title === "亮点" ? ["title", "description"] : ["name", "type", "distance"];
@@ -940,6 +955,37 @@ function Repeater({
         <h2>{title}</h2>
         <p>{hint}</p>
       </div>
+      {templates && (
+        <div className="template-options">
+          <b>常用选项（勾选后自动添加，可继续修改）</b>
+          <div>
+            {templates.map((template) => {
+              const identity = keys[0];
+              const checked = items.some(
+                (item) => item[identity] === template[identity],
+              );
+              return (
+                <label key={template[identity]}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) =>
+                      onChange(
+                        event.target.checked
+                          ? [...items, { ...template }]
+                          : items.filter(
+                              (item) => item[identity] !== template[identity],
+                            ),
+                      )
+                    }
+                  />
+                  <span>{template[identity]}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <div className="repeater">
         {items.map((item, i) => (
           <div key={i}>

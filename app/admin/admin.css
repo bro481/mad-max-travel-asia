@@ -767,6 +767,44 @@
   background: var(--a-soft);
   color: var(--a-green);
 }
+.template-options {
+  background: #f6f9f8;
+  border: 1px solid var(--a-line);
+  border-radius: 10px;
+  margin-bottom: 18px;
+  padding: 15px;
+}
+.template-options > b {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.template-options > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.template-options label {
+  position: relative;
+}
+.template-options input {
+  position: absolute;
+  opacity: 0;
+}
+.template-options span {
+  background: #fff;
+  border: 1px solid var(--a-line);
+  border-radius: 999px;
+  cursor: pointer;
+  display: block;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+.template-options input:checked + span {
+  background: var(--a-soft);
+  border-color: var(--a-green);
+  color: var(--a-green);
+}
 .repeater > div {
   border: 1px solid var(--a-line);
   border-radius: 9px;
