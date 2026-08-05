@@ -1,6 +1,6 @@
 "use client";
 import {FormEvent,useState} from "react";
-import {rooms,services,type Lang} from "./data";
+import {services,type Lang,type Room} from "./data";
 
 const locations=["Kuala Lumpur","Kota Kinabalu","Semporna"];
 const destinations={en:["Kuala Lumpur","Kota Kinabalu","Semporna","Singapore","Not decided yet"],zh:["吉隆坡 Kuala Lumpur","亚庇 Kota Kinabalu","仙本那 Semporna","新加坡 Singapore","还没决定"]};
@@ -13,7 +13,7 @@ const c={
 };
 function Logo(){return <a className="logo" href="#top"><span className="logo-mark">⌂</span><span><b>MY MALAYSIA</b><small>STAY &amp; TRAVEL</small></span></a>}
 
-export function HomePage(){
+export function HomePage({rooms}:{rooms:Room[]}){
  const[lang,setLang]=useState<Lang>("zh"),[status,setStatus]=useState(""),[sent,setSent]=useState(false),[menu,setMenu]=useState(false);const t=c[lang];
  async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setStatus(t.sending);const form=e.currentTarget,fd=new FormData(form);const body={name:fd.get("name"),contact:fd.get("contact"),destinations:fd.getAll("destinations"),services:fd.getAll("services"),travelTime:fd.get("travelTime"),message:fd.get("message")};const res=await fetch("/api/inquiries",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});if(res.ok){form.reset();setStatus("");setSent(true)}else setStatus(t.error)}
  return <><header id="top"><Logo/><button className="menu-btn" onClick={()=>setMenu(!menu)}>{menu?"×":"☰"}</button><nav className={menu?"open":""}><a href="#stays">{t.rooms}</a><a href="#services">{t.services}</a><a href="#contact">{t.contact}</a></nav><div className="header-right"><div className="language-switch"><button className={lang==="zh"?"active":""} onClick={()=>setLang("zh")}>中文</button><i/><button className={lang==="en"?"active":""} onClick={()=>setLang("en")}>English</button></div><a className="button header-cta" href="#contact">{t.submit}</a></div></header>

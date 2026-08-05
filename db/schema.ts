@@ -34,6 +34,7 @@ export const properties = sqliteTable("properties", {
   tags: text("tags").notNull().default("[]"),
   images: text("images").notNull().default("[]"),
   imageCategories: text("image_categories").notNull().default("{}"),
+  imageOriginals: text("image_originals").notNull().default("{}"),
   guests: integer("guests").notNull().default(2),
   bedrooms: integer("bedrooms").notNull().default(1),
   beds: integer("beds").notNull().default(1),

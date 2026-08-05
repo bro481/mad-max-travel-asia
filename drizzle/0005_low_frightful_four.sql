@@ -1,0 +1,1 @@
+ALTER TABLE `properties` ADD `image_originals` text DEFAULT '{}' NOT NULL;
