@@ -243,6 +243,46 @@ nav a:hover {
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
 }
+.layout-guide {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  margin: -18px auto 34px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.layout-guide::-webkit-scrollbar { display: none; }
+.layout-guide button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--muted);
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+.layout-guide button:hover,
+.layout-guide button.active {
+  border-color: var(--gold);
+  background: #efe4d7;
+  color: var(--ink);
+}
+.layout-guide small {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.78);
+  font-size: 9px;
+}
 .room-card,
 .service-card {
   background: var(--paper);
@@ -715,6 +755,11 @@ footer > small {
   }
   .location {
     margin-top: 42px;
+  }
+  .layout-guide {
+    justify-content: flex-start;
+    margin: -10px 0 26px;
+    padding-bottom: 3px;
   }
   .room-grid,
   .service-grid {

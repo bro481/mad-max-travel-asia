@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { rooms } from "../app/data";
 import type {Room,Localized} from "../app/data";
+import {inferRoomCounts} from "../lib/room-layout";
 
 export type PropertyRecord = {
   id:number; slug:string; nameZh:string; nameEn:string; city:string; areaZh:string; areaEn:string;
@@ -43,4 +44,4 @@ export async function getPublishedPropertyBySlug(slug:string){await ensureProper
 
 const cityNames:Record<string,Localized>={"吉隆坡":{zh:"吉隆坡",en:"Kuala Lumpur"},"亚庇":{zh:"亚庇",en:"Kota Kinabalu"},"仙本那":{zh:"仙本那",en:"Semporna"}};
 const amenityEn:Record<string,string>={"高速 WiFi":"High-speed WiFi","空调":"Air Conditioning","设备齐全的厨房":"Fully Equipped Kitchen","洗衣机":"Washer","免费停车":"Free Parking","电视":"TV","吹风机":"Hair Dryer","亲子友好":"Family Friendly"};
-export function propertyToRoom(item:PropertyRecord):Room{const loc=cityNames[item.city]||{zh:item.city,en:item.city};const localized=(value:string):Localized=>({zh:value,en:value});return {id:item.slug,name:{zh:item.nameZh,en:item.nameEn},location:loc,area:{zh:item.areaZh,en:item.areaEn||item.areaZh},image:item.images[0]||"",images:item.images,guests:item.guests,bedrooms:item.bedrooms,beds:item.beds,bathrooms:item.bathrooms,priceFrom:item.priceFrom,description:{zh:item.descriptionZh,en:item.descriptionEn||item.descriptionZh},amenities:item.amenities.map((name,i)=>({name:{zh:name,en:amenityEn[name]||name},icon:["⌁","❄","⌂","◉","P","▣","≈","♙"][i%8]})),highlights:item.highlights.map((h,i)=>({name:localized(h.title),icon:["✨","📍","🌅","🌊"][i%4]})),nearbyPlaces:item.nearby.map((p,i)=>({name:localized(p.name),category:localized(p.type),distance:localized(p.distance),icon:["📍","🛍","✈","⛵"][i%4]}))}}
+export function propertyToRoom(item:PropertyRecord):Room{const loc=cityNames[item.city]||{zh:item.city,en:item.city};const localized=(value:string):Localized=>({zh:value,en:value});const counts=inferRoomCounts(item.nameZh,item.nameEn,item.bedrooms,item.bathrooms);return {id:item.slug,name:{zh:item.nameZh,en:item.nameEn},location:loc,area:{zh:item.areaZh,en:item.areaEn||item.areaZh},image:item.images[0]||"",images:item.images,guests:item.guests,bedrooms:counts.bedrooms,beds:item.beds,bathrooms:counts.bathrooms,priceFrom:item.priceFrom,description:{zh:item.descriptionZh,en:item.descriptionEn||item.descriptionZh},amenities:item.amenities.map((name,i)=>({name:{zh:name,en:amenityEn[name]||name},icon:["⌁","❄","⌂","◉","P","▣","≈","♙"][i%8]})),highlights:item.highlights.map((h,i)=>({name:localized(h.title),icon:["✨","📍","🌅","🌊"][i%4]})),nearbyPlaces:item.nearby.map((p,i)=>({name:localized(p.name),category:localized(p.type),distance:localized(p.distance),icon:["📍","🛍","✈","⛵"][i%4]}))}}

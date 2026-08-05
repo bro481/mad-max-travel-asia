@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import type { PropertyRecord } from "../../../db/properties";
+import { inferRoomCounts, roomLayoutLabel } from "../../../lib/room-layout";
 const steps = [
   "基础信息",
   "图片",
@@ -88,7 +89,8 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
     const mode = status === "published" ? "published" : "draft";
     setSavingMode(mode);
     setSaveNotice(null);
-    const next = { ...data, status: status || data.status };
+    const inferred = inferRoomCounts(data.nameZh, data.nameEn, data.bedrooms, data.bathrooms);
+    const next = { ...data, ...inferred, status: status || data.status };
     try {
       let id = propertyId;
       let saved = next;
@@ -719,7 +721,7 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
           {step === 2 && (
             <Block
               title="空间信息"
-              desc="使用统一数字字段，让前台信息保持一致。"
+              desc={`自动识别为“${roomLayoutLabel(inferRoomCounts(data.nameZh,data.nameEn,data.bedrooms,data.bathrooms).bedrooms,inferRoomCounts(data.nameZh,data.nameEn,data.bedrooms,data.bathrooms).bathrooms,"zh")}”。标题含“两室一卫”等文字时，保存后会自动归入对应房型。`}
             >
               <div className="stat-inputs">
                 {[
