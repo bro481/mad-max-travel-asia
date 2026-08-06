@@ -223,10 +223,30 @@ const footage = [
   "photo-1549317661-bd32c8ce0db2",
 ];
 const galleryPools = [
-  ["photo-1596422846543-75c6fc197f07", "photo-1536599018102-9f803c140fc1", "photo-1582883049036-dfe40c02521b", "photo-1528127269322-539801943592"],
-  ["photo-1500530855697-b586d89ba3ee", "photo-1441974231531-c6227db76b6e", "photo-1500595046743-cd271d694d30", "photo-1511497584788-876760111969"],
-  ["photo-1596422846543-75c6fc197f07", "photo-1536599018102-9f803c140fc1", "photo-1525625293386-3f8f99389edd", "photo-1549317661-bd32c8ce0db2"],
-  ["photo-1500534314209-a25ddb2bd429", "photo-1507525428034-b723cf961d3e", "photo-1510414842594-a61c69b5ae57", "photo-1544551763-46a013bb70d5"],
+  [
+    "photo-1596422846543-75c6fc197f07",
+    "photo-1536599018102-9f803c140fc1",
+    "photo-1582883049036-dfe40c02521b",
+    "photo-1528127269322-539801943592",
+  ],
+  [
+    "photo-1500530855697-b586d89ba3ee",
+    "photo-1441974231531-c6227db76b6e",
+    "photo-1500595046743-cd271d694d30",
+    "photo-1511497584788-876760111969",
+  ],
+  [
+    "photo-1596422846543-75c6fc197f07",
+    "photo-1536599018102-9f803c140fc1",
+    "photo-1525625293386-3f8f99389edd",
+    "photo-1549317661-bd32c8ce0db2",
+  ],
+  [
+    "photo-1500534314209-a25ddb2bd429",
+    "photo-1507525428034-b723cf961d3e",
+    "photo-1510414842594-a61c69b5ae57",
+    "photo-1544551763-46a013bb70d5",
+  ],
 ].map((group) => group.map((id) => photo(id, 1000)));
 function Logo() {
   return (
@@ -239,14 +259,85 @@ function Logo() {
     </a>
   );
 }
-export function ServiceDetail({ service }: { service: ServiceCategory }) {
+export function ServiceDetail({
+  service,
+  city,
+}: {
+  service: ServiceCategory;
+  city: string;
+}) {
   const [lang, setLang] = useState<Lang>("zh"),
     [selected, setSelected] = useState<Route | null>(null),
     [photoIndex, setPhotoIndex] = useState(0),
     [menu, setMenu] = useState(false);
   const zh = lang === "zh",
     l = zh ? 0 : 1;
-  const selectedRouteIndex = selected ? routes.indexOf(selected) : 0;
+  const cityInfo =
+    city === "kl"
+      ? {
+          name: ["吉隆坡", "Kuala Lumpur"],
+          hero: ["吉隆坡私人包车", "Kuala Lumpur Private Car"],
+          intro: [
+            "自由安排路线，舒适探索吉隆坡市区与周边景点。",
+            "Explore Kuala Lumpur and nearby highlights with a flexible private itinerary.",
+          ],
+        }
+      : city === "melaka"
+        ? {
+            name: ["马六甲", "Melaka"],
+            hero: ["马六甲一日包车", "Melaka Private Car"],
+            intro: [
+              "专车往返，轻松探索古城、美食与河岸风光。",
+              "Discover Melaka's heritage, food and riverside at an easy pace.",
+            ],
+          }
+        : {
+            name: ["亚庇", "Kota Kinabalu"],
+            hero: ["亚庇私人包车", "Kota Kinabalu Private Car"],
+            intro: [
+              "自由安排路线，舒适探索亚庇热门景点。",
+              "Explore Kota Kinabalu comfortably with a flexible private itinerary.",
+            ],
+          };
+  const klTitles: Array<[[string, string], [string, string]]> = [
+    [
+      ["吉隆坡经典一日游", "Kuala Lumpur Classic Day"],
+      [
+        "双子塔、独立广场与茨厂街",
+        "Twin Towers, Merdeka Square and Petaling Street",
+      ],
+    ],
+    [
+      ["黑风洞文化路线", "Batu Caves & Culture"],
+      [
+        "黑风洞、国家皇宫与城市地标",
+        "Batu Caves, National Palace and city landmarks",
+      ],
+    ],
+    [
+      ["美食购物休闲路线", "Food & Shopping Day"],
+      [
+        "武吉免登、Pavilion与当地美食",
+        "Bukit Bintang, Pavilion and local food",
+      ],
+    ],
+    [
+      ["马六甲跨城一日游", "Melaka Day Trip"],
+      [
+        "古城文化、鸡场街与河岸风光",
+        "Heritage sites, Jonker Street and the riverside",
+      ],
+    ],
+  ];
+  const displayRoutes =
+    city === "kl"
+      ? routes.map((route, index) => ({
+          ...route,
+          title: klTitles[index][0],
+          summary: klTitles[index][1],
+        }))
+      : routes;
+  const selectedRouteIndex = selected ? displayRoutes.indexOf(selected) : 0;
   const modalImages = selected ? galleryPools[selectedRouteIndex] : [];
   return (
     <>
@@ -292,12 +383,8 @@ export function ServiceDetail({ service }: { service: ServiceCategory }) {
           <div className="car-hero-copy">
             <a href="/services">← {zh ? "返回当地服务" : "Back to services"}</a>
             <p className="eyebrow">MAD MAX · PRIVATE DRIVER</p>
-            <h1>{zh ? "亚庇私人包车" : "Kota Kinabalu Private Car"}</h1>
-            <p>
-              {zh
-                ? "自由安排路线，舒适探索亚庇热门景点。"
-                : "Explore Kota Kinabalu comfortably with a flexible private itinerary."}
-            </p>
+            <h1>{cityInfo.hero[l]}</h1>
+            <p>{cityInfo.intro[l]}</p>
             <div>
               <span>{zh ? "中文沟通" : "Chinese support"}</span>
               <span>{zh ? "路线灵活" : "Flexible route"}</span>
@@ -316,7 +403,7 @@ export function ServiceDetail({ service }: { service: ServiceCategory }) {
             </p>
           </div>
           <div className="route-grid">
-            {routes.map((route) => (
+            {displayRoutes.map((route) => (
               <button
                 className="route-card"
                 onClick={() => {
@@ -366,14 +453,16 @@ export function ServiceDetail({ service }: { service: ServiceCategory }) {
         <section className="footage-section">
           <div className="detail-heading">
             <p className="eyebrow">FOOTAGE</p>
-            <h2>{zh ? "亚庇旅行实拍" : "Kota Kinabalu Travel Moments"}</h2>
+            <h2>
+              {cityInfo.name[l]} {zh ? "旅行实拍" : "Travel Moments"}
+            </h2>
           </div>
           <div>
             {footage.map((id, i) => (
               <img
                 key={id}
                 src={photo(id, 700)}
-                alt={`${zh ? "亚庇旅行实拍" : "Kota Kinabalu travel"} ${i + 1}`}
+                alt={`${cityInfo.name[l]} ${zh ? "旅行实拍" : "travel"} ${i + 1}`}
               />
             ))}
           </div>
@@ -411,14 +500,40 @@ export function ServiceDetail({ service }: { service: ServiceCategory }) {
             </button>
             <div className="modal-gallery">
               <div className="modal-gallery-main">
-                <img src={modalImages[photoIndex]} alt={`${selected.title[l]} ${photoIndex + 1}`} />
-                <button onClick={() => setPhotoIndex((photoIndex - 1 + modalImages.length) % modalImages.length)} aria-label={zh ? "上一张图片" : "Previous photo"}>‹</button>
-                <button onClick={() => setPhotoIndex((photoIndex + 1) % modalImages.length)} aria-label={zh ? "下一张图片" : "Next photo"}>›</button>
-                <span>{photoIndex + 1}/{modalImages.length}</span>
+                <img
+                  src={modalImages[photoIndex]}
+                  alt={`${selected.title[l]} ${photoIndex + 1}`}
+                />
+                <button
+                  onClick={() =>
+                    setPhotoIndex(
+                      (photoIndex - 1 + modalImages.length) %
+                        modalImages.length,
+                    )
+                  }
+                  aria-label={zh ? "上一张图片" : "Previous photo"}
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={() =>
+                    setPhotoIndex((photoIndex + 1) % modalImages.length)
+                  }
+                  aria-label={zh ? "下一张图片" : "Next photo"}
+                >
+                  ›
+                </button>
+                <span>
+                  {photoIndex + 1}/{modalImages.length}
+                </span>
               </div>
               <div className="modal-gallery-thumbs">
                 {modalImages.map((image, i) => (
-                  <button className={i === photoIndex ? "active" : ""} onClick={() => setPhotoIndex(i)} key={image}>
+                  <button
+                    className={i === photoIndex ? "active" : ""}
+                    onClick={() => setPhotoIndex(i)}
+                    key={image}
+                  >
                     <img src={image} alt="" />
                   </button>
                 ))}

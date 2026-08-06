@@ -656,7 +656,7 @@ export function ServicesPage({ services }: { services: ServiceCategory[] }) {
                           className="offer-card"
                           onClick={() =>
                             hasFullPage
-                              ? (window.location.href = "/services/private-car")
+                              ? (window.location.href = `/services/private-car?city=${place.key}`)
                               : setSelectedOffer(item)
                           }
                           key={item.title[0]}
@@ -764,7 +764,17 @@ export function ServicesPage({ services }: { services: ServiceCategory[] }) {
             >
               ×
             </button>
-            <img src={selectedOffer.image} alt={selectedOffer.title[l]} />
+            <div className="quick-modal-visual">
+              <img src={selectedOffer.image} alt={selectedOffer.title[l]} />
+              <div>
+                <span>{lang === "zh" ? "专属安排" : "PERSONAL SERVICE"}</span>
+                <b>
+                  {lang === "zh"
+                    ? "轻松出发，安心抵达"
+                    : "An easy journey, thoughtfully arranged"}
+                </b>
+              </div>
+            </div>
             <section>
               <p className="eyebrow">MAD MAX · LOCAL SERVICE</p>
               <h2>{selectedOffer.title[l]}</h2>
@@ -773,6 +783,26 @@ export function ServicesPage({ services }: { services: ServiceCategory[] }) {
                 {selectedOffer.tags.map((tag) => (
                   <span key={tag[0]}>✓ {tag[l]}</span>
                 ))}
+              </div>
+              <div className="quick-modal-flow">
+                <div>
+                  <b>01</b>
+                  <span>
+                    {lang === "zh" ? "告诉我们行程" : "Share your plan"}
+                  </span>
+                </div>
+                <i />
+                <div>
+                  <b>02</b>
+                  <span>
+                    {lang === "zh" ? "确认合适安排" : "Confirm details"}
+                  </span>
+                </div>
+                <i />
+                <div>
+                  <b>03</b>
+                  <span>{lang === "zh" ? "轻松出发" : "Travel with ease"}</span>
+                </div>
               </div>
               <div className="quick-modal-info">
                 <h3>
