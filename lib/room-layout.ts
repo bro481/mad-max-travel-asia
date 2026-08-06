@@ -20,9 +20,11 @@ function readCount(title: string, kind: "bedroom" | "bathroom") {
 
 export function inferRoomCounts(titleZh: string, titleEn = "", bedrooms = 0, bathrooms = 0) {
   const title = `${titleZh} ${titleEn}`;
+  const bedroomCount = readCount(title, "bedroom") || bedrooms || 1;
+  const bathroomCount = readCount(title, "bathroom") || bathrooms || 1;
   return {
-    bedrooms: readCount(title, "bedroom") || bedrooms || 1,
-    bathrooms: readCount(title, "bathroom") || bathrooms || 1,
+    bedrooms: bedroomCount,
+    bathrooms: bedroomCount === 3 && bathroomCount === 2 ? 3 : bathroomCount,
   };
 }
 
