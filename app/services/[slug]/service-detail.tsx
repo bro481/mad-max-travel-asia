@@ -1,14 +1,458 @@
 "use client";
-import {useState} from "react";import type {ServiceCategory} from "../../../db/services";
-type Lang="zh"|"en";type Route={title:[string,string];duration:[string,string];summary:[string,string];tags:[[string,string],[string,string]];image:string;stops:{time:string;title:[string,string];note:[string,string];image?:string}[]};
-const photo=(id:string,w=1200)=>`https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
-const routes:Route[]=[
- {title:["亚庇经典一日游","Kota Kinabalu Classic Day"],duration:["约8小时","About 8 hours"],summary:["水上清真寺、文化村与市区精华","Mosque, cultural village and city highlights"],tags:[["首次到访","First visit"],["轻松体验","Easy pace"]],image:photo("photo-1596422846543-75c6fc197f07"),stops:[{time:"09:00",title:["酒店接送","Hotel pickup"],note:["从亚庇市区酒店出发","Depart from your Kota Kinabalu hotel"]},{time:"10:00",title:["水上清真寺","Floating Mosque"],note:["欣赏湖畔建筑与城市风光","Enjoy the lakeside architecture"]},{time:"12:00",title:["当地午餐","Local lunch"],note:["按口味推荐当地餐厅","A local restaurant suited to your taste"]},{time:"14:00",title:["文化村体验","Cultural village"],note:["认识沙巴多元文化","Discover Sabah's diverse culture"]},{time:"17:00",title:["返回酒店","Return to hotel"],note:["结束轻松的一日行程","A relaxed end to the day"]}]},
- {title:["神山自然体验","Kinabalu Nature Experience"],duration:["约10小时","About 10 hours"],summary:["神山公园、吊桥与奶牛牧场","Kinabalu Park, canopy walk and dairy farm"],tags:[["家庭友好","Family friendly"],["自然景观","Nature"]],image:photo("photo-1500530855697-b586d89ba3ee"),stops:[{time:"08:00",title:["酒店接送","Hotel pickup"],note:["司机在酒店大堂接您出发","Meet your driver in the hotel lobby"]},{time:"09:30",title:["神山公园","Kinabalu Park"],note:["欣赏神山壮丽景色，拍照打卡","Mountain views and a relaxed walk"],image:photo("photo-1500530855697-b586d89ba3ee",500)},{time:"12:00",title:["吊桥体验","Canopy walk"],note:["体验雨林吊桥，感受热带森林","Experience the rainforest canopy"],image:photo("photo-1441974231531-c6227db76b6e",500)},{time:"14:00",title:["奶牛牧场","Dairy farm"],note:["与奶牛互动，享受自然风光","Farm visit and pastoral scenery"],image:photo("photo-1500595046743-cd271d694d30",500)},{time:"17:30",title:["返回酒店","Return to hotel"],note:["轻松愉快地结束行程","Relax on the journey back"]}]},
- {title:["市区休闲包车","Relaxed City Tour"],duration:["约6小时","About 6 hours"],summary:["双子塔、加雅街与当地美食","City sights, Gaya Street and local food"],tags:[["适合购物","Shopping"],["美食探索","Food discovery"]],image:photo("photo-1596422846543-75c6fc197f07"),stops:[{time:"10:00",title:["酒店接送","Hotel pickup"],note:["按您的时间轻松出发","Leave at a time that suits you"]},{time:"10:30",title:["城市地标","City landmarks"],note:["参观亚庇市区热门景点","Visit Kota Kinabalu highlights"]},{time:"12:30",title:["当地美食","Local food"],note:["品尝沙巴特色风味","Taste flavours from Sabah"]},{time:"14:00",title:["购物时间","Shopping time"],note:["自由选购当地特产","Browse local products at your pace"]},{time:"16:00",title:["返回酒店","Return to hotel"],note:["送回酒店或市区指定地点","Hotel or preferred city drop-off"]}]},
- {title:["海边日落体验","Sunset by the Sea"],duration:["约5小时","About 5 hours"],summary:["海滩漫步、日落景观与海鲜晚餐","Beach walk, sunset and seafood dinner"],tags:[["情侣推荐","For couples"],["放松体验","Relaxed"]],image:photo("photo-1500534314209-a25ddb2bd429"),stops:[{time:"15:00",title:["酒店接送","Hotel pickup"],note:["下午从酒店轻松出发","An easy afternoon departure"]},{time:"15:30",title:["海边漫步","Beach walk"],note:["在海边享受悠闲时光","Relax by the sea"]},{time:"17:30",title:["日落观赏","Sunset viewing"],note:["等待沙巴迷人的海上日落","Watch Sabah's beautiful sunset"],image:photo("photo-1500534314209-a25ddb2bd429",500)},{time:"19:00",title:["海鲜晚餐","Seafood dinner"],note:["根据喜好推荐餐厅","A restaurant recommendation for your group"]},{time:"20:00",title:["返回酒店","Return to hotel"],note:["安全送回住宿地点","Safe transfer back to your stay"]}]}
+import { useState } from "react";
+import type { ServiceCategory } from "../../../db/services";
+type Lang = "zh" | "en";
+type Route = {
+  title: [string, string];
+  duration: [string, string];
+  summary: [string, string];
+  tags: [[string, string], [string, string]];
+  image: string;
+  stops: {
+    time: string;
+    title: [string, string];
+    note: [string, string];
+    image?: string;
+  }[];
+};
+const photo = (id: string, w = 1200) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
+const routes: Route[] = [
+  {
+    title: ["亚庇经典一日游", "Kota Kinabalu Classic Day"],
+    duration: ["约8小时", "About 8 hours"],
+    summary: [
+      "水上清真寺、文化村与市区精华",
+      "Mosque, cultural village and city highlights",
+    ],
+    tags: [
+      ["首次到访", "First visit"],
+      ["轻松体验", "Easy pace"],
+    ],
+    image: photo("photo-1596422846543-75c6fc197f07"),
+    stops: [
+      {
+        time: "09:00",
+        title: ["酒店接送", "Hotel pickup"],
+        note: ["从亚庇市区酒店出发", "Depart from your Kota Kinabalu hotel"],
+      },
+      {
+        time: "10:00",
+        title: ["水上清真寺", "Floating Mosque"],
+        note: ["欣赏湖畔建筑与城市风光", "Enjoy the lakeside architecture"],
+      },
+      {
+        time: "12:00",
+        title: ["当地午餐", "Local lunch"],
+        note: ["按口味推荐当地餐厅", "A local restaurant suited to your taste"],
+      },
+      {
+        time: "14:00",
+        title: ["文化村体验", "Cultural village"],
+        note: ["认识沙巴多元文化", "Discover Sabah's diverse culture"],
+      },
+      {
+        time: "17:00",
+        title: ["返回酒店", "Return to hotel"],
+        note: ["结束轻松的一日行程", "A relaxed end to the day"],
+      },
+    ],
+  },
+  {
+    title: ["神山自然体验", "Kinabalu Nature Experience"],
+    duration: ["约10小时", "About 10 hours"],
+    summary: [
+      "神山公园、吊桥与奶牛牧场",
+      "Kinabalu Park, canopy walk and dairy farm",
+    ],
+    tags: [
+      ["家庭友好", "Family friendly"],
+      ["自然景观", "Nature"],
+    ],
+    image: photo("photo-1500530855697-b586d89ba3ee"),
+    stops: [
+      {
+        time: "08:00",
+        title: ["酒店接送", "Hotel pickup"],
+        note: ["司机在酒店大堂接您出发", "Meet your driver in the hotel lobby"],
+      },
+      {
+        time: "09:30",
+        title: ["神山公园", "Kinabalu Park"],
+        note: [
+          "欣赏神山壮丽景色，拍照打卡",
+          "Mountain views and a relaxed walk",
+        ],
+        image: photo("photo-1500530855697-b586d89ba3ee", 500),
+      },
+      {
+        time: "12:00",
+        title: ["吊桥体验", "Canopy walk"],
+        note: [
+          "体验雨林吊桥，感受热带森林",
+          "Experience the rainforest canopy",
+        ],
+        image: photo("photo-1441974231531-c6227db76b6e", 500),
+      },
+      {
+        time: "14:00",
+        title: ["奶牛牧场", "Dairy farm"],
+        note: ["与奶牛互动，享受自然风光", "Farm visit and pastoral scenery"],
+        image: photo("photo-1500595046743-cd271d694d30", 500),
+      },
+      {
+        time: "17:30",
+        title: ["返回酒店", "Return to hotel"],
+        note: ["轻松愉快地结束行程", "Relax on the journey back"],
+      },
+    ],
+  },
+  {
+    title: ["市区休闲包车", "Relaxed City Tour"],
+    duration: ["约6小时", "About 6 hours"],
+    summary: [
+      "双子塔、加雅街与当地美食",
+      "City sights, Gaya Street and local food",
+    ],
+    tags: [
+      ["适合购物", "Shopping"],
+      ["美食探索", "Food discovery"],
+    ],
+    image: photo("photo-1596422846543-75c6fc197f07"),
+    stops: [
+      {
+        time: "10:00",
+        title: ["酒店接送", "Hotel pickup"],
+        note: ["按您的时间轻松出发", "Leave at a time that suits you"],
+      },
+      {
+        time: "10:30",
+        title: ["城市地标", "City landmarks"],
+        note: ["参观亚庇市区热门景点", "Visit Kota Kinabalu highlights"],
+      },
+      {
+        time: "12:30",
+        title: ["当地美食", "Local food"],
+        note: ["品尝沙巴特色风味", "Taste flavours from Sabah"],
+      },
+      {
+        time: "14:00",
+        title: ["购物时间", "Shopping time"],
+        note: ["自由选购当地特产", "Browse local products at your pace"],
+      },
+      {
+        time: "16:00",
+        title: ["返回酒店", "Return to hotel"],
+        note: ["送回酒店或市区指定地点", "Hotel or preferred city drop-off"],
+      },
+    ],
+  },
+  {
+    title: ["海边日落体验", "Sunset by the Sea"],
+    duration: ["约5小时", "About 5 hours"],
+    summary: [
+      "海滩漫步、日落景观与海鲜晚餐",
+      "Beach walk, sunset and seafood dinner",
+    ],
+    tags: [
+      ["情侣推荐", "For couples"],
+      ["放松体验", "Relaxed"],
+    ],
+    image: photo("photo-1500534314209-a25ddb2bd429"),
+    stops: [
+      {
+        time: "15:00",
+        title: ["酒店接送", "Hotel pickup"],
+        note: ["下午从酒店轻松出发", "An easy afternoon departure"],
+      },
+      {
+        time: "15:30",
+        title: ["海边漫步", "Beach walk"],
+        note: ["在海边享受悠闲时光", "Relax by the sea"],
+      },
+      {
+        time: "17:30",
+        title: ["日落观赏", "Sunset viewing"],
+        note: ["等待沙巴迷人的海上日落", "Watch Sabah's beautiful sunset"],
+        image: photo("photo-1500534314209-a25ddb2bd429", 500),
+      },
+      {
+        time: "19:00",
+        title: ["海鲜晚餐", "Seafood dinner"],
+        note: [
+          "根据喜好推荐餐厅",
+          "A restaurant recommendation for your group",
+        ],
+      },
+      {
+        time: "20:00",
+        title: ["返回酒店", "Return to hotel"],
+        note: ["安全送回住宿地点", "Safe transfer back to your stay"],
+      },
+    ],
+  },
 ];
-const vehicles=[{name:"Alphard",people:"4–6",image:photo("photo-1549317661-bd32c8ce0db2",600)},{name:"MPV · Innova",people:"3–5",image:photo("photo-1504215680853-026ed2a45def",600)},{name:"Van",people:"7–10",image:photo("photo-1469854523086-cc02fe5d8800",600)},{name:"Sedan",people:"1–3",image:photo("photo-1503376780353-7e6692767b70",600)}];
-const footage=["photo-1596422846543-75c6fc197f07","photo-1500595046743-cd271d694d30","photo-1507525428034-b723cf961d3e","photo-1500534314209-a25ddb2bd429","photo-1544551763-46a013bb70d5","photo-1549317661-bd32c8ce0db2"];
-function Logo(){return <a className="logo" href="/"><span className="logo-mark">⌂</span><span><b>MAD MAX</b><small>MALAYSIA STAY</small></span></a>}
-export function ServiceDetail({service}:{service:ServiceCategory}){const[lang,setLang]=useState<Lang>("zh"),[selected,setSelected]=useState<Route|null>(null),[menu,setMenu]=useState(false);const zh=lang==="zh",l=zh?0:1;return <><header><Logo/><button className="menu-btn" onClick={()=>setMenu(!menu)}>{menu?"×":"☰"}</button><nav className={menu?"open":""}><a href="/#stays">{zh?"房源":"Stays"}</a><a className="active-nav" href="/services">{zh?"当地服务":"Local Services"}</a><a href="/#contact">{zh?"联系我们":"Contact"}</a></nav><div className="header-right"><div className="language-switch desktop-language"><button className={zh?"active":""} onClick={()=>setLang("zh")}>中文</button><i/><button className={!zh?"active":""} onClick={()=>setLang("en")}>English</button></div><a className="button header-cta" href="/#contact">{zh?"提交咨询":"Submit inquiry"}</a></div></header><main className="car-detail"><section className="car-hero"><img src={service.image||photo("photo-1549317661-bd32c8ce0db2")} alt={zh?service.nameZh:service.nameEn}/><div className="car-hero-copy"><a href="/services">← {zh?"返回当地服务":"Back to services"}</a><p className="eyebrow">MAD MAX · PRIVATE DRIVER</p><h1>{zh?"亚庇私人包车":"Kota Kinabalu Private Car"}</h1><p>{zh?"自由安排路线，舒适探索亚庇热门景点。":"Explore Kota Kinabalu comfortably with a flexible private itinerary."}</p><div><span>{zh?"中文沟通":"Chinese support"}</span><span>{zh?"路线灵活":"Flexible route"}</span><span>{zh?"舒适安全":"Safe & comfortable"}</span></div></div><aside><p className="eyebrow">{zh?"咨询包车方案":"PRIVATE TRAVEL SUPPORT"}</p><h2>{zh?"告诉我们想去的地方":"Tell us where you'd like to go"}</h2><p>{zh?"提供人数、日期和大概想法，我们会为您安排合适路线。":"Share your group size, dates and ideas, and we will suggest a suitable route."}</p><a className="button" href="/#contact">{zh?"提交咨询":"Submit inquiry"}</a><a href="/#contact">WhatsApp {zh?"咨询":"enquiry"}</a></aside></section><section className="route-section"><div className="detail-heading"><p className="eyebrow">{zh?"轻松选择":"EASY TO CHOOSE"}</p><h2>{zh?"热门包车方案":"Popular Private Car Routes"}</h2><p>{zh?"以下路线仅作参考，可根据您的时间与兴趣灵活调整。":"These routes are examples and can be adjusted around your time and interests."}</p></div><div className="route-grid">{routes.map(route=><button className="route-card" onClick={()=>setSelected(route)} key={route.title[0]}><img src={route.image} alt={route.title[l]}/><div><h3>{route.title[l]}</h3><p><span>{route.duration[l]}</span><span>{route.tags[0][l]}</span></p><small>{route.summary[l]}</small><b>{zh?"查看路线":"View route"} →</b></div></button>)}</div></section><section className="vehicle-section"><div className="detail-heading left"><p className="eyebrow">{zh?"舒适出行":"TRAVEL IN COMFORT"}</p><h2>{zh?"车型选择":"Vehicle Options"}</h2></div><div className="vehicle-grid">{vehicles.map(v=><article key={v.name}><img src={v.image} alt={v.name}/><div><h3>{v.name}</h3><p>{v.people} {zh?"位乘客":"passengers"}</p><small>{zh?"具体车型以当天安排为准":"Vehicle subject to availability"}</small></div></article>)}</div></section><section className="footage-section"><div className="detail-heading"><p className="eyebrow">FOOTAGE</p><h2>{zh?"亚庇旅行实拍":"Kota Kinabalu Travel Moments"}</h2></div><div>{footage.map((id,i)=><img key={id} src={photo(id,700)} alt={`${zh?"亚庇旅行实拍":"Kota Kinabalu travel"} ${i+1}`}/>)}</div></section><section className="detail-final-cta"><div><p className="eyebrow">MAD MAX · LOCAL HOST</p><h2>{zh?"想安排适合自己的路线？":"Would you like a route made for you?"}</h2><p>{zh?"告诉我们日期、人数和感兴趣的地方，我们会尽快回复。":"Share your dates, group size and interests, and we will reply soon."}</p></div><a className="button" href="/#contact">{zh?"提交咨询":"Submit inquiry"} →</a></section></main>{selected&&<div className="route-modal" role="dialog" aria-modal="true" aria-label={selected.title[l]} onClick={()=>setSelected(null)}><div onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)}>×</button><div className="modal-gallery"><img src={selected.image} alt={selected.title[l]}/><div>{selected.stops.filter(x=>x.image).map(stop=><img key={stop.time} src={stop.image} alt={stop.title[l]}/>)}</div></div><div className="modal-route"><p className="eyebrow">MAD MAX · PRIVATE ROUTE</p><h2>{selected.title[l]}</h2><div className="modal-tags"><span>{selected.duration[l]}</span>{selected.tags.map(x=><span key={x[0]}>{x[l]}</span>)}</div><div className="timeline">{selected.stops.map(stop=><div key={stop.time}><time>{stop.time}</time><i/><p><b>{stop.title[l]}</b><small>{stop.note[l]}</small></p>{stop.image&&<img src={stop.image} alt=""/>}</div>)}</div><a className="button" href="/#contact">{zh?"咨询这条路线":"Ask about this route"}</a></div></div></div>}</>}
+const vehicles = [
+  {
+    name: "Alphard",
+    people: "4–6",
+    image: photo("photo-1549317661-bd32c8ce0db2", 600),
+  },
+  {
+    name: "MPV · Innova",
+    people: "3–5",
+    image: photo("photo-1504215680853-026ed2a45def", 600),
+  },
+  {
+    name: "Van",
+    people: "7–10",
+    image: photo("photo-1469854523086-cc02fe5d8800", 600),
+  },
+  {
+    name: "Sedan",
+    people: "1–3",
+    image: photo("photo-1503376780353-7e6692767b70", 600),
+  },
+];
+const footage = [
+  "photo-1596422846543-75c6fc197f07",
+  "photo-1500595046743-cd271d694d30",
+  "photo-1507525428034-b723cf961d3e",
+  "photo-1500534314209-a25ddb2bd429",
+  "photo-1544551763-46a013bb70d5",
+  "photo-1549317661-bd32c8ce0db2",
+];
+const galleryPools = [
+  ["photo-1596422846543-75c6fc197f07", "photo-1536599018102-9f803c140fc1", "photo-1582883049036-dfe40c02521b", "photo-1528127269322-539801943592"],
+  ["photo-1500530855697-b586d89ba3ee", "photo-1441974231531-c6227db76b6e", "photo-1500595046743-cd271d694d30", "photo-1511497584788-876760111969"],
+  ["photo-1596422846543-75c6fc197f07", "photo-1536599018102-9f803c140fc1", "photo-1525625293386-3f8f99389edd", "photo-1549317661-bd32c8ce0db2"],
+  ["photo-1500534314209-a25ddb2bd429", "photo-1507525428034-b723cf961d3e", "photo-1510414842594-a61c69b5ae57", "photo-1544551763-46a013bb70d5"],
+].map((group) => group.map((id) => photo(id, 1000)));
+function Logo() {
+  return (
+    <a className="logo" href="/">
+      <span className="logo-mark">⌂</span>
+      <span>
+        <b>MAD MAX</b>
+        <small>MALAYSIA STAY</small>
+      </span>
+    </a>
+  );
+}
+export function ServiceDetail({ service }: { service: ServiceCategory }) {
+  const [lang, setLang] = useState<Lang>("zh"),
+    [selected, setSelected] = useState<Route | null>(null),
+    [photoIndex, setPhotoIndex] = useState(0),
+    [menu, setMenu] = useState(false);
+  const zh = lang === "zh",
+    l = zh ? 0 : 1;
+  const selectedRouteIndex = selected ? routes.indexOf(selected) : 0;
+  const modalImages = selected ? galleryPools[selectedRouteIndex] : [];
+  return (
+    <>
+      <header>
+        <Logo />
+        <button className="menu-btn" onClick={() => setMenu(!menu)}>
+          {menu ? "×" : "☰"}
+        </button>
+        <nav className={menu ? "open" : ""}>
+          <a href="/#stays">{zh ? "房源" : "Stays"}</a>
+          <a className="active-nav" href="/services">
+            {zh ? "当地服务" : "Local Services"}
+          </a>
+          <a href="/#contact">{zh ? "联系我们" : "Contact"}</a>
+        </nav>
+        <div className="header-right">
+          <div className="language-switch desktop-language">
+            <button
+              className={zh ? "active" : ""}
+              onClick={() => setLang("zh")}
+            >
+              中文
+            </button>
+            <i />
+            <button
+              className={!zh ? "active" : ""}
+              onClick={() => setLang("en")}
+            >
+              English
+            </button>
+          </div>
+          <a className="button header-cta" href="/#contact">
+            {zh ? "提交咨询" : "Submit inquiry"}
+          </a>
+        </div>
+      </header>
+      <main className="car-detail">
+        <section className="car-hero">
+          <img
+            src={service.image || photo("photo-1549317661-bd32c8ce0db2")}
+            alt={zh ? service.nameZh : service.nameEn}
+          />
+          <div className="car-hero-copy">
+            <a href="/services">← {zh ? "返回当地服务" : "Back to services"}</a>
+            <p className="eyebrow">MAD MAX · PRIVATE DRIVER</p>
+            <h1>{zh ? "亚庇私人包车" : "Kota Kinabalu Private Car"}</h1>
+            <p>
+              {zh
+                ? "自由安排路线，舒适探索亚庇热门景点。"
+                : "Explore Kota Kinabalu comfortably with a flexible private itinerary."}
+            </p>
+            <div>
+              <span>{zh ? "中文沟通" : "Chinese support"}</span>
+              <span>{zh ? "路线灵活" : "Flexible route"}</span>
+              <span>{zh ? "舒适安全" : "Safe & comfortable"}</span>
+            </div>
+          </div>
+        </section>
+        <section className="route-section">
+          <div className="detail-heading">
+            <p className="eyebrow">{zh ? "轻松选择" : "EASY TO CHOOSE"}</p>
+            <h2>{zh ? "热门包车方案" : "Popular Private Car Routes"}</h2>
+            <p>
+              {zh
+                ? "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"
+                : "These routes are examples and can be adjusted around your time and interests."}
+            </p>
+          </div>
+          <div className="route-grid">
+            {routes.map((route) => (
+              <button
+                className="route-card"
+                onClick={() => {
+                  setPhotoIndex(0);
+                  setSelected(route);
+                }}
+                key={route.title[0]}
+              >
+                <img src={route.image} alt={route.title[l]} />
+                <div>
+                  <h3>{route.title[l]}</h3>
+                  <p>
+                    <span>{route.duration[l]}</span>
+                    <span>{route.tags[0][l]}</span>
+                  </p>
+                  <small>{route.summary[l]}</small>
+                  <b>{zh ? "查看路线" : "View route"} →</b>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+        <section className="vehicle-section">
+          <div className="detail-heading left">
+            <p className="eyebrow">{zh ? "舒适出行" : "TRAVEL IN COMFORT"}</p>
+            <h2>{zh ? "车型选择" : "Vehicle Options"}</h2>
+          </div>
+          <div className="vehicle-grid">
+            {vehicles.map((v) => (
+              <article key={v.name}>
+                <img src={v.image} alt={v.name} />
+                <div>
+                  <h3>{v.name}</h3>
+                  <p>
+                    {v.people} {zh ? "位乘客" : "passengers"}
+                  </p>
+                  <small>
+                    {zh
+                      ? "具体车型以当天安排为准"
+                      : "Vehicle subject to availability"}
+                  </small>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="footage-section">
+          <div className="detail-heading">
+            <p className="eyebrow">FOOTAGE</p>
+            <h2>{zh ? "亚庇旅行实拍" : "Kota Kinabalu Travel Moments"}</h2>
+          </div>
+          <div>
+            {footage.map((id, i) => (
+              <img
+                key={id}
+                src={photo(id, 700)}
+                alt={`${zh ? "亚庇旅行实拍" : "Kota Kinabalu travel"} ${i + 1}`}
+              />
+            ))}
+          </div>
+        </section>
+        <section className="detail-final-cta">
+          <div>
+            <p className="eyebrow">MAD MAX · LOCAL HOST</p>
+            <h2>
+              {zh
+                ? "想安排适合自己的路线？"
+                : "Would you like a route made for you?"}
+            </h2>
+            <p>
+              {zh
+                ? "告诉我们日期、人数和感兴趣的地方，我们会尽快回复。"
+                : "Share your dates, group size and interests, and we will reply soon."}
+            </p>
+          </div>
+          <a className="button" href="/#contact">
+            {zh ? "提交咨询" : "Submit inquiry"} →
+          </a>
+        </section>
+      </main>
+      {selected && (
+        <div
+          className="route-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={selected.title[l]}
+          onClick={() => setSelected(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelected(null)}>
+              ×
+            </button>
+            <div className="modal-gallery">
+              <div className="modal-gallery-main">
+                <img src={modalImages[photoIndex]} alt={`${selected.title[l]} ${photoIndex + 1}`} />
+                <button onClick={() => setPhotoIndex((photoIndex - 1 + modalImages.length) % modalImages.length)} aria-label={zh ? "上一张图片" : "Previous photo"}>‹</button>
+                <button onClick={() => setPhotoIndex((photoIndex + 1) % modalImages.length)} aria-label={zh ? "下一张图片" : "Next photo"}>›</button>
+                <span>{photoIndex + 1}/{modalImages.length}</span>
+              </div>
+              <div className="modal-gallery-thumbs">
+                {modalImages.map((image, i) => (
+                  <button className={i === photoIndex ? "active" : ""} onClick={() => setPhotoIndex(i)} key={image}>
+                    <img src={image} alt="" />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="modal-route">
+              <p className="eyebrow">MAD MAX · PRIVATE ROUTE</p>
+              <h2>{selected.title[l]}</h2>
+              <div className="modal-tags">
+                <span>{selected.duration[l]}</span>
+                {selected.tags.map((x) => (
+                  <span key={x[0]}>{x[l]}</span>
+                ))}
+              </div>
+              <div className="timeline">
+                {selected.stops.map((stop) => (
+                  <div key={stop.time}>
+                    <time>{stop.time}</time>
+                    <i />
+                    <p>
+                      <b>{stop.title[l]}</b>
+                      <small>{stop.note[l]}</small>
+                    </p>
+                    {stop.image && <img src={stop.image} alt="" />}
+                  </div>
+                ))}
+              </div>
+              <a className="button" href="/#contact">
+                {zh ? "咨询这条路线" : "Ask about this route"}
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
