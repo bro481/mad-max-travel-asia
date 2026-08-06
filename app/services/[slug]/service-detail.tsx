@@ -222,32 +222,6 @@ const footage = [
   "photo-1544551763-46a013bb70d5",
   "photo-1549317661-bd32c8ce0db2",
 ];
-const galleryPools = [
-  [
-    "photo-1596422846543-75c6fc197f07",
-    "photo-1536599018102-9f803c140fc1",
-    "photo-1582883049036-dfe40c02521b",
-    "photo-1528127269322-539801943592",
-  ],
-  [
-    "photo-1500530855697-b586d89ba3ee",
-    "photo-1441974231531-c6227db76b6e",
-    "photo-1500595046743-cd271d694d30",
-    "photo-1511497584788-876760111969",
-  ],
-  [
-    "photo-1596422846543-75c6fc197f07",
-    "photo-1536599018102-9f803c140fc1",
-    "photo-1525625293386-3f8f99389edd",
-    "photo-1549317661-bd32c8ce0db2",
-  ],
-  [
-    "photo-1500534314209-a25ddb2bd429",
-    "photo-1507525428034-b723cf961d3e",
-    "photo-1510414842594-a61c69b5ae57",
-    "photo-1544551763-46a013bb70d5",
-  ],
-].map((group) => group.map((id) => photo(id, 1000)));
 function Logo() {
   return (
     <a className="logo" href="/">
@@ -299,46 +273,374 @@ export function ServiceDetail({
               "Explore Kota Kinabalu comfortably with a flexible private itinerary.",
             ],
           };
-  const klTitles: Array<[[string, string], [string, string]]> = [
-    [
-      ["吉隆坡经典一日游", "Kuala Lumpur Classic Day"],
-      [
-        "双子塔、独立广场与茨厂街",
-        "Twin Towers, Merdeka Square and Petaling Street",
-      ],
-    ],
-    [
-      ["黑风洞文化路线", "Batu Caves & Culture"],
-      [
-        "黑风洞、国家皇宫与城市地标",
-        "Batu Caves, National Palace and city landmarks",
-      ],
-    ],
-    [
-      ["美食购物休闲路线", "Food & Shopping Day"],
-      [
-        "武吉免登、Pavilion与当地美食",
-        "Bukit Bintang, Pavilion and local food",
-      ],
-    ],
-    [
-      ["马六甲跨城一日游", "Melaka Day Trip"],
-      [
-        "古城文化、鸡场街与河岸风光",
-        "Heritage sites, Jonker Street and the riverside",
-      ],
-    ],
+  const cityImages = [
+    photo("photo-1596422846543-75c6fc197f07"),
+    photo("photo-1536599018102-9f803c140fc1"),
+    photo("photo-1525625293386-3f8f99389edd"),
+    photo("photo-1500534314209-a25ddb2bd429"),
   ];
-  const displayRoutes =
-    city === "kl"
-      ? routes.map((route, index) => ({
-          ...route,
-          title: klTitles[index][0],
-          summary: klTitles[index][1],
-        }))
-      : routes;
+  const routeVariants: Record<
+    string,
+    Array<Pick<Route, "title" | "summary" | "stops">>
+  > = {
+    kl: [
+      {
+        title: ["吉隆坡经典一日游", "Kuala Lumpur Classic Day"],
+        summary: [
+          "双子塔、独立广场与茨厂街",
+          "Twin Towers, Merdeka Square and Petaling Street",
+        ],
+        stops: [
+          {
+            time: "09:00",
+            title: ["酒店接送", "Hotel pickup"],
+            note: [
+              "从吉隆坡市区酒店出发",
+              "Depart from your Kuala Lumpur hotel",
+            ],
+          },
+          {
+            time: "10:00",
+            title: ["吉隆坡双子塔", "Petronas Twin Towers"],
+            note: [
+              "城市地标拍照与周边漫步",
+              "Photos and an easy walk around KLCC",
+            ],
+          },
+          {
+            time: "12:00",
+            title: ["当地午餐", "Local lunch"],
+            note: [
+              "按口味推荐马来西亚美食",
+              "Malaysian food selected to your taste",
+            ],
+          },
+          {
+            time: "14:00",
+            title: ["独立广场与茨厂街", "Merdeka Square & Petaling Street"],
+            note: [
+              "探索历史建筑与城市街区",
+              "Explore heritage architecture and local streets",
+            ],
+          },
+          {
+            time: "17:00",
+            title: ["返回酒店", "Return to hotel"],
+            note: ["轻松结束一日行程", "A relaxed end to your city day"],
+          },
+        ],
+      },
+      {
+        title: ["黑风洞文化路线", "Batu Caves & Culture"],
+        summary: [
+          "黑风洞、国家皇宫与城市地标",
+          "Batu Caves, National Palace and city landmarks",
+        ],
+        stops: [
+          {
+            time: "08:30",
+            title: ["酒店接送", "Hotel pickup"],
+            note: [
+              "避开高峰时段轻松出发",
+              "An early start to avoid the crowds",
+            ],
+          },
+          {
+            time: "09:30",
+            title: ["黑风洞", "Batu Caves"],
+            note: [
+              "参观彩色阶梯与印度教圣地",
+              "Visit the colourful steps and temple complex",
+            ],
+          },
+          {
+            time: "12:00",
+            title: ["当地午餐", "Local lunch"],
+            note: [
+              "司机按喜好推荐餐厅",
+              "A restaurant recommendation from your driver",
+            ],
+          },
+          {
+            time: "14:00",
+            title: ["国家皇宫与清真寺", "Palace & National Mosque"],
+            note: [
+              "了解吉隆坡历史与多元文化",
+              "Discover Kuala Lumpur's history and cultures",
+            ],
+          },
+          {
+            time: "17:00",
+            title: ["返回酒店", "Return to hotel"],
+            note: ["可按需要调整下车地点", "Flexible city drop-off"],
+          },
+        ],
+      },
+      {
+        title: ["美食购物休闲路线", "Food & Shopping Day"],
+        summary: [
+          "武吉免登、Pavilion与当地美食",
+          "Bukit Bintang, Pavilion and local food",
+        ],
+        stops: [
+          {
+            time: "10:00",
+            title: ["酒店接送", "Hotel pickup"],
+            note: ["按照您的节奏出发", "Start the day at your preferred time"],
+          },
+          {
+            time: "10:30",
+            title: ["武吉免登", "Bukit Bintang"],
+            note: [
+              "漫步市中心热门商圈",
+              "Explore the city's lively shopping district",
+            ],
+          },
+          {
+            time: "12:30",
+            title: ["当地美食", "Local food"],
+            note: [
+              "品尝特色餐厅或街头美食",
+              "Choose between local restaurants and street food",
+            ],
+          },
+          {
+            time: "14:30",
+            title: ["Pavilion购物中心", "Pavilion Kuala Lumpur"],
+            note: [
+              "自由购物与下午茶时间",
+              "Shopping and an easy afternoon break",
+            ],
+          },
+          {
+            time: "18:00",
+            title: ["返回酒店", "Return to hotel"],
+            note: ["结束轻松市区行程", "Return after a relaxed city day"],
+          },
+        ],
+      },
+      {
+        title: ["马六甲跨城一日游", "Melaka Day Trip"],
+        summary: [
+          "古城文化、鸡场街与河岸风光",
+          "Heritage sites, Jonker Street and the riverside",
+        ],
+        stops: [
+          {
+            time: "08:00",
+            title: ["吉隆坡酒店接送", "Kuala Lumpur pickup"],
+            note: ["专车前往马六甲古城", "Private transfer to historic Melaka"],
+          },
+          {
+            time: "10:00",
+            title: ["荷兰红屋", "Dutch Square"],
+            note: [
+              "探索马六甲代表性历史建筑",
+              "Discover Melaka's best-known heritage sites",
+            ],
+          },
+          {
+            time: "12:00",
+            title: ["娘惹午餐", "Peranakan lunch"],
+            note: ["品尝当地娘惹风味", "Taste traditional Peranakan flavours"],
+          },
+          {
+            time: "14:00",
+            title: ["鸡场街与河岸", "Jonker Street & riverside"],
+            note: [
+              "自由漫步、购物和拍照",
+              "Free time for walking, shopping and photos",
+            ],
+          },
+          {
+            time: "18:00",
+            title: ["返回吉隆坡", "Return to Kuala Lumpur"],
+            note: ["专车送回入住酒店", "Private transfer back to your hotel"],
+          },
+        ],
+      },
+    ],
+    melaka: [
+      {
+        title: ["马六甲古城经典游", "Classic Heritage Melaka"],
+        summary: [
+          "红屋、圣保罗山与鸡场街",
+          "Dutch Square, St Paul's Hill and Jonker Street",
+        ],
+        stops: [
+          {
+            time: "09:00",
+            title: ["酒店接送", "Hotel pickup"],
+            note: ["从马六甲酒店轻松出发", "Depart from your Melaka hotel"],
+          },
+          {
+            time: "09:30",
+            title: ["荷兰红屋", "Dutch Square"],
+            note: [
+              "参观古城代表性建筑",
+              "See the city's iconic heritage architecture",
+            ],
+          },
+          {
+            time: "11:00",
+            title: ["圣保罗山", "St Paul's Hill"],
+            note: ["俯瞰古城并了解历史", "City views and local history"],
+          },
+          {
+            time: "13:30",
+            title: ["鸡场街", "Jonker Street"],
+            note: [
+              "自由品尝美食与选购手信",
+              "Food, shopping and free exploration",
+            ],
+          },
+          {
+            time: "17:00",
+            title: ["返回酒店", "Return to hotel"],
+            note: ["结束悠闲古城行程", "A relaxed end to the heritage day"],
+          },
+        ],
+      },
+      {
+        title: ["娘惹文化与美食", "Peranakan Culture & Food"],
+        summary: [
+          "娘惹博物馆、老街与特色餐饮",
+          "Peranakan museum, old streets and local dining",
+        ],
+        stops: [
+          {
+            time: "10:00",
+            title: ["酒店接送", "Hotel pickup"],
+            note: ["按您的时间出发", "Start at a time that suits you"],
+          },
+          {
+            time: "10:30",
+            title: ["娘惹文化馆", "Peranakan museum"],
+            note: [
+              "了解峇峇娘惹生活与文化",
+              "Discover Peranakan heritage and traditions",
+            ],
+          },
+          {
+            time: "12:30",
+            title: ["娘惹午餐", "Peranakan lunch"],
+            note: ["品尝地道娘惹菜", "Enjoy authentic Peranakan cuisine"],
+          },
+          {
+            time: "14:30",
+            title: ["老街漫游", "Old town walk"],
+            note: [
+              "咖啡馆、手作小店与拍照",
+              "Cafes, local shops and photo stops",
+            ],
+          },
+          {
+            time: "17:00",
+            title: ["返回酒店", "Return to hotel"],
+            note: ["可按需要调整行程", "Flexible return and drop-off"],
+          },
+        ],
+      },
+      {
+        title: ["河岸休闲半日游", "Relaxed Riverside Half Day"],
+        summary: [
+          "河岸漫步、咖啡馆与古城夜景",
+          "Riverside walks, cafes and heritage views",
+        ],
+        stops: [
+          {
+            time: "14:00",
+            title: ["酒店接送", "Hotel pickup"],
+            note: ["下午轻松出发", "An easy afternoon departure"],
+          },
+          {
+            time: "14:30",
+            title: ["马六甲河岸", "Melaka riverside"],
+            note: [
+              "沿河散步并欣赏壁画",
+              "Walk by the river and discover local murals",
+            ],
+          },
+          {
+            time: "16:00",
+            title: ["老城咖啡时间", "Old town cafe"],
+            note: ["自由选择特色咖啡馆", "Choose a characterful local cafe"],
+          },
+          {
+            time: "18:00",
+            title: ["古城晚餐", "Old town dinner"],
+            note: ["按口味推荐当地餐厅", "A local dinner recommendation"],
+          },
+          {
+            time: "20:00",
+            title: ["返回酒店", "Return to hotel"],
+            note: [
+              "欣赏夜景后返回住宿",
+              "Return after enjoying the evening views",
+            ],
+          },
+        ],
+      },
+      {
+        title: ["马六甲日落夜游", "Melaka Sunset & Evening"],
+        summary: [
+          "海峡清真寺、日落与鸡场街夜市",
+          "Straits Mosque, sunset and Jonker night market",
+        ],
+        stops: [
+          {
+            time: "15:30",
+            title: ["酒店接送", "Hotel pickup"],
+            note: ["下午从酒店出发", "Afternoon hotel departure"],
+          },
+          {
+            time: "16:00",
+            title: ["海峡清真寺", "Melaka Straits Mosque"],
+            note: [
+              "欣赏海边建筑与海峡景色",
+              "Coastal architecture and sea views",
+            ],
+          },
+          {
+            time: "18:00",
+            title: ["海边日落", "Sunset by the sea"],
+            note: [
+              "等待马六甲海峡日落",
+              "Watch sunset over the Strait of Melaka",
+            ],
+          },
+          {
+            time: "19:30",
+            title: ["鸡场街夜游", "Jonker Street evening"],
+            note: [
+              "夜市、美食与自由逛街",
+              "Night market, food and free exploration",
+            ],
+          },
+          {
+            time: "21:30",
+            title: ["返回酒店", "Return to hotel"],
+            note: ["专车安全送回住宿", "Private transfer back to your stay"],
+          },
+        ],
+      },
+    ],
+  };
+  const displayRoutes = routeVariants[city]
+    ? routes.map((route, index) => ({
+        ...route,
+        ...routeVariants[city][index],
+        image: cityImages[index],
+      }))
+    : routes;
+  const displayGalleryPools = displayRoutes.map((route, index) => [
+    route.image,
+    cityImages[(index + 1) % 4],
+    cityImages[(index + 2) % 4],
+    cityImages[(index + 3) % 4],
+  ]);
   const selectedRouteIndex = selected ? displayRoutes.indexOf(selected) : 0;
-  const modalImages = selected ? galleryPools[selectedRouteIndex] : [];
+  const modalImages = selected ? displayGalleryPools[selectedRouteIndex] : [];
   return (
     <>
       <header>
