@@ -43,6 +43,13 @@
       "when": 1785916134580,
       "tag": "0005_low_frightful_four",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1785975806379,
+      "tag": "0006_new_moondragon",
+      "breakpoints": true
     }
   ]
 }

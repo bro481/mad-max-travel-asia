@@ -24,10 +24,9 @@ export default function AdminLayout({
           <Link href="/admin/properties">
             ▦ <span>房源管理</span>
           </Link>
-          <span className="disabled">
-            ◇ <i>服务管理</i>
-            <small>即将开发</small>
-          </span>
+          <Link href="/admin/services">
+            ◇ <span>服务管理</span>
+          </Link>
           <Link href="/admin/inquiries">
             ☏ <span>客户咨询</span>
           </Link>

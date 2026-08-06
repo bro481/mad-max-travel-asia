@@ -59,3 +59,21 @@ export const imageImportSessions = sqliteTable("image_import_sessions", {
   completedAt: text("completed_at"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const serviceCategories = sqliteTable("service_categories", {
+  id: integer("id").primaryKey({ autoIncrement:true }),
+  slug: text("slug").notNull().unique(),
+  nameZh: text("name_zh").notNull(),
+  nameEn: text("name_en").notNull(),
+  introZh: text("intro_zh").notNull().default(""),
+  introEn: text("intro_en").notNull().default(""),
+  descriptionZh: text("description_zh").notNull().default(""),
+  descriptionEn: text("description_en").notNull().default(""),
+  image: text("image").notNull().default(""),
+  itemsZh: text("items_zh").notNull().default("[]"),
+  itemsEn: text("items_en").notNull().default("[]"),
+  icon: text("icon").notNull().default("✦"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  visible: integer("visible", { mode:"boolean" }).notNull().default(true),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
