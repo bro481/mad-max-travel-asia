@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { ServiceCategory } from "../../db/services";
+import type { ServiceItem } from "../../db/service-items";
 type Lang = "zh" | "en";
 type Offer = {
   title: [string, string];
@@ -511,7 +512,13 @@ function Logo() {
     </a>
   );
 }
-export function ServicesPage({ services }: { services: ServiceCategory[] }) {
+export function ServicesPage({
+  services,
+  managed,
+}: {
+  services: ServiceCategory[];
+  managed: ServiceItem[];
+}) {
   const [lang, setLang] = useState<Lang>("zh"),
     [menu, setMenu] = useState(false),
     [destination, setDestination] = useState("all"),
@@ -680,6 +687,52 @@ export function ServicesPage({ services }: { services: ServiceCategory[] }) {
             </div>
           ))}
         </section>
+        {managed.length > 0 && (
+          <section className="managed-services">
+            <div className="section-heading">
+              <p className="eyebrow">MAD MAX · CURATED</p>
+              <h2>
+                {lang === "zh"
+                  ? "可咨询的当地服务"
+                  : "Local services to explore"}
+              </h2>
+              <p>
+                {lang === "zh"
+                  ? "从接送、包车到当地体验，告诉我们日期和人数即可确认安排。"
+                  : "Transfers, private cars and experiences arranged around your dates."}
+              </p>
+            </div>
+            <div className="managed-service-grid">
+              {managed.map((x) => (
+                <a href={`/services/item/${x.slug}`} key={x.id}>
+                  {x.images[0] ? (
+                    <img src={x.images[0]} alt="" />
+                  ) : (
+                    <div className="managed-placeholder">
+                      {x.type === "交通接送"
+                        ? "🚗"
+                        : x.type === "私人包车"
+                          ? "🚙"
+                          : x.type === "海岛体验"
+                            ? "🏝"
+                            : "🌆"}
+                    </div>
+                  )}
+                  <small>
+                    {x.city} · {x.category}
+                  </small>
+                  <h3>{lang === "zh" ? x.nameZh : x.nameEn || x.nameZh}</h3>
+                  <p>
+                    {lang === "zh"
+                      ? x.subtitleZh
+                      : x.subtitleEn || x.subtitleZh}
+                  </p>
+                  <span>{lang === "zh" ? "查看详情 →" : "View details →"}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
         <section className="custom-travel">
           <div className="custom-intro">
             <p className="eyebrow">MAD MAX · PRIVATE TRAVEL</p>

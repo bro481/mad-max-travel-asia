@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "./admin.css";
+import "./services/services-admin.css";
 
 export default function AdminLayout({
   children,
@@ -25,7 +26,7 @@ export default function AdminLayout({
             ▦ <span>房源管理</span>
           </Link>
           <Link href="/admin/services">
-            ◇ <span>服务管理</span>
+            ◇ <span>当地服务</span>
           </Link>
           <Link href="/admin/inquiries">
             ☏ <span>客户咨询</span>

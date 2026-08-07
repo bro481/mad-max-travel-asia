@@ -1,4 +1,168 @@
 "use client";
-import {useEffect,useState} from "react";import type {ServiceCategory} from "../../../db/services";
-const empty:Omit<ServiceCategory,"id"|"updatedAt">={slug:"",nameZh:"新服务分类",nameEn:"New service",introZh:"",introEn:"",descriptionZh:"",descriptionEn:"",image:"",itemsZh:[],itemsEn:[],icon:"✦",sortOrder:99,visible:true};
-export default function ServicesAdmin(){const[items,setItems]=useState<ServiceCategory[]|null>(null),[editing,setEditing]=useState<ServiceCategory|Omit<ServiceCategory,"id"|"updatedAt">|null>(null),[notice,setNotice]=useState("");const load=()=>fetch("/api/admin/services").then(async r=>{if(r.status===401){location.href="/signin-with-chatgpt?return_to=%2Fadmin%2Fservices";return []}return r.json()}).then(setItems);useEffect(()=>{load()},[]);const set=(key:string,value:unknown)=>setEditing(x=>x?{...x,[key]:value}:x);const save=async()=>{if(!editing)return;setNotice("保存中…");let current=editing;if(!("id" in current)){const r=await fetch("/api/admin/services",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(current)});const created=await r.json();current={...current,id:created.id,slug:created.slug,updatedAt:""}}const r=await fetch(`/api/admin/services/${current.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(current)});if(r.ok){setNotice("已保存并同步到前台");setEditing(null);load()}else setNotice("保存失败，请稍后重试")};const upload=async(file?:File)=>{if(!file)return;setNotice("图片上传中…");const form=new FormData();form.append("files",file);const r=await fetch("/api/admin/uploads",{method:"POST",body:form});const result=await r.json();if(r.ok){set("image",result.urls[0]);setNotice("图片上传完成")}};if(!items)return <div className="admin-loading">正在加载服务分类…</div>;return <><div className="admin-head"><div><p>当地服务内容</p><h1>服务分类管理</h1><span>管理前台服务卡片、顺序和显示状态，不涉及价格或订单。</span></div><button className="admin-primary" onClick={()=>setEditing({...empty})}>＋ 新增服务分类</button></div><div className="service-admin-grid">{items.map(item=><article key={item.id}><div className="service-admin-image">{item.image?<img src={item.image} alt=""/>:<span>暂无封面</span>}<i>{item.visible?"显示中":"已隐藏"}</i></div><div><small>{String(item.sortOrder).padStart(2,"0")} · /services/{item.slug}</small><h2>{item.nameZh}</h2><p>{item.introZh||"简介待填写"}</p><ul>{item.itemsZh.slice(0,4).map(x=><li key={x}>✓ {x}</li>)}</ul><button onClick={()=>setEditing(item)}>编辑</button><a href={`/services/${item.slug}`} target="_blank">预览</a></div></article>)}</div>{editing&&<div className="service-editor-overlay"><div className="service-editor"><div className="service-editor-head"><div><small>服务分类</small><h2>{editing.nameZh}</h2></div><button onClick={()=>setEditing(null)}>×</button></div><div className="service-editor-grid"><label>中文名称<input value={editing.nameZh} onChange={e=>set("nameZh",e.target.value)}/></label><label>英文名称<input value={editing.nameEn} onChange={e=>set("nameEn",e.target.value)}/></label><label>中文简介<input value={editing.introZh} onChange={e=>set("introZh",e.target.value)}/></label><label>英文简介<input value={editing.introEn} onChange={e=>set("introEn",e.target.value)}/></label><label className="wide">中文详细介绍<textarea rows={3} value={editing.descriptionZh} onChange={e=>set("descriptionZh",e.target.value)}/></label><label className="wide">英文详细介绍<textarea rows={3} value={editing.descriptionEn} onChange={e=>set("descriptionEn",e.target.value)}/></label><label className="wide">服务列表（中文，每行一项）<textarea rows={5} value={editing.itemsZh.join("\n")} onChange={e=>set("itemsZh",e.target.value.split("\n").filter(Boolean))}/></label><label className="wide">Service list (English, one per line)<textarea rows={5} value={editing.itemsEn.join("\n")} onChange={e=>set("itemsEn",e.target.value.split("\n").filter(Boolean))}/></label><label>排序<input type="number" value={editing.sortOrder} onChange={e=>set("sortOrder",Number(e.target.value))}/></label><label>图标<input value={editing.icon} onChange={e=>set("icon",e.target.value)}/></label><label className="wide">封面图片<input type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/>{editing.image&&<img className="service-editor-preview" src={editing.image} alt="封面预览"/>}</label><label className="service-visible"><input type="checkbox" checked={editing.visible} onChange={e=>set("visible",e.target.checked)}/> 在前台显示</label></div><div className="service-editor-actions"><span>{notice}</span><button onClick={()=>setEditing(null)}>取消</button><button className="admin-primary" onClick={save}>保存分类</button></div></div></div>}</>}
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import type { ServiceItem } from "../../../db/service-items";
+export default function ServiceList() {
+  const [items, setItems] = useState<ServiceItem[]>([]),
+    [notice, setNotice] = useState("");
+  const load = () =>
+    fetch("/api/admin/service-items")
+      .then((r) => {
+        if (r.status === 401) {
+          location.href = "/signin-with-chatgpt?return_to=%2Fadmin%2Fservices";
+          return [];
+        }
+        return r.json();
+      })
+      .then(setItems);
+  useEffect(() => {
+    load();
+  }, []);
+  const update = async (x: ServiceItem, status: ServiceItem["status"]) => {
+    await fetch(`/api/admin/service-items/${x.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...x, status }),
+    });
+    load();
+  };
+  const copy = async (x: ServiceItem) => {
+    setNotice("正在复制…");
+    const r = await fetch("/api/admin/service-items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...x,
+        nameZh: x.nameZh + "（副本）",
+        nameEn: x.nameEn + " Copy",
+        slug: x.slug + "-copy",
+      }),
+    });
+    const c = await r.json();
+    await fetch(`/api/admin/service-items/${c.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...x,
+        id: c.id,
+        slug: c.slug,
+        nameZh: x.nameZh + "（副本）",
+        status: "draft",
+      }),
+    });
+    location.href = `/admin/services/${c.id}`;
+  };
+  const cities = [...new Set(items.map((x) => x.city))];
+  return (
+    <>
+      <div className="admin-head">
+        <div>
+          <p>当地服务</p>
+          <h1>服务列表</h1>
+          <span>按城市与类型组织服务，用内容、流程和路线促成咨询。</span>
+        </div>
+        <Link className="admin-primary" href="/admin/services/new">
+          ＋ 新建服务
+        </Link>
+      </div>
+      <div className="service-subnav">
+        <Link className="active" href="/admin/services">
+          服务列表
+        </Link>
+        <Link href="/admin/services/categories">分类管理</Link>
+        <Link href="/admin/services/templates">服务模板</Link>
+        <span>旅行方案 · 未来</span>
+      </div>
+      {notice && <p className="lead-notice">{notice}</p>}
+      {cities.map((city) => (
+        <section className="service-city" key={city}>
+          <h2>
+            {city}
+            <small>
+              {city === "吉隆坡"
+                ? "Kuala Lumpur"
+                : city === "亚庇"
+                  ? "Kota Kinabalu"
+                  : "Semporna"}
+            </small>
+          </h2>
+          {[
+            ...new Set(
+              items.filter((x) => x.city === city).map((x) => x.category),
+            ),
+          ].map((category) => (
+            <div className="service-category-group" key={category}>
+              <h3>
+                {category}
+                <small>
+                  {
+                    items.filter(
+                      (x) => x.city === city && x.category === category,
+                    ).length
+                  }{" "}
+                  个
+                </small>
+              </h3>
+              <div className="service-product-grid">
+                {items
+                  .filter((x) => x.city === city && x.category === category)
+                  .map((x) => (
+                    <article key={x.id}>
+                      <div className="service-product-cover">
+                        {x.images[0] ? (
+                          <img src={x.images[0]} alt="" />
+                        ) : (
+                          <span>
+                            {x.type === "交通接送"
+                              ? "🚗"
+                              : x.type === "私人包车"
+                                ? "🚙"
+                                : x.type === "海岛体验"
+                                  ? "🏝"
+                                  : "🌆"}
+                          </span>
+                        )}
+                        <i>
+                          {x.status === "published"
+                            ? "已上线"
+                            : x.status === "hidden"
+                              ? "已隐藏"
+                              : "草稿"}
+                        </i>
+                      </div>
+                      <div>
+                        <small>
+                          {x.category} · {x.city}
+                        </small>
+                        <h4>{x.nameZh}</h4>
+                        <p>{x.subtitleZh || "副标题待填写"}</p>
+                        <nav>
+                          <Link href={`/admin/services/${x.id}`}>编辑</Link>
+                          <a href={`/services/item/${x.slug}`} target="_blank">
+                            预览
+                          </a>
+                          <button onClick={() => copy(x)}>复制</button>
+                          <button
+                            onClick={() =>
+                              update(
+                                x,
+                                x.status === "published"
+                                  ? "hidden"
+                                  : "published",
+                              )
+                            }
+                          >
+                            {x.status === "published" ? "隐藏" : "上线"}
+                          </button>
+                        </nav>
+                      </div>
+                    </article>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      ))}
+    </>
+  );
+}
