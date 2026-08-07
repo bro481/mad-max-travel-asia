@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import type { ServiceItem } from "../../../db/service-items";
 export default function ServiceList() {
   const [items, setItems] = useState<ServiceItem[]>([]),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [activeCity, setActiveCity] = useState("全部");
   const load = () =>
     fetch("/api/admin/service-items")
       .then((r) => {
@@ -53,6 +54,66 @@ export default function ServiceList() {
     location.href = `/admin/services/${c.id}`;
   };
   const cities = [...new Set(items.map((x) => x.city))];
+  const visibleItems =
+    activeCity === "全部"
+      ? items
+      : items.filter((item) => item.city === activeCity);
+  const categories = [...new Set(visibleItems.map((x) => x.category))];
+  const cityEnglish = (city: string) =>
+    city === "吉隆坡"
+      ? "Kuala Lumpur"
+      : city === "亚庇"
+        ? "Kota Kinabalu"
+        : city === "仙本那"
+          ? "Semporna"
+          : city;
+  const card = (x: ServiceItem) => (
+    <article key={x.id}>
+      <div className="service-product-cover">
+        {x.images[0] ? (
+          <img src={x.images[0]} alt="" />
+        ) : (
+          <span>
+            {x.type === "交通接送"
+              ? "🚗"
+              : x.type === "私人包车"
+                ? "🚙"
+                : x.type === "海岛体验"
+                  ? "🏝"
+                  : "🌆"}
+          </span>
+        )}
+        <i>
+          {x.status === "published"
+            ? "已上线"
+            : x.status === "hidden"
+              ? "已隐藏"
+              : "草稿"}
+        </i>
+      </div>
+      <div>
+        <small>
+          {x.city} · {x.category}
+        </small>
+        <h4>{x.nameZh}</h4>
+        <p>{x.subtitleZh || "副标题待填写"}</p>
+        <nav>
+          <Link href={`/admin/services/${x.id}`}>编辑</Link>
+          <a href={`/services/item/${x.slug}`} target="_blank">
+            预览
+          </a>
+          <button onClick={() => copy(x)}>复制</button>
+          <button
+            onClick={() =>
+              update(x, x.status === "published" ? "hidden" : "published")
+            }
+          >
+            {x.status === "published" ? "隐藏" : "上线"}
+          </button>
+        </nav>
+      </div>
+    </article>
+  );
   return (
     <>
       <div className="admin-head">
@@ -74,95 +135,63 @@ export default function ServiceList() {
         <span>旅行方案 · 未来</span>
       </div>
       {notice && <p className="lead-notice">{notice}</p>}
-      {cities.map((city) => (
-        <section className="service-city" key={city}>
+      <div
+        className="service-city-tabs"
+        role="tablist"
+        aria-label="按地区筛选服务"
+      >
+        {["全部", ...cities].map((city) => (
+          <button
+            className={activeCity === city ? "active" : ""}
+            key={city}
+            onClick={() => setActiveCity(city)}
+            role="tab"
+            aria-selected={activeCity === city}
+          >
+            <span>{city}</span>
+            {city !== "全部" && <small>{cityEnglish(city)}</small>}
+            <i>
+              {city === "全部"
+                ? items.length
+                : items.filter((x) => x.city === city).length}
+            </i>
+          </button>
+        ))}
+      </div>
+      {activeCity === "全部" ? (
+        <section className="service-all-view">
           <h2>
-            {city}
-            <small>
-              {city === "吉隆坡"
-                ? "Kuala Lumpur"
-                : city === "亚庇"
-                  ? "Kota Kinabalu"
-                  : "Semporna"}
-            </small>
+            全部服务 <small>{visibleItems.length} 个服务</small>
           </h2>
-          {[
-            ...new Set(
-              items.filter((x) => x.city === city).map((x) => x.category),
-            ),
-          ].map((category) => (
+          <div className="service-product-grid">{visibleItems.map(card)}</div>
+        </section>
+      ) : (
+        <section className="service-city">
+          <div className="service-city-heading">
+            <div>
+              <p>当前地区</p>
+              <h2>
+                {activeCity} <small>{cityEnglish(activeCity)}</small>
+              </h2>
+            </div>
+            <span>{visibleItems.length} 个服务</span>
+          </div>
+          {categories.map((category) => (
             <div className="service-category-group" key={category}>
               <h3>
                 {category}
                 <small>
-                  {
-                    items.filter(
-                      (x) => x.city === city && x.category === category,
-                    ).length
-                  }{" "}
+                  {visibleItems.filter((x) => x.category === category).length}{" "}
                   个
                 </small>
               </h3>
               <div className="service-product-grid">
-                {items
-                  .filter((x) => x.city === city && x.category === category)
-                  .map((x) => (
-                    <article key={x.id}>
-                      <div className="service-product-cover">
-                        {x.images[0] ? (
-                          <img src={x.images[0]} alt="" />
-                        ) : (
-                          <span>
-                            {x.type === "交通接送"
-                              ? "🚗"
-                              : x.type === "私人包车"
-                                ? "🚙"
-                                : x.type === "海岛体验"
-                                  ? "🏝"
-                                  : "🌆"}
-                          </span>
-                        )}
-                        <i>
-                          {x.status === "published"
-                            ? "已上线"
-                            : x.status === "hidden"
-                              ? "已隐藏"
-                              : "草稿"}
-                        </i>
-                      </div>
-                      <div>
-                        <small>
-                          {x.category} · {x.city}
-                        </small>
-                        <h4>{x.nameZh}</h4>
-                        <p>{x.subtitleZh || "副标题待填写"}</p>
-                        <nav>
-                          <Link href={`/admin/services/${x.id}`}>编辑</Link>
-                          <a href={`/services/item/${x.slug}`} target="_blank">
-                            预览
-                          </a>
-                          <button onClick={() => copy(x)}>复制</button>
-                          <button
-                            onClick={() =>
-                              update(
-                                x,
-                                x.status === "published"
-                                  ? "hidden"
-                                  : "published",
-                              )
-                            }
-                          >
-                            {x.status === "published" ? "隐藏" : "上线"}
-                          </button>
-                        </nav>
-                      </div>
-                    </article>
-                  ))}
+                {visibleItems.filter((x) => x.category === category).map(card)}
               </div>
             </div>
           ))}
         </section>
-      ))}
+      )}
     </>
   );
 }
