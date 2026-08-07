@@ -639,7 +639,14 @@ export function ServiceDetail({
     cityImages[(index + 2) % 4],
     cityImages[(index + 3) % 4],
   ]);
-  const selectedRouteIndex = selected ? displayRoutes.indexOf(selected) : 0;
+  const selectedRouteIndex = selected
+    ? Math.max(
+        0,
+        displayRoutes.findIndex(
+          (route) => route.title[0] === selected.title[0],
+        ),
+      )
+    : 0;
   const modalImages = selected ? displayGalleryPools[selectedRouteIndex] : [];
   return (
     <>
