@@ -9,6 +9,7 @@ type Route = {
   summary: [string, string];
   tags: [[string, string], [string, string]];
   image: string;
+  bestFor?: [string, string];
   stops: {
     time: string;
     title: [string, string];
@@ -274,19 +275,84 @@ export function ServiceDetail({
               "Explore Kota Kinabalu comfortably with a flexible private itinerary.",
             ],
           };
-  const cityImages = [
-    photo("photo-1596422846543-75c6fc197f07"),
-    photo("photo-1536599018102-9f803c140fc1"),
-    photo("photo-1525625293386-3f8f99389edd"),
-    photo("photo-1500534314209-a25ddb2bd429"),
-  ];
+  const routeImageSets: Record<string, string[][]> = {
+    kl: [
+      [
+        photo("photo-1596422846543-75c6fc197f07"),
+        photo("photo-1596422846543-75c6fc197f07"),
+        photo("photo-1581791538302-03537b9c97bf"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1596422846543-75c6fc197f07"),
+      ],
+      [
+        photo("photo-1596422846543-75c6fc197f07"),
+        photo("photo-1596422846543-75c6fc197f07"),
+        photo("photo-1581791538302-03537b9c97bf"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1596422846543-75c6fc197f07"),
+      ],
+      [
+        photo("photo-1596422846543-75c6fc197f07"),
+        photo("photo-1596422846543-75c6fc197f07"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1581791538302-03537b9c97bf"),
+        photo("photo-1596422846543-75c6fc197f07"),
+      ],
+      [
+        photo("photo-1596422846543-75c6fc197f07"),
+        photo("photo-1565967511849-76a60a516170"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1500534314209-a25ddb2bd429"),
+        photo("photo-1596422846543-75c6fc197f07"),
+      ],
+    ],
+    melaka: [
+      [
+        photo("photo-1565967511849-76a60a516170"),
+        photo("photo-1565967511849-76a60a516170"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1500534314209-a25ddb2bd429"),
+        photo("photo-1565967511849-76a60a516170"),
+      ],
+      [
+        photo("photo-1565967511849-76a60a516170"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1500534314209-a25ddb2bd429"),
+        photo("photo-1581791538302-03537b9c97bf"),
+        photo("photo-1565967511849-76a60a516170"),
+      ],
+      [
+        photo("photo-1500534314209-a25ddb2bd429"),
+        photo("photo-1500534314209-a25ddb2bd429"),
+        photo("photo-1565967511849-76a60a516170"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1500534314209-a25ddb2bd429"),
+      ],
+      [
+        photo("photo-1500534314209-a25ddb2bd429"),
+        photo("photo-1565967511849-76a60a516170"),
+        photo("photo-1500534314209-a25ddb2bd429"),
+        photo("photo-1525625293386-3f8f99389edd"),
+        photo("photo-1500534314209-a25ddb2bd429"),
+      ],
+    ],
+  };
   const routeVariants: Record<
     string,
-    Array<Pick<Route, "title" | "summary" | "stops">>
+    Array<Pick<Route, "title" | "summary" | "stops"> & Partial<Route>>
   > = {
     kl: [
       {
         title: ["吉隆坡经典一日游", "Kuala Lumpur Classic Day"],
+        duration: ["约8小时", "About 8 hours"],
+        tags: [
+          ["首次到访", "First visit"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "第一次来吉隆坡 / 家庭出行 / 想一天看多个景点",
+          "First-time visitors / Families / Seeing several city highlights in one day",
+        ],
         summary: [
           "双子塔、独立广场与茨厂街",
           "Twin Towers, Merdeka Square and Petaling Street",
@@ -333,6 +399,15 @@ export function ServiceDetail({
       },
       {
         title: ["黑风洞文化路线", "Batu Caves & Culture"],
+        duration: ["约10小时", "About 10 hours"],
+        tags: [
+          ["家庭友好", "Family friendly"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "第一次来吉隆坡 / 文化景点 / 想兼顾市区地标",
+          "First-time visitors / Culture stops / City landmarks in one route",
+        ],
         summary: [
           "黑风洞、国家皇宫与城市地标",
           "Batu Caves, National Palace and city landmarks",
@@ -379,6 +454,15 @@ export function ServiceDetail({
       },
       {
         title: ["美食购物休闲路线", "Food & Shopping Day"],
+        duration: ["约6小时", "About 6 hours"],
+        tags: [
+          ["适合购物", "Shopping"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "轻松逛街 / 当地美食 / 不想赶景点",
+          "Easy shopping / Local food / A slower city day",
+        ],
         summary: [
           "武吉免登、Pavilion与当地美食",
           "Bukit Bintang, Pavilion and local food",
@@ -422,6 +506,15 @@ export function ServiceDetail({
       },
       {
         title: ["马六甲跨城一日游", "Melaka Day Trip"],
+        duration: ["约10小时", "About 10 hours"],
+        tags: [
+          ["跨城包车", "Intercity"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "吉隆坡出发 / 古城文化 / 一天往返马六甲",
+          "Starting from Kuala Lumpur / Heritage / Melaka in one day",
+        ],
         summary: [
           "古城文化、鸡场街与河岸风光",
           "Heritage sites, Jonker Street and the riverside",
@@ -464,6 +557,15 @@ export function ServiceDetail({
     melaka: [
       {
         title: ["马六甲古城经典游", "Classic Heritage Melaka"],
+        duration: ["约8小时", "About 8 hours"],
+        tags: [
+          ["首次到访", "First visit"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "第一次来马六甲 / 古城拍照 / 轻松看经典景点",
+          "First-time visitors / Heritage photos / Classic sights",
+        ],
         summary: [
           "红屋、圣保罗山与鸡场街",
           "Dutch Square, St Paul's Hill and Jonker Street",
@@ -504,6 +606,15 @@ export function ServiceDetail({
       },
       {
         title: ["娘惹文化与美食", "Peranakan Culture & Food"],
+        duration: ["约6小时", "About 6 hours"],
+        tags: [
+          ["文化美食", "Culture & food"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "喜欢当地文化 / 娘惹美食 / 老街慢逛",
+          "Local culture / Peranakan food / Slow old-town walk",
+        ],
         summary: [
           "娘惹博物馆、老街与特色餐饮",
           "Peranakan museum, old streets and local dining",
@@ -544,6 +655,15 @@ export function ServiceDetail({
       },
       {
         title: ["河岸休闲半日游", "Relaxed Riverside Half Day"],
+        duration: ["约5小时", "About 5 hours"],
+        tags: [
+          ["半日轻松", "Half day"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "慢节奏旅行 / 咖啡馆 / 河岸散步",
+          "Slow travel / Cafes / Riverside walk",
+        ],
         summary: [
           "河岸漫步、咖啡馆与古城夜景",
           "Riverside walks, cafes and heritage views",
@@ -584,6 +704,15 @@ export function ServiceDetail({
       },
       {
         title: ["马六甲日落夜游", "Melaka Sunset & Evening"],
+        duration: ["约6小时", "About 6 hours"],
+        tags: [
+          ["日落夜游", "Sunset evening"],
+          ["行程可调整", "Flexible route"],
+        ],
+        bestFor: [
+          "下午出发 / 日落拍照 / 鸡场街夜市",
+          "Afternoon start / Sunset photos / Jonker night market",
+        ],
         summary: [
           "海峡清真寺、日落与鸡场街夜市",
           "Straits Mosque, sunset and Jonker night market",
@@ -628,27 +757,30 @@ export function ServiceDetail({
     ],
   };
   const displayRoutes = routeVariants[city]
-    ? routes.map((route, index) => ({
-        ...route,
-        ...routeVariants[city][index],
-        image: cityImages[index],
-      }))
+    ? routes.map((route, index) => {
+        const routeOverride = routeVariants[city][index];
+        const stopImages = routeImageSets[city]?.[index] ?? [];
+        const mergedRoute = {
+          ...route,
+          ...routeOverride,
+          image: stopImages[1] || stopImages[0] || route.image,
+        };
+        return {
+          ...mergedRoute,
+          stops: mergedRoute.stops.map((stop, stopIndex) => ({
+            ...stop,
+            image: stop.image || stopImages[stopIndex] || mergedRoute.image,
+          })),
+        };
+      })
     : routes;
-  const displayGalleryPools = displayRoutes.map((route, index) => [
-    route.image,
-    cityImages[(index + 1) % 4],
-    cityImages[(index + 2) % 4],
-    cityImages[(index + 3) % 4],
-  ]);
-  const selectedRouteIndex = selected
-    ? Math.max(
-        0,
-        displayRoutes.findIndex(
-          (route) => route.title[0] === selected.title[0],
-        ),
-      )
-    : 0;
-  const modalImages = selected ? displayGalleryPools[selectedRouteIndex] : [];
+  const modalStops = selected
+    ? selected.stops.map((stop) => ({
+        ...stop,
+        image: stop.image || selected.image,
+      }))
+    : [];
+  const activeStop = modalStops[photoIndex] || modalStops[0];
   return (
     <>
       <header>
@@ -810,14 +942,14 @@ export function ServiceDetail({
             <div className="modal-gallery">
               <div className="modal-gallery-main">
                 <img
-                  src={modalImages[photoIndex]}
-                  alt={`${selected.title[l]} ${photoIndex + 1}`}
+                  src={activeStop?.image || selected.image}
+                  alt={activeStop?.title[l] || selected.title[l]}
                 />
                 <button
                   onClick={() =>
                     setPhotoIndex(
-                      (photoIndex - 1 + modalImages.length) %
-                        modalImages.length,
+                      (photoIndex - 1 + modalStops.length) %
+                        modalStops.length,
                     )
                   }
                   aria-label={zh ? "上一张图片" : "Previous photo"}
@@ -826,24 +958,25 @@ export function ServiceDetail({
                 </button>
                 <button
                   onClick={() =>
-                    setPhotoIndex((photoIndex + 1) % modalImages.length)
+                    setPhotoIndex((photoIndex + 1) % modalStops.length)
                   }
                   aria-label={zh ? "下一张图片" : "Next photo"}
                 >
                   ›
                 </button>
                 <span>
-                  {photoIndex + 1}/{modalImages.length}
+                  {photoIndex + 1}/{modalStops.length}
                 </span>
               </div>
               <div className="modal-gallery-thumbs">
-                {modalImages.map((image, i) => (
+                {modalStops.map((stop, i) => (
                   <button
                     className={i === photoIndex ? "active" : ""}
                     onClick={() => setPhotoIndex(i)}
-                    key={image}
+                    key={`${stop.title[0]}-${i}`}
                   >
-                    <img src={image} alt="" />
+                    <img src={stop.image} alt="" />
+                    <span>{stop.title[l]}</span>
                   </button>
                 ))}
               </div>
@@ -853,23 +986,45 @@ export function ServiceDetail({
               <h2>{selected.title[l]}</h2>
               <div className="modal-tags">
                 <span>{selected.duration[l]}</span>
-                {selected.tags.map((x) => (
-                  <span key={x[0]}>{x[l]}</span>
-                ))}
+                <span>{zh ? "私人包车" : "Private car"}</span>
+                <span>{zh ? "行程可调整" : "Flexible route"}</span>
               </div>
+              <p className="modal-itinerary-title">
+                {zh
+                  ? `建议行程 · ${selected.duration[0]}`
+                  : `Suggested route · ${selected.duration[1]}`}
+              </p>
               <div className="timeline">
-                {selected.stops.map((stop) => (
-                  <div key={stop.time}>
-                    <time>{stop.time}</time>
+                {modalStops.map((stop, i) => (
+                  <button
+                    type="button"
+                    className={i === photoIndex ? "active" : ""}
+                    onClick={() => setPhotoIndex(i)}
+                    key={`${stop.title[0]}-${i}`}
+                  >
+                    <time>{String(i + 1).padStart(2, "0")}</time>
                     <i />
                     <p>
                       <b>{stop.title[l]}</b>
                       <small>{stop.note[l]}</small>
                     </p>
-                    {stop.image && <img src={stop.image} alt="" />}
-                  </div>
+                  </button>
                 ))}
               </div>
+              <p className="modal-flex-note">
+                {zh
+                  ? "行程顺序及停留时间可根据当天情况与个人喜好灵活调整。"
+                  : "Route order and time at each stop can be adjusted around the day and your preferences."}
+              </p>
+              <p className="modal-best-for">
+                <b>{zh ? "适合" : "Best for"}</b>
+                <span>
+                  {selected.bestFor?.[l] ||
+                    (zh
+                      ? "家庭出行 / 自由安排 / 想轻松看多个景点"
+                      : "Families / Flexible plans / Seeing several highlights comfortably")}
+                </span>
+              </p>
               <a className="button" href="/#contact">
                 {zh ? "咨询这条路线" : "Ask about this route"}
               </a>
