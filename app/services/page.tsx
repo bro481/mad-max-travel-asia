@@ -1,7 +1,11 @@
-import { listServices } from "../../db/services";
-import { listServiceItems } from "../../db/service-items";
 import { ServicesPage } from "./services-page";
 export default async function Page() {
+  if (process.env.LOCAL_BROWSER_PREVIEW === "1") {
+    return <ServicesPage services={[]} managed={[]} />;
+  }
+
+  const { listServices } = await import("../../db/services");
+  const { listServiceItems } = await import("../../db/service-items");
   return (
     <ServicesPage
       services={await listServices()}

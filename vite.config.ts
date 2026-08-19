@@ -1,5 +1,6 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
 
@@ -45,6 +46,15 @@ export default defineConfig(async () => {
   const { cloudflare } = localBrowserPreview ? { cloudflare: null } : await import("@cloudflare/vite-plugin");
 
   return {
+    resolve: localBrowserPreview
+      ? {
+          alias: {
+            "cloudflare:workers": fileURLToPath(
+              new URL("./worker/local-cloudflare-workers.ts", import.meta.url),
+            ),
+          },
+        }
+      : undefined,
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
