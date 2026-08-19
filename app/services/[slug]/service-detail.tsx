@@ -891,8 +891,10 @@ export function ServiceDetail({
                 }}
                 key={route.title[0]}
               >
-                <img src={route.image} alt={route.title[l]} />
-                <div>
+                <div className="route-card-media">
+                  <img src={route.image} alt={route.title[l]} />
+                </div>
+                <div className="route-card-body">
                   <h3>{route.title[l]}</h3>
                   <p>
                     <span>{route.duration[l]}</span>
