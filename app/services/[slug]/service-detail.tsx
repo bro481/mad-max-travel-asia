@@ -15,6 +15,7 @@ type Route = {
     title: [string, string];
     note: [string, string];
     image?: string;
+    images?: string[];
   }[];
 };
 const photo = (id: string, w = 1200) =>
@@ -244,7 +245,8 @@ export function ServiceDetail({
 }) {
   const [lang, setLang] = useState<Lang>("zh"),
     [selected, setSelected] = useState<Route | null>(null),
-    [photoIndex, setPhotoIndex] = useState(0),
+    [stopIndex, setStopIndex] = useState(0),
+    [stopPhotoIndex, setStopPhotoIndex] = useState(0),
     [menu, setMenu] = useState(false);
   const zh = lang === "zh",
     l = zh ? 0 : 1;
@@ -756,6 +758,16 @@ export function ServiceDetail({
       },
     ],
   };
+  const buildStopGallery = (
+    cover: string,
+    routeImages: string[],
+    stopIndex: number,
+  ) => {
+    const relatedImages = routeImages.filter((image, imageIndex) => {
+      return image && image !== cover && imageIndex !== stopIndex;
+    });
+    return [cover, ...relatedImages.slice(0, 3)].filter(Boolean);
+  };
   const displayRoutes = routeVariants[city]
     ? routes.map((route, index) => {
         const routeOverride = routeVariants[city][index];
@@ -770,6 +782,14 @@ export function ServiceDetail({
           stops: mergedRoute.stops.map((stop, stopIndex) => ({
             ...stop,
             image: stop.image || stopImages[stopIndex] || mergedRoute.image,
+            images:
+              stop.images && stop.images.length
+                ? stop.images
+                : buildStopGallery(
+                    stop.image || stopImages[stopIndex] || mergedRoute.image,
+                    stopImages,
+                    stopIndex,
+                  ),
           })),
         };
       })
@@ -777,10 +797,23 @@ export function ServiceDetail({
   const modalStops = selected
     ? selected.stops.map((stop) => ({
         ...stop,
-        image: stop.image || selected.image,
+        image: stop.image || stop.images?.[0] || selected.image,
+        images:
+          stop.images && stop.images.length
+            ? stop.images
+            : [stop.image || selected.image],
       }))
     : [];
-  const activeStop = modalStops[photoIndex] || modalStops[0];
+  const activeStop = modalStops[stopIndex] || modalStops[0];
+  const activeStopImages = activeStop?.images?.length
+    ? activeStop.images
+    : [activeStop?.image || selected?.image || ""].filter(Boolean);
+  const activeImage =
+    activeStopImages[stopPhotoIndex] ||
+    activeStopImages[0] ||
+    activeStop?.image ||
+    selected?.image;
+  const activePhotoCount = activeStopImages.length || 1;
   return (
     <>
       <header>
@@ -848,7 +881,8 @@ export function ServiceDetail({
               <button
                 className="route-card"
                 onClick={() => {
-                  setPhotoIndex(0);
+                  setStopIndex(0);
+                  setStopPhotoIndex(0);
                   setSelected(route);
                 }}
                 key={route.title[0]}
@@ -942,40 +976,50 @@ export function ServiceDetail({
             <div className="modal-gallery">
               <div className="modal-gallery-main">
                 <img
-                  src={activeStop?.image || selected.image}
+                  src={activeImage || selected.image}
                   alt={activeStop?.title[l] || selected.title[l]}
                 />
                 <button
                   onClick={() =>
-                    setPhotoIndex(
-                      (photoIndex - 1 + modalStops.length) %
-                        modalStops.length,
+                    setStopPhotoIndex(
+                      (stopPhotoIndex - 1 + activePhotoCount) %
+                        activePhotoCount,
                     )
                   }
+                  disabled={activePhotoCount <= 1}
                   aria-label={zh ? "上一张图片" : "Previous photo"}
                 >
                   ‹
                 </button>
                 <button
                   onClick={() =>
-                    setPhotoIndex((photoIndex + 1) % modalStops.length)
+                    setStopPhotoIndex(
+                      (stopPhotoIndex + 1) % activePhotoCount,
+                    )
                   }
+                  disabled={activePhotoCount <= 1}
                   aria-label={zh ? "下一张图片" : "Next photo"}
                 >
                   ›
                 </button>
                 <span>
-                  {photoIndex + 1}/{modalStops.length}
+                  {stopPhotoIndex + 1}/{activePhotoCount}
                 </span>
               </div>
               <div className="modal-gallery-thumbs">
                 {modalStops.map((stop, i) => (
                   <button
-                    className={i === photoIndex ? "active" : ""}
-                    onClick={() => setPhotoIndex(i)}
+                    className={i === stopIndex ? "active" : ""}
+                    onClick={() => {
+                      setStopIndex(i);
+                      setStopPhotoIndex(0);
+                    }}
                     key={`${stop.title[0]}-${i}`}
                   >
-                    <img src={stop.image} alt="" />
+                    <img
+                      src={stop.image || stop.images?.[0] || selected.image}
+                      alt=""
+                    />
                     <span>{stop.title[l]}</span>
                   </button>
                 ))}
@@ -998,8 +1042,11 @@ export function ServiceDetail({
                 {modalStops.map((stop, i) => (
                   <button
                     type="button"
-                    className={i === photoIndex ? "active" : ""}
-                    onClick={() => setPhotoIndex(i)}
+                    className={i === stopIndex ? "active" : ""}
+                    onClick={() => {
+                      setStopIndex(i);
+                      setStopPhotoIndex(0);
+                    }}
                     key={`${stop.title[0]}-${i}`}
                   >
                     <time>{String(i + 1).padStart(2, "0")}</time>
