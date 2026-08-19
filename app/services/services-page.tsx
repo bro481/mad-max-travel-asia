@@ -749,7 +749,7 @@ export function ServicesPage({
           </div>
           <div className="custom-cases">
             {t.cases.map((item, i) => (
-              <article key={item[0]}>
+              <article key={String(item[0])}>
                 <img
                   src={
                     [
@@ -763,7 +763,7 @@ export function ServicesPage({
                 <div>
                   <h3>{item[0]}</h3>
                   <ul>
-                    {item[1].map((x) => (
+                    {(Array.isArray(item[1]) ? item[1] : []).map((x) => (
                       <li key={x}>✓ {x}</li>
                     ))}
                   </ul>

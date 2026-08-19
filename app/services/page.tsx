@@ -1,6 +1,6 @@
 import { ServicesPage } from "./services-page";
 export default async function Page() {
-  if (process.env.LOCAL_BROWSER_PREVIEW === "1") {
+  if (process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.VERCEL === "1") {
     return <ServicesPage services={[]} managed={[]} />;
   }
 

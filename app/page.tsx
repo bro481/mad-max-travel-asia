@@ -2,7 +2,7 @@ import { HomePage } from "./home-page";
 
 export const dynamic="force-dynamic";
 export default async function Page() {
-  if (process.env.LOCAL_BROWSER_PREVIEW === "1") {
+  if (process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.VERCEL === "1") {
     const { rooms } = await import("./data");
     return <HomePage rooms={rooms} />;
   }
