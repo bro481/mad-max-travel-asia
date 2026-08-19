@@ -346,6 +346,7 @@ export function ServiceDetail({
     kl: [
       {
         title: ["吉隆坡经典一日游", "Kuala Lumpur Classic Day"],
+        image: photo("photo-1596422846543-75c6fc197f07"),
         duration: ["约8小时", "About 8 hours"],
         tags: [
           ["首次到访", "First visit"],
@@ -401,6 +402,7 @@ export function ServiceDetail({
       },
       {
         title: ["黑风洞文化路线", "Batu Caves & Culture"],
+        image: photo("photo-1581791538302-03537b9c97bf"),
         duration: ["约10小时", "About 10 hours"],
         tags: [
           ["家庭友好", "Family friendly"],
@@ -456,6 +458,7 @@ export function ServiceDetail({
       },
       {
         title: ["美食购物休闲路线", "Food & Shopping Day"],
+        image: photo("photo-1525625293386-3f8f99389edd"),
         duration: ["约6小时", "About 6 hours"],
         tags: [
           ["适合购物", "Shopping"],
@@ -508,6 +511,7 @@ export function ServiceDetail({
       },
       {
         title: ["马六甲跨城一日游", "Melaka Day Trip"],
+        image: photo("photo-1565967511849-76a60a516170"),
         duration: ["约10小时", "About 10 hours"],
         tags: [
           ["跨城包车", "Intercity"],
@@ -770,12 +774,12 @@ export function ServiceDetail({
   };
   const displayRoutes = routeVariants[city]
     ? routes.map((route, index) => {
-        const routeOverride = routeVariants[city][index];
+        const routeOverride = routeVariants[city][index] ?? {};
         const stopImages = routeImageSets[city]?.[index] ?? [];
         const mergedRoute = {
           ...route,
           ...routeOverride,
-          image: stopImages[1] || stopImages[0] || route.image,
+          image: routeOverride.image || stopImages[0] || route.image,
         };
         return {
           ...mergedRoute,
@@ -894,8 +898,10 @@ export function ServiceDetail({
                     <span>{route.duration[l]}</span>
                     <span>{route.tags[0][l]}</span>
                   </p>
-                  <small>{route.summary[l]}</small>
-                  <b>{zh ? "查看路线" : "View route"} →</b>
+                  <div className="route-card-footer">
+                    <small>{route.summary[l]}</small>
+                    <b>{zh ? "查看路线" : "View route"} →</b>
+                  </div>
                 </div>
               </button>
             ))}
