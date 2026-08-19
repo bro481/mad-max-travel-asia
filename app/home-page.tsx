@@ -1,36 +1,613 @@
 "use client";
-import {FormEvent,useState} from "react";
-import {services,type Lang,type Room} from "./data";
-import {roomLayoutKey,roomLayoutLabel} from "../lib/room-layout";
+import { FormEvent, useState } from "react";
+import { services, type Lang, type Room } from "./data";
+import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
 
-const locations=["Kuala Lumpur","Kota Kinabalu","Semporna"];
-const destinations={en:["Kuala Lumpur","Kota Kinabalu","Semporna","Singapore","Not decided yet"],zh:["吉隆坡 Kuala Lumpur","亚庇 Kota Kinabalu","仙本那 Semporna","新加坡 Singapore","还没决定"]};
-const serviceOptions={en:["Accommodation","Airport Transfer","Private Car","Island Transfer","Day Trip","Other"],zh:["住宿","机场接送","私人包车","海岛接送","一日游","其他"]};
-const timeOptions={en:["Dates confirmed","Approximate month","Not decided yet"],zh:["日期已确定","大概月份","还没决定"]};
-const MYR_TO_CNY=1.7;
-const c={
- en:{rooms:"Rooms",services:"Services",contact:"Contact",submit:"Submit inquiry",heroTag:"Malaysia, made easy",hero:<>Stay Comfortably,<br/>Travel Easily.</>,heroText:"Comfortable stays and private travel services in Kuala Lumpur, Kota Kinabalu & Semporna.",explore:"Explore rooms",viewServices:"View services",find:"Find your place",stays:"Our Stays",selected:"Carefully selected homes in the best locations.",stayCount:"stays",guests:"Guests",bedrooms:"Bedrooms",beds:"Beds",viewRoom:"View room",travel:"Travel with a local",local:"Local Services",localSub:"Make your Malaysia trip easier with our local services.",start:"Start planning",plan:"Start Planning Your Malaysia Trip",planSub:"Share your travel plan with us. We will recommend suitable stays and local services.",steps:[["Tell us your ideas","Choose destinations and services you need."],["We help you plan","Get suggestions based on your trip and preferences."],["Travel with ease","Stays, transport and local experiences in one place."]],advantages:["Chinese-speaking support","Real local stays","Private cars and transfers"],name:"How should we call you?",namePh:"Your name or nickname",contactLabel:"WeChat / WhatsApp",contactPh:"The easiest way to reach you",destination:"Where are you planning to go?",need:"Which services do you need?",time:"Travel time (optional)",message:"Anything else you’d like us to know?",messagePh:"For example: 2 adults and 1 child, prefer somewhere near the sea, or need a private car…",advice:"Get Travel Advice",sending:"Sending…",thanks:"We’ve received your travel plan!",thanksSub:"We’ll contact you soon. You can also reach us directly on WeChat or WhatsApp.",again:"Send another request",error:"Something went wrong. Please try again.",footer:"Comfortable stays and private local travel services across Malaysia."},
- zh:{rooms:"房源",services:"当地服务",contact:"联系我们",submit:"提交咨询",heroTag:"轻松畅游马来西亚",hero:<>舒适入住，<br/>自在旅行。</>,heroText:"为你提供吉隆坡、亚庇与仙本那的舒适住宿及私人当地旅行服务。",explore:"浏览房源",viewServices:"查看服务",find:"寻找理想住处",stays:"精选住宿",selected:"用心挑选位置便利、舒适温暖的当地住处。",stayCount:"间房源",guests:"位客人",bedrooms:"间卧室",beds:"张床",viewRoom:"查看房源",travel:"与当地人一起旅行",local:"当地服务",localSub:"让我们的当地服务为你的马来西亚旅程带来更多便利。",start:"开始规划",plan:"开始规划你的马来西亚之旅",planSub:"告诉我们你的目的地和需求，我们会根据你的行程提供合适的住宿和当地服务建议。",steps:[["告诉我们你的想法","选择目的地和需要的服务。"],["我们帮你安排","根据行程和需求提供合适建议。"],["轻松开始旅程","住宿、交通和当地体验可以一起安排。"]],advantages:["中文沟通","当地真实房源","可安排包车和接送"],name:"怎么称呼您？",namePh:"请输入您的名字或昵称",contactLabel:"微信 / WhatsApp",contactPh:"方便我们联系您的方式",destination:"您计划去哪里？",need:"您需要哪些服务？",time:"预计出行时间（可选）",message:"还有什么想告诉我们？",messagePh:"例如：2位成人+1个孩子，希望靠近海边，或者想安排包车……",advice:"获取旅行建议",sending:"正在发送…",thanks:"收到您的需求啦！",thanksSub:"我们会尽快联系您。您也可以直接添加微信或通过 WhatsApp 咨询。",again:"再次填写",error:"提交失败，请稍后再试。",footer:"马来西亚舒适住宿与私人当地旅行服务。"}
+const locations = ["Kuala Lumpur", "Kota Kinabalu", "Semporna"];
+const destinations = {
+  en: [
+    "Kuala Lumpur",
+    "Kota Kinabalu",
+    "Semporna",
+    "Singapore",
+    "Not decided yet",
+  ],
+  zh: [
+    "吉隆坡 Kuala Lumpur",
+    "亚庇 Kota Kinabalu",
+    "仙本那 Semporna",
+    "新加坡 Singapore",
+    "还没决定",
+  ],
 };
-function Logo(){return <a className="logo" href="#top"><span className="logo-mark">⌂</span><span><b>MAD MAX</b><small>MALAYSIA STAY</small></span></a>}
-
-function RoomCarousel({room,lang}:{room:Room;lang:Lang}){
- const[index,setIndex]=useState(0);const images=room.images?.length?room.images:[room.image];
- const move=(direction:number)=>setIndex(current=>(current+direction+images.length)%images.length);
- return <div className="card-carousel"><a href={`/rooms/${room.id}`} aria-label={room.name[lang]}><img src={images[index]} alt={`${room.name[lang]} ${index+1}`}/></a><span className="location-pill">{room.location[lang]}</span>{images.length>1&&<><button className="carousel-arrow prev" onClick={()=>move(-1)} aria-label="Previous photo">‹</button><button className="carousel-arrow next" onClick={()=>move(1)} aria-label="Next photo">›</button><div className="carousel-dots">{images.map((_,i)=><button key={i} className={i===index?"active":""} onClick={()=>setIndex(i)} aria-label={`Photo ${i+1}`}/>)}</div><span className="carousel-count">{index+1}/{images.length}</span></>}</div>;
+const serviceOptions = {
+  en: [
+    "Accommodation",
+    "Airport Transfer",
+    "Private Car",
+    "Island Transfer",
+    "Day Trip",
+    "Other",
+  ],
+  zh: ["住宿", "机场接送", "私人包车", "海岛接送", "一日游", "其他"],
+};
+const timeOptions = {
+  en: ["Dates confirmed", "Approximate month", "Not decided yet"],
+  zh: ["日期已确定", "大概月份", "还没决定"],
+};
+const MYR_TO_CNY = 1.7;
+const c = {
+  en: {
+    rooms: "Rooms",
+    services: "Services",
+    contact: "Contact",
+    submit: "Submit inquiry",
+    heroTag: "Malaysia, made easy",
+    hero: (
+      <>
+        Stay Comfortably,
+        <br />
+        Travel Easily.
+      </>
+    ),
+    heroText:
+      "Comfortable stays and private travel services in Kuala Lumpur, Kota Kinabalu & Semporna.",
+    explore: "Explore rooms",
+    viewServices: "View services",
+    find: "Find your place",
+    stays: "Our Stays",
+    selected: "Carefully selected homes in the best locations.",
+    stayCount: "stays",
+    guests: "Guests",
+    bedrooms: "Bedrooms",
+    beds: "Beds",
+    viewRoom: "View room",
+    travel: "Travel with a local",
+    local: "Local Services",
+    localSub: "Make your Malaysia trip easier with our local services.",
+    start: "Start planning",
+    plan: "Start Planning Your Malaysia Trip",
+    planSub:
+      "Share your travel plan with us. We will recommend suitable stays and local services.",
+    steps: [
+      ["Tell us your ideas", "Choose destinations and services you need."],
+      [
+        "We help you plan",
+        "Get suggestions based on your trip and preferences.",
+      ],
+      [
+        "Travel with ease",
+        "Stays, transport and local experiences in one place.",
+      ],
+    ],
+    advantages: [
+      "Chinese-speaking support",
+      "Real local stays",
+      "Private cars and transfers",
+    ],
+    name: "How should we call you?",
+    namePh: "Your name or nickname",
+    contactLabel: "WeChat / WhatsApp",
+    contactPh: "The easiest way to reach you",
+    destination: "Where are you planning to go?",
+    need: "Which services do you need?",
+    time: "Travel time (optional)",
+    message: "Anything else you’d like us to know?",
+    messagePh:
+      "For example: 2 adults and 1 child, prefer somewhere near the sea, or need a private car…",
+    advice: "Get Travel Advice",
+    sending: "Sending…",
+    thanks: "We’ve received your travel plan!",
+    thanksSub:
+      "We’ll contact you soon. You can also reach us directly on WeChat or WhatsApp.",
+    again: "Send another request",
+    error: "Something went wrong. Please try again.",
+    footer:
+      "Comfortable stays and private local travel services across Malaysia.",
+  },
+  zh: {
+    rooms: "房源",
+    services: "当地服务",
+    contact: "联系我们",
+    submit: "提交咨询",
+    heroTag: "轻松畅游马来西亚",
+    hero: (
+      <>
+        舒适入住，
+        <br />
+        自在旅行。
+      </>
+    ),
+    heroText: "为你提供吉隆坡、亚庇与仙本那的舒适住宿及私人当地旅行服务。",
+    explore: "浏览房源",
+    viewServices: "查看服务",
+    find: "寻找理想住处",
+    stays: "精选住宿",
+    selected: "用心挑选位置便利、舒适温暖的当地住处。",
+    stayCount: "间房源",
+    guests: "位客人",
+    bedrooms: "间卧室",
+    beds: "张床",
+    viewRoom: "查看房源",
+    travel: "与当地人一起旅行",
+    local: "当地服务",
+    localSub: "让我们的当地服务为你的马来西亚旅程带来更多便利。",
+    start: "开始规划",
+    plan: "开始规划你的马来西亚之旅",
+    planSub:
+      "告诉我们你的目的地和需求，我们会根据你的行程提供合适的住宿和当地服务建议。",
+    steps: [
+      ["告诉我们你的想法", "选择目的地和需要的服务。"],
+      ["我们帮你安排", "根据行程和需求提供合适建议。"],
+      ["轻松开始旅程", "住宿、交通和当地体验可以一起安排。"],
+    ],
+    advantages: ["中文沟通", "当地真实房源", "可安排包车和接送"],
+    name: "怎么称呼您？",
+    namePh: "请输入您的名字或昵称",
+    contactLabel: "微信 / WhatsApp",
+    contactPh: "方便我们联系您的方式",
+    destination: "您计划去哪里？",
+    need: "您需要哪些服务？",
+    time: "预计出行时间（可选）",
+    message: "还有什么想告诉我们？",
+    messagePh: "例如：2位成人+1个孩子，希望靠近海边，或者想安排包车……",
+    advice: "获取旅行建议",
+    sending: "正在发送…",
+    thanks: "收到您的需求啦！",
+    thanksSub: "我们会尽快联系您。您也可以直接添加微信或通过 WhatsApp 咨询。",
+    again: "再次填写",
+    error: "提交失败，请稍后再试。",
+    footer: "马来西亚舒适住宿与私人当地旅行服务。",
+  },
+};
+function Logo() {
+  return (
+    <a className="logo" href="#top">
+      <span className="logo-mark">⌂</span>
+      <span>
+        <b>MAD MAX</b>
+        <small>MALAYSIA STAY</small>
+      </span>
+    </a>
+  );
 }
 
-export function HomePage({rooms}:{rooms:Room[]}){
- const[lang,setLang]=useState<Lang>("zh"),[status,setStatus]=useState(""),[sent,setSent]=useState(false),[menu,setMenu]=useState(false),[layout,setLayout]=useState("all");const t=c[lang];
- const roomLayouts=[...new Map(rooms.map(room=>[roomLayoutKey(room.bedrooms,room.bathrooms),{key:roomLayoutKey(room.bedrooms,room.bathrooms),bedrooms:room.bedrooms,bathrooms:room.bathrooms}])).values()].sort((a,b)=>a.bedrooms-b.bedrooms||a.bathrooms-b.bathrooms);
- const visibleRooms=layout==="all"?rooms:rooms.filter(room=>roomLayoutKey(room.bedrooms,room.bathrooms)===layout);
- async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setStatus(t.sending);const form=e.currentTarget,fd=new FormData(form);const body={name:fd.get("name"),contact:fd.get("contact"),destinations:fd.getAll("destinations"),services:fd.getAll("services"),travelTime:fd.get("travelTime"),message:fd.get("message")};const res=await fetch("/api/inquiries",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});if(res.ok){form.reset();setStatus("");setSent(true)}else setStatus(t.error)}
- return <><header id="top"><Logo/><button className="menu-btn" onClick={()=>setMenu(!menu)}>{menu?"×":"☰"}</button><nav className={menu?"open":""}><a href="#stays">{t.rooms}</a><a href="/services">{t.services}</a><a href="#contact">{t.contact}</a><div className="language-switch mobile-language"><button className={lang==="zh"?"active":""} onClick={()=>setLang("zh")}>中文</button><i/><button className={lang==="en"?"active":""} onClick={()=>setLang("en")}>English</button></div></nav><div className="header-right"><div className="language-switch desktop-language"><button className={lang==="zh"?"active":""} onClick={()=>setLang("zh")}>中文</button><i/><button className={lang==="en"?"active":""} onClick={()=>setLang("en")}>English</button></div><a className="button header-cta" href="#contact">{t.submit}</a></div></header>
- <main><section className="hero"><img src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1800&q=90" alt="Warm Malaysian apartment"/><div className="hero-copy"><p className="eyebrow">{t.heroTag}</p><h1>{t.hero}</h1><p>{t.heroText}</p><div className="hero-actions"><a className="button" href="#stays">{t.explore}</a><a className="button outline" href="/services">{t.viewServices}</a></div></div></section>
- <section id="stays" className="section stays"><div className="section-heading"><p className="eyebrow">{t.find}</p><h2>{t.stays}</h2><p>{t.selected}</p></div><div className="city-guide">{locations.map((location,i)=>{const room=rooms.find(r=>r.location.en===location);return <a href={`#city-${i}`} key={location}><span>{["⌂","♧","≈"][i]}</span>{room?.location[lang]}<small>{rooms.filter(r=>r.location.en===location).length}</small></a>})}</div><div className="layout-guide" aria-label={lang==="zh"?"按房型筛选":"Filter by room type"}><button className={layout==="all"?"active":""} onClick={()=>setLayout("all")}>{lang==="zh"?"全部房型":"All room types"}<small>{rooms.length}</small></button>{roomLayouts.map(type=><button className={layout===type.key?"active":""} onClick={()=>setLayout(type.key)} key={type.key}>{roomLayoutLabel(type.bedrooms,type.bathrooms,lang)}<small>{rooms.filter(room=>roomLayoutKey(room.bedrooms,room.bathrooms)===type.key).length}</small></button>)}</div>{locations.map((location,i)=>{const cityRooms=visibleRooms.filter(r=>r.location.en===location);if(!cityRooms.length)return null;return <div className="location" id={`city-${i}`} key={location}><div className="location-title"><h3><span>{i===0?"⌂":i===1?"♧":"≈"}</span>{rooms.find(r=>r.location.en===location)?.location[lang]}</h3><span>{cityRooms.length} {t.stayCount}</span></div><div className="room-grid">{cityRooms.map(room=><article className="room-card" key={room.id}><RoomCarousel room={room} lang={lang}/><div className="card-body"><h4>{room.name[lang]}</h4><div className="room-info-row"><div className="room-meta"><span>{room.guests} {t.guests}</span><span>{room.bedrooms} {t.bedrooms}</span><span>{room.beds} {t.beds}</span></div></div><div className="room-price">{lang==="zh"?`¥${Math.round(room.priceFrom*MYR_TO_CNY)} 起/晚`:`RM ${room.priceFrom} / night`}</div><a className="text-link" href={`/rooms/${room.id}`}>{t.viewRoom}<span>↗</span></a></div></article>)}</div></div>})}</section>
- <section id="services" className="section services"><div className="section-heading"><p className="eyebrow">{t.travel}</p><h2>{t.local}</h2><p>{t.localSub}</p></div><div className="service-grid">{services.map((s,i)=><article className="service-card" key={s.name.en}><div className="service-image"><img src={s.image} alt={s.name[lang]}/><span>{["✈","↗","≈","◎"][i]}</span></div><div><h3>{s.name[lang]}</h3><p>{s.description[lang]}</p><a href="#contact">→</a></div></article>)}</div></section>
- <section id="contact" className="inquiry inquiry-light"><div className="inquiry-intro"><p className="eyebrow">{t.start}</p><h2>{t.plan}</h2><p>{t.planSub}</p><div className="planning-steps">{t.steps.map((s,i)=><div className="contact-note" key={s[0]}><span>0{i+1}</span><p><b>{s[0]}</b><br/>{s[1]}</p></div>)}</div><div className="trust-list">{t.advantages.map(a=><span key={a}>✓ {a}</span>)}</div></div>
- {sent?<div className="inquiry-success"><span className="success-mark">✓</span><h3>{t.thanks}</h3><p>{t.thanksSub}</p><div className="direct-contact"><div className="qr-placeholder"><b>微信</b><small>二维码</small></div><div><a className="button" href="#contact">微信咨询</a><a className="button outline" href="#contact">WhatsApp</a></div></div><button className="text-reset" onClick={()=>setSent(false)}>{t.again}</button></div>:
- <form className="light-form" onSubmit={submit}><div className="form-grid"><label>{t.name}<input required name="name" placeholder={t.namePh}/></label><label>{t.contactLabel}<input required name="contact" placeholder={t.contactPh}/></label></div><fieldset><legend>{t.destination}</legend><div className="choice-grid destinations">{destinations[lang].map((n,i)=><label key={n}><input type="checkbox" name="destinations" value={destinations.en[i]}/><span>{n}</span></label>)}</div></fieldset><fieldset><legend>{t.need}</legend><div className="choice-grid">{serviceOptions[lang].map((n,i)=><label key={n}><input type="checkbox" name="services" value={serviceOptions.en[i]}/><span>{n}</span></label>)}</div></fieldset><fieldset className="optional-time"><legend>{t.time}</legend><div className="choice-grid time-options">{timeOptions[lang].map((n,i)=><label key={n}><input type="radio" name="travelTime" value={timeOptions.en[i]}/><span>{n}</span></label>)}</div></fieldset><label>{t.message}<textarea name="message" rows={4} placeholder={t.messagePh}/></label><button className="button submit" type="submit">{t.advice}<span>↗</span></button><p className="form-status">{status}</p></form>}</section></main>
- <footer><Logo/><p>{t.footer}</p><div><a href="#stays">{t.rooms}</a><a href="/services">{t.services}</a><a href="#contact">{t.contact}</a></div><small>© 2026 MAD MAX Malaysia Stay</small></footer></>;
+function RoomCarousel({ room, lang }: { room: Room; lang: Lang }) {
+  const [index, setIndex] = useState(0);
+  const images = room.images?.length ? room.images : [room.image];
+  const move = (direction: number) =>
+    setIndex(
+      (current) => (current + direction + images.length) % images.length,
+    );
+  return (
+    <div className="card-carousel">
+      <a href={`/rooms/${room.id}`} aria-label={room.name[lang]}>
+        <img src={images[index]} alt={`${room.name[lang]} ${index + 1}`} />
+      </a>
+      <span className="location-pill">{room.location[lang]}</span>
+      {images.length > 1 && (
+        <>
+          <button
+            className="carousel-arrow prev"
+            onClick={() => move(-1)}
+            aria-label="Previous photo"
+          >
+            ‹
+          </button>
+          <button
+            className="carousel-arrow next"
+            onClick={() => move(1)}
+            aria-label="Next photo"
+          >
+            ›
+          </button>
+          <div className="carousel-dots">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                className={i === index ? "active" : ""}
+                onClick={() => setIndex(i)}
+                aria-label={`Photo ${i + 1}`}
+              />
+            ))}
+          </div>
+          <span className="carousel-count">
+            {index + 1}/{images.length}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function HomePage({ rooms }: { rooms: Room[] }) {
+  const [lang, setLang] = useState<Lang>("zh"),
+    [status, setStatus] = useState(""),
+    [sent, setSent] = useState(false),
+    [menu, setMenu] = useState(false),
+    [layout, setLayout] = useState("all"),
+    [selectedLocation, setSelectedLocation] = useState("all");
+  const t = c[lang];
+  const roomLayouts = [
+    ...new Map(
+      rooms.map((room) => [
+        roomLayoutKey(room.bedrooms, room.bathrooms),
+        {
+          key: roomLayoutKey(room.bedrooms, room.bathrooms),
+          bedrooms: room.bedrooms,
+          bathrooms: room.bathrooms,
+        },
+      ]),
+    ).values(),
+  ].sort((a, b) => a.bedrooms - b.bedrooms || a.bathrooms - b.bathrooms);
+  const destinationRooms =
+    selectedLocation === "all"
+      ? rooms
+      : rooms.filter((room) => room.location.en === selectedLocation);
+  const visibleRooms =
+    layout === "all"
+      ? destinationRooms
+      : destinationRooms.filter(
+          (room) => roomLayoutKey(room.bedrooms, room.bathrooms) === layout,
+        );
+  const availableLayouts = roomLayouts.filter((type) =>
+    destinationRooms.some(
+      (room) => roomLayoutKey(room.bedrooms, room.bathrooms) === type.key,
+    ),
+  );
+  const selectLocation = (location: string) => {
+    setSelectedLocation(location);
+    setLayout("all");
+  };
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setStatus(t.sending);
+    const form = e.currentTarget,
+      fd = new FormData(form);
+    const body = {
+      name: fd.get("name"),
+      contact: fd.get("contact"),
+      destinations: fd.getAll("destinations"),
+      services: fd.getAll("services"),
+      travelTime: fd.get("travelTime"),
+      message: fd.get("message"),
+    };
+    const res = await fetch("/api/inquiries", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      form.reset();
+      setStatus("");
+      setSent(true);
+    } else setStatus(t.error);
+  }
+  return (
+    <>
+      <header id="top">
+        <Logo />
+        <button className="menu-btn" onClick={() => setMenu(!menu)}>
+          {menu ? "×" : "☰"}
+        </button>
+        <nav className={menu ? "open" : ""}>
+          <a href="#stays">{t.rooms}</a>
+          <a href="/services">{t.services}</a>
+          <a href="#contact">{t.contact}</a>
+          <div className="language-switch mobile-language">
+            <button
+              className={lang === "zh" ? "active" : ""}
+              onClick={() => setLang("zh")}
+            >
+              中文
+            </button>
+            <i />
+            <button
+              className={lang === "en" ? "active" : ""}
+              onClick={() => setLang("en")}
+            >
+              English
+            </button>
+          </div>
+        </nav>
+        <div className="header-right">
+          <div className="language-switch desktop-language">
+            <button
+              className={lang === "zh" ? "active" : ""}
+              onClick={() => setLang("zh")}
+            >
+              中文
+            </button>
+            <i />
+            <button
+              className={lang === "en" ? "active" : ""}
+              onClick={() => setLang("en")}
+            >
+              English
+            </button>
+          </div>
+          <a className="button header-cta" href="#contact">
+            {t.submit}
+          </a>
+        </div>
+      </header>
+      <main>
+        <section className="hero">
+          <img
+            src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1800&q=90"
+            alt="Warm Malaysian apartment"
+          />
+          <div className="hero-copy">
+            <p className="eyebrow">{t.heroTag}</p>
+            <h1>{t.hero}</h1>
+            <p>{t.heroText}</p>
+            <div className="hero-actions">
+              <a className="button" href="#stays">
+                {t.explore}
+              </a>
+              <a className="button outline" href="/services">
+                {t.viewServices}
+              </a>
+            </div>
+          </div>
+        </section>
+        <section id="stays" className="section stays">
+          <div className="section-heading">
+            <p className="eyebrow">{t.find}</p>
+            <h2>{t.stays}</h2>
+            <p>{t.selected}</p>
+          </div>
+          <div className="stay-filters">
+            <div className="filter-row">
+              <strong>{lang === "zh" ? "目的地" : "Destination"}</strong>
+              <div className="filter-options">
+                {[
+                  {
+                    key: "all",
+                    label: lang === "zh" ? "全部" : "All",
+                    count: rooms.length,
+                  },
+                  ...locations.map((location) => ({
+                    key: location,
+                    label:
+                      rooms.find((r) => r.location.en === location)?.location[
+                        lang
+                      ] || location,
+                    count: rooms.filter((r) => r.location.en === location)
+                      .length,
+                  })),
+                ].map((option) => (
+                  <button
+                    className={selectedLocation === option.key ? "active" : ""}
+                    onClick={() => selectLocation(option.key)}
+                    key={option.key}
+                  >
+                    {option.label} <small>{option.count}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="filter-row">
+              <strong>{lang === "zh" ? "房型" : "Room type"}</strong>
+              <div className="filter-options">
+                {[
+                  {
+                    key: "all",
+                    label: lang === "zh" ? "全部房型" : "All room types",
+                    count: destinationRooms.length,
+                  },
+                  ...availableLayouts.map((type) => ({
+                    key: type.key,
+                    label: roomLayoutLabel(type.bedrooms, type.bathrooms, lang),
+                    count: destinationRooms.filter(
+                      (room) =>
+                        roomLayoutKey(room.bedrooms, room.bathrooms) ===
+                        type.key,
+                    ).length,
+                  })),
+                ].map((option) => (
+                  <button
+                    className={layout === option.key ? "active" : ""}
+                    onClick={() => setLayout(option.key)}
+                    key={option.key}
+                  >
+                    {option.label} <small>{option.count}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="stay-results-heading">
+            <h3>
+              {selectedLocation === "all"
+                ? lang === "zh"
+                  ? "全部房源"
+                  : "All stays"
+                : `${rooms.find((r) => r.location.en === selectedLocation)?.location[lang] || selectedLocation} · ${destinationRooms.length} ${t.stayCount}`}
+            </h3>
+            <span>{lang === "zh" ? "默认排序 ▾" : "Default order ▾"}</span>
+          </div>
+          <div className="room-grid stay-results-grid">
+            {visibleRooms.map((room) => (
+              <article className="room-card" key={room.id}>
+                <RoomCarousel room={room} lang={lang} />
+                <div className="card-body">
+                  <h4>{room.name[lang]}</h4>
+                  <div className="room-info-row">
+                    <div className="room-meta">
+                      <span>
+                        {room.guests} {t.guests}
+                      </span>
+                      <span>
+                        {room.bedrooms} {t.bedrooms}
+                      </span>
+                      <span>
+                        {room.beds} {t.beds}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="room-price">
+                    {lang === "zh"
+                      ? `¥${Math.round(room.priceFrom * MYR_TO_CNY)} 起/晚`
+                      : `RM ${room.priceFrom} / night`}
+                  </div>
+                  <a className="text-link" href={`/rooms/${room.id}`}>
+                    {t.viewRoom}
+                    <span>↗</span>
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section id="services" className="section services">
+          <div className="section-heading">
+            <p className="eyebrow">{t.travel}</p>
+            <h2>{t.local}</h2>
+            <p>{t.localSub}</p>
+          </div>
+          <div className="service-grid">
+            {services.map((s, i) => (
+              <article className="service-card" key={s.name.en}>
+                <div className="service-image">
+                  <img src={s.image} alt={s.name[lang]} />
+                  <span>{["✈", "↗", "≈", "◎"][i]}</span>
+                </div>
+                <div>
+                  <h3>{s.name[lang]}</h3>
+                  <p>{s.description[lang]}</p>
+                  <a href="#contact">→</a>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section id="contact" className="inquiry inquiry-light">
+          <div className="inquiry-intro">
+            <p className="eyebrow">{t.start}</p>
+            <h2>{t.plan}</h2>
+            <p>{t.planSub}</p>
+            <div className="planning-steps">
+              {t.steps.map((s, i) => (
+                <div className="contact-note" key={s[0]}>
+                  <span>0{i + 1}</span>
+                  <p>
+                    <b>{s[0]}</b>
+                    <br />
+                    {s[1]}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="trust-list">
+              {t.advantages.map((a) => (
+                <span key={a}>✓ {a}</span>
+              ))}
+            </div>
+          </div>
+          {sent ? (
+            <div className="inquiry-success">
+              <span className="success-mark">✓</span>
+              <h3>{t.thanks}</h3>
+              <p>{t.thanksSub}</p>
+              <div className="direct-contact">
+                <div className="qr-placeholder">
+                  <b>微信</b>
+                  <small>二维码</small>
+                </div>
+                <div>
+                  <a className="button" href="#contact">
+                    微信咨询
+                  </a>
+                  <a className="button outline" href="#contact">
+                    WhatsApp
+                  </a>
+                </div>
+              </div>
+              <button className="text-reset" onClick={() => setSent(false)}>
+                {t.again}
+              </button>
+            </div>
+          ) : (
+            <form className="light-form" onSubmit={submit}>
+              <div className="form-grid">
+                <label>
+                  {t.name}
+                  <input required name="name" placeholder={t.namePh} />
+                </label>
+                <label>
+                  {t.contactLabel}
+                  <input required name="contact" placeholder={t.contactPh} />
+                </label>
+              </div>
+              <fieldset>
+                <legend>{t.destination}</legend>
+                <div className="choice-grid destinations">
+                  {destinations[lang].map((n, i) => (
+                    <label key={n}>
+                      <input
+                        type="checkbox"
+                        name="destinations"
+                        value={destinations.en[i]}
+                      />
+                      <span>{n}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>{t.need}</legend>
+                <div className="choice-grid">
+                  {serviceOptions[lang].map((n, i) => (
+                    <label key={n}>
+                      <input
+                        type="checkbox"
+                        name="services"
+                        value={serviceOptions.en[i]}
+                      />
+                      <span>{n}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="optional-time">
+                <legend>{t.time}</legend>
+                <div className="choice-grid time-options">
+                  {timeOptions[lang].map((n, i) => (
+                    <label key={n}>
+                      <input
+                        type="radio"
+                        name="travelTime"
+                        value={timeOptions.en[i]}
+                      />
+                      <span>{n}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <label>
+                {t.message}
+                <textarea name="message" rows={4} placeholder={t.messagePh} />
+              </label>
+              <button className="button submit" type="submit">
+                {t.advice}
+                <span>↗</span>
+              </button>
+              <p className="form-status">{status}</p>
+            </form>
+          )}
+        </section>
+      </main>
+      <footer>
+        <Logo />
+        <p>{t.footer}</p>
+        <div>
+          <a href="#stays">{t.rooms}</a>
+          <a href="/services">{t.services}</a>
+          <a href="#contact">{t.contact}</a>
+        </div>
+        <small>© 2026 MAD MAX Malaysia Stay</small>
+      </footer>
+    </>
+  );
 }
