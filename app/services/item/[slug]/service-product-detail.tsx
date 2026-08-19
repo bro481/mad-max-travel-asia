@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useState } from "react";
 import type { ServiceItem } from "../../../../db/service-items";
+import { ServiceMenu } from "../../../service-menu";
 export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
   const [sent, setSent] = useState(false);
   const submit = async (e: FormEvent<HTMLFormElement>) => {
@@ -35,8 +36,10 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
           </span>
         </a>
         <nav>
-          <a href="/">房源</a>
-          <a href="/services">当地服务</a>
+          <a href="/#stays">房源</a>
+          <ServiceMenu lang="zh" active />
+          <a href="/#about">关于我们</a>
+          <a href="/#contact">联系我们</a>
         </nav>
       </header>
       <main className="service-product-detail">

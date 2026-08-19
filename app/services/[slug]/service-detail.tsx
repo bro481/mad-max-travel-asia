@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { ServiceCategory } from "../../../db/services";
+import { ServiceMenu } from "../../service-menu";
 type Lang = "zh" | "en";
 type Route = {
   title: [string, string];
@@ -657,9 +658,8 @@ export function ServiceDetail({
         </button>
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{zh ? "房源" : "Stays"}</a>
-          <a className="active-nav" href="/services">
-            {zh ? "当地服务" : "Local Services"}
-          </a>
+          <ServiceMenu lang={lang} active />
+          <a href="/#about">{zh ? "关于我们" : "About"}</a>
           <a href="/#contact">{zh ? "联系我们" : "Contact"}</a>
         </nav>
         <div className="header-right">

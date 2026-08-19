@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { ServiceCategory } from "../../db/services";
 import type { ServiceItem } from "../../db/service-items";
+import { ServiceMenu } from "../service-menu";
 type Lang = "zh" | "en";
 type Offer = {
   title: [string, string];
@@ -64,38 +65,6 @@ const destinations: Destination[] = [
             ],
             image: img("photo-1515569067071-ec3b51335dd0"),
             detail: "private-car",
-          },
-        ],
-      },
-      {
-        name: ["城市体验", "City Experiences"],
-        icon: "⌂",
-        items: [
-          {
-            title: ["吉隆坡城市探索", "KL City Discovery"],
-            desc: [
-              "双子塔、独立广场与城市街区",
-              "Landmarks and local neighbourhoods",
-            ],
-            tags: [
-              ["城市地标", "Landmarks"],
-              ["自由安排", "Flexible"],
-            ],
-            image: img("photo-1596422846543-75c6fc197f07"),
-            detail: "custom-trip",
-          },
-          {
-            title: ["美食与购物路线", "Food & Shopping"],
-            desc: [
-              "当地美食、商场与夜间体验",
-              "Local food, shopping and evenings",
-            ],
-            tags: [
-              ["当地美食", "Local food"],
-              ["轻松体验", "Easy pace"],
-            ],
-            image: img("photo-1536599018102-9f803c140fc1"),
-            detail: "custom-trip",
           },
         ],
       },
@@ -563,9 +532,7 @@ export function ServicesPage({
         </button>
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{t.rooms}</a>
-          <a className="active-nav" href="/services">
-            {t.services}
-          </a>
+          <ServiceMenu lang={lang} active />
           <a href="/#about">{t.about}</a>
           <a href="/#contact">{t.contact}</a>
           <div className="language-switch mobile-language">

@@ -2,6 +2,7 @@
 import { FormEvent, useState } from "react";
 import { services, type Lang, type Room } from "./data";
 import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
+import { ServiceMenu } from "./service-menu";
 
 const locations = ["Kuala Lumpur", "Kota Kinabalu", "Semporna"];
 const destinations = {
@@ -40,6 +41,7 @@ const c = {
   en: {
     rooms: "Rooms",
     services: "Services",
+    about: "About",
     contact: "Contact",
     submit: "Submit inquiry",
     heroTag: "Malaysia, made easy",
@@ -108,6 +110,7 @@ const c = {
   zh: {
     rooms: "房源",
     services: "当地服务",
+    about: "关于我们",
     contact: "联系我们",
     submit: "提交咨询",
     heroTag: "轻松畅游马来西亚",
@@ -292,7 +295,8 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
         </button>
         <nav className={menu ? "open" : ""}>
           <a href="#stays">{t.rooms}</a>
-          <a href="/services">{t.services}</a>
+          <ServiceMenu lang={lang} />
+          <a href="#about">{t.about}</a>
           <a href="#contact">{t.contact}</a>
           <div className="language-switch mobile-language">
             <button
@@ -482,6 +486,23 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
             ))}
           </div>
         </section>
+        <section id="about" className="section about-section">
+          <div className="section-heading">
+            <p className="eyebrow">
+              {lang === "zh" ? "关于 MAD MAX" : "About MAD MAX"}
+            </p>
+            <h2>
+              {lang === "zh"
+                ? "像当地朋友一样帮你安排"
+                : "Hosted like a local friend"}
+            </h2>
+            <p>
+              {lang === "zh"
+                ? "我们专注马来西亚住宿、出行与当地体验，用简单可靠的方式帮你把旅程安排顺。"
+                : "We focus on stays, transport and local experiences across Malaysia, keeping planning personal and easy."}
+            </p>
+          </div>
+        </section>
         <section id="contact" className="inquiry inquiry-light">
           <div className="inquiry-intro">
             <p className="eyebrow">{t.start}</p>
@@ -604,6 +625,7 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
         <div>
           <a href="#stays">{t.rooms}</a>
           <a href="/services">{t.services}</a>
+          <a href="#about">{t.about}</a>
           <a href="#contact">{t.contact}</a>
         </div>
         <small>© 2026 MAD MAX Malaysia Stay</small>
