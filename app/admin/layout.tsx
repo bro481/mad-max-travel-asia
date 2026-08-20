@@ -31,12 +31,8 @@ export default function AdminLayout({
           <Link href="/admin/inquiries">
             ☏ <span>客户咨询</span>
           </Link>
-          <span className="disabled">
-            ▤ <i>内容管理</i>
-          </span>
-          <span className="disabled">
-            ⚙ <i>设置</i>
-          </span>
+          <Link href="/admin/content">▤ <span>内容管理</span></Link>
+          <Link href="/admin/settings">⚙ <span>设置</span></Link>
         </nav>
         <div className="admin-user">
           <b>管理员后台</b>

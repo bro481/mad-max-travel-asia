@@ -55,7 +55,7 @@ export default function ServiceEditor() {
   };
   const isTransport = d.type === "交通接送",
     isCar = d.type === "私人包车",
-    hasTimeline = ["城市体验", "一日路线", "海岛体验"].includes(d.type);
+    hasTimeline = ["当地体验", "城市体验", "一日路线", "海岛体验"].includes(d.type);
   return (
     <>
       <div className="editor-top">
@@ -105,9 +105,7 @@ export default function ServiceEditor() {
                     {[
                       "交通接送",
                       "私人包车",
-                      "城市体验",
-                      "一日路线",
-                      "海岛体验",
+                      "当地体验",
                     ].map((x) => (
                       <option key={x}>{x}</option>
                     ))}

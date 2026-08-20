@@ -5,7 +5,8 @@ import type { ServiceItem } from "../../../db/service-items";
 export default function ServiceList() {
   const [items, setItems] = useState<ServiceItem[]>([]),
     [notice, setNotice] = useState(""),
-    [activeCity, setActiveCity] = useState("全部");
+    [activeCity, setActiveCity] = useState("全部"),
+    [activeType, setActiveType] = useState("全部");
   const load = () =>
     fetch("/api/admin/service-items")
       .then((r) => {
@@ -54,10 +55,10 @@ export default function ServiceList() {
     location.href = `/admin/services/${c.id}`;
   };
   const cities = [...new Set(items.map((x) => x.city))];
-  const visibleItems =
-    activeCity === "全部"
-      ? items
-      : items.filter((item) => item.city === activeCity);
+  const kind = (x: ServiceItem) =>
+    x.type === "交通接送" ? "接送机" : x.type === "私人包车" ? "包车" : "当地体验";
+  const cityItems = activeCity === "全部" ? items : items.filter((item) => item.city === activeCity);
+  const visibleItems = activeType === "全部" ? cityItems : cityItems.filter((item) => kind(item) === activeType);
   const categories = [...new Set(visibleItems.map((x) => x.category))];
   const cityEnglish = (city: string) =>
     city === "吉隆坡"
@@ -93,10 +94,11 @@ export default function ServiceList() {
       </div>
       <div>
         <small>
-          {x.city} · {x.category}
+          {x.city} · {kind(x)}
         </small>
         <h4>{x.nameZh}</h4>
-        <p>{x.subtitleZh || "副标题待填写"}</p>
+        <p>{x.subtitleZh || "服务范围或路线待填写"}</p>
+        <b className="service-card-price">{x.priceMode === "咨询报价" ? "价格咨询" : `RM ${x.price} ${x.priceMode === "起价" ? "起" : ""}`}</b>
         <nav>
           <Link href={`/admin/services/${x.id}`}>编辑</Link>
           <a href={`/services/item/${x.slug}`} target="_blank">
@@ -130,9 +132,8 @@ export default function ServiceList() {
         <Link className="active" href="/admin/services">
           服务列表
         </Link>
-        <Link href="/admin/services/categories">分类管理</Link>
-        <Link href="/admin/services/templates">服务模板</Link>
-        <span>旅行方案 · 未来</span>
+        <Link href="/admin/services/categories">服务分类</Link>
+        <Link href="/admin/gifts">伴手礼</Link>
       </div>
       {notice && <p className="lead-notice">{notice}</p>}
       <div
@@ -155,6 +156,13 @@ export default function ServiceList() {
                 ? items.length
                 : items.filter((x) => x.city === city).length}
             </i>
+          </button>
+        ))}
+      </div>
+      <div className="service-kind-tabs" role="tablist" aria-label="按服务类型筛选">
+        {["全部", "接送机", "包车", "当地体验"].map((type) => (
+          <button className={activeType === type ? "active" : ""} onClick={() => setActiveType(type)} key={type}>
+            {type}<small>{type === "全部" ? cityItems.length : cityItems.filter((x) => kind(x) === type).length}</small>
           </button>
         ))}
       </div>

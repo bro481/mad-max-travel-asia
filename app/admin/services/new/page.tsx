@@ -1,11 +1,9 @@
 "use client";
 import { useState } from "react";
 const types = [
-  ["🚗", "交通接送", "交通服务"],
-  ["🚙", "私人包车", "包车服务"],
-  ["🌆", "城市体验", "城市体验"],
-  ["🗺", "一日路线", "一日路线"],
-  ["🏝", "海岛体验", "海岛体验"],
+  ["✈", "交通接送", "接送机"],
+  ["🚗", "私人包车", "包车"],
+  ["🏝", "当地体验", "当地体验 / 一日游"],
 ];
 export default function NewService() {
   const [busy, setBusy] = useState(false);
@@ -29,8 +27,8 @@ export default function NewService() {
       <div className="admin-head">
         <div>
           <p>当地服务</p>
-          <h1>创建当地服务</h1>
-          <span>先选择类型，编辑器会显示对应的流程、路线或时间线。</span>
+          <h1>新建什么？</h1>
+          <span>先选择业务类型，接下来只显示这类服务真正需要的字段。</span>
         </div>
       </div>
       <div className="service-type-picker">
@@ -44,17 +42,16 @@ export default function NewService() {
             <b>{type}</b>
             <small>
               {type === "交通接送"
-                ? "机场与点对点接送"
+                ? "机场、接送区域与车型价格"
                 : type === "私人包车"
-                  ? "多个路线方案"
-                  : type.includes("体验")
-                    ? "时间线行程编辑器"
-                    : "小行程编辑器"}
+                  ? "路线、景点图片与车型"
+                  : "图库、行程、包含与注意事项"}
             </small>
             <i>开始创建 →</i>
           </button>
         ))}
       </div>
+      <Link className="gift-create-entry" href="/admin/gifts">🎁 新建伴手礼 / 商品 →</Link>
     </>
   );
 }

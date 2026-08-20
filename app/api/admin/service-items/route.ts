@@ -30,7 +30,7 @@ export async function POST(r: Request) {
     slug = `${base}-${++n}`;
   const type = b.type || "交通接送";
   const isCar = type === "私人包车";
-  const isJourney = ["城市体验", "一日路线", "海岛体验"].includes(type);
+  const isJourney = ["当地体验", "城市体验", "一日路线", "海岛体验"].includes(type);
   const steps =
     isCar || isJourney
       ? []

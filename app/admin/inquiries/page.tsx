@@ -5,9 +5,7 @@ import type { InquiryRecord } from "../../../db/inquiries";
 const statuses = [
   "全部",
   "待回复",
-  "沟通中",
-  "已报价",
-  "待跟进",
+  "跟进中",
   "已成交",
   "已关闭",
 ];
@@ -39,7 +37,9 @@ export default function InquiriesPage() {
     () =>
       items.filter(
         (x) =>
-          (filter === "全部" || x.status === filter) &&
+          (filter === "全部" ||
+            x.status === filter ||
+            (filter === "跟进中" && ["沟通中", "已报价", "待跟进"].includes(x.status))) &&
           (!query ||
             [x.name, x.contact, x.message]
               .join(" ")
@@ -60,14 +60,7 @@ export default function InquiriesPage() {
         </div>
       </div>
       <div className="inquiry-metrics">
-        <div>
-          <span>待回复</span>
-          <b>{items.filter((x) => x.status === "待回复").length}</b>
-        </div>
-        <div>
-          <span>沟通中</span>
-          <b>{items.filter((x) => x.status === "沟通中").length}</b>
-        </div>
+        <div><span>待处理</span><b>{items.filter((x) => x.status === "待回复").length}</b></div>
         <div>
           <span>今日待跟进</span>
           <b>
@@ -151,7 +144,9 @@ export default function InquiriesPage() {
             </span>
             <span>{x.source}</span>
             <span>
-              <i className={`lead-status s-${x.status}`}>{x.status}</i>
+              <i className={`lead-status s-${x.status}`}>
+                {["沟通中", "已报价", "待跟进"].includes(x.status) ? "跟进中" : x.status}
+              </i>
             </span>
             <span
               className={
