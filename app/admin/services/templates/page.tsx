@@ -31,7 +31,7 @@ export default function Templates() {
         <div>
           <p>当地服务</p>
           <h1>服务模板</h1>
-          <span>从预设结构开始，减少重复填写。</span>
+          <span>统一维护服务流程与咨询规则，城市服务不再重复配置。</span>
         </div>
       </div>
       <div className="service-subnav">
@@ -41,6 +41,7 @@ export default function Templates() {
           服务模板
         </Link>
       </div>
+      <section className="consult-template" style={{marginBottom:20}}><h3>接送机咨询模板</h3>{["接送日期","接机 / 送机","航班号","酒店 / 接送地址","同行人数","行李数量"].map(x=><span key={x}>✓ 必填 · {x}</span>)}<h3>可选信息</h3>{["儿童人数","儿童座椅","特殊需求"].map(x=><span className="optional" key={x}>○ {x}</span>)}</section>
       <div className="template-grid">
         {templates.map(([icon, name, type, category]) => (
           <article key={name}>
