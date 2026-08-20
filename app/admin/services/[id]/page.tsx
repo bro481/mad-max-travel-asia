@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { ServiceItem } from "../../../../db/service-items";
+import { TransferEditor } from "./transfer-editor";
 const tabs = ["基础信息", "图片", "内容", "行程／路线", "咨询", "发布"];
 const inquiry = [
   "日期",
@@ -24,6 +25,7 @@ export default function ServiceEditor() {
       .then(setD);
   }, [id]);
   if (!d) return <div className="admin-loading">正在打开服务编辑器…</div>;
+  if (d.type === "交通接送") return <TransferEditor data={d} onChange={setD} />;
   const set = (k: keyof ServiceItem, v: unknown) =>
     setD((x) => (x ? { ...x, [k]: v } : x));
   const save = async (status?: ServiceItem["status"]) => {

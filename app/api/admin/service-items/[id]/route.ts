@@ -27,7 +27,7 @@ export async function PUT(
   const { id } = await params,
     b = await r.json();
   await env.DB.prepare(
-    `UPDATE service_items SET slug=?,type=?,city=?,category=?,name_zh=?,name_en=?,subtitle_zh=?,subtitle_en=?,intro_zh=?,intro_en=?,images=?,tags=?,steps=?,routes=?,timeline=?,inquiry_fields=?,price_mode=?,price=?,price_unit=?,price_note=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    `UPDATE service_items SET slug=?,type=?,city=?,category=?,name_zh=?,name_en=?,subtitle_zh=?,subtitle_en=?,intro_zh=?,intro_en=?,images=?,tags=?,steps=?,routes=?,timeline=?,inquiry_fields=?,inquiry_required=?,inquiry_prompt_fields=?,max_guests=?,guest_note=?,airports=?,directions=?,service_areas=?,other_area_note=?,vehicle_display_mode=?,vehicles=?,price_mode=?,price=?,price_unit=?,price_note=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
   )
     .bind(
       b.slug,
@@ -46,6 +46,9 @@ export async function PUT(
       JSON.stringify(b.routes || []),
       JSON.stringify(b.timeline || []),
       JSON.stringify(b.inquiryFields || []),
+      JSON.stringify(b.inquiryRequired || []),
+      JSON.stringify(b.inquiryPromptFields || []),
+      Number(b.maxGuests || 14), b.guestNote || "", JSON.stringify(b.airports || []), JSON.stringify(b.directions || []), JSON.stringify(b.serviceAreas || []), b.otherAreaNote || "", b.vehicleDisplayMode || "车型类别", JSON.stringify(b.vehicles || []),
       b.priceMode,
       Number(b.price || 0),
       b.priceUnit,

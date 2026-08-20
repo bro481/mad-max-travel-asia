@@ -38,7 +38,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
         <nav>
           <a href="/#stays">房源</a>
           <ServiceMenu lang="zh" active />
-          <a href="/#about">关于我们</a>
+          <a href="/about">关于我们</a>
           <a href="/#contact">联系我们</a>
         </nav>
       </header>
@@ -56,6 +56,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
                 <span key={x}>{x}</span>
               ))}
             </div>
+            {s.type === "交通接送" && <div className="transfer-capacity"><b>1–{s.maxGuests} 人均可安排</b><span>{s.guestNote}</span></div>}
           </div>
         </section>
         <div className="service-product-body">
@@ -81,6 +82,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
                 </div>
               </section>
             )}
+            {s.type === "交通接送" && s.vehicles.length > 0 && <section><h2>可安排车型</h2><div className="route-grid">{s.vehicles.filter(x=>x.visible).map((x,i)=><article key={i}>{x.image&&<img src={x.image} alt={x.nameZh}/>}<h3>{x.nameZh}</h3><p>建议 {x.people} · 行李 {x.luggage}</p><small>{x.description}</small></article>)}</div></section>}
             {s.routes.length > 0 && (
               <section>
                 <h2>热门路线方案</h2>
@@ -138,7 +140,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
                 {s.inquiryFields.map((x) => (
                   <label key={x}>
                     {x}
-                    <input name={x} />
+                    <input name={x} required={s.inquiryRequired.includes(x)} />
                   </label>
                 ))}
                 <label>

@@ -24,6 +24,16 @@ export type ServiceItem = {
   }[];
   timeline: { time: string; title: string; description: string }[];
   inquiryFields: string[];
+  inquiryRequired: string[];
+  inquiryPromptFields: string[];
+  maxGuests: number;
+  guestNote: string;
+  airports: string[];
+  directions: string[];
+  serviceAreas: string[];
+  otherAreaNote: string;
+  vehicleDisplayMode: string;
+  vehicles: { image:string; nameZh:string; nameEn:string; people:string; luggage:string; description:string; price:number; visible:boolean; internalNote:string }[];
   priceMode: string;
   price: number;
   priceUnit: string;
@@ -86,6 +96,10 @@ const seeds = [
 ] as const;
 export async function ensureServiceItems() {
   await env.DB.prepare(sql).run();
+  const columns = [["inquiry_required", "TEXT NOT NULL DEFAULT '[]'"],["inquiry_prompt_fields", "TEXT NOT NULL DEFAULT '[]'"],["max_guests", "INTEGER NOT NULL DEFAULT 14"],["guest_note", "TEXT NOT NULL DEFAULT '根据同行人数及行李数量匹配合适车型'"],["airports", "TEXT NOT NULL DEFAULT '[]'"],["directions", "TEXT NOT NULL DEFAULT '[]'"],["service_areas", "TEXT NOT NULL DEFAULT '[]'"],["other_area_note", "TEXT NOT NULL DEFAULT '其他区域可咨询'"],["vehicle_display_mode", "TEXT NOT NULL DEFAULT '车型类别'"],["vehicles", "TEXT NOT NULL DEFAULT '[]'"]] as const;
+  const info = await env.DB.prepare("PRAGMA table_info(service_items)").all<{name:string}>();
+  const existing = new Set(info.results.map((x) => x.name));
+  for (const [name, definition] of columns) if (!existing.has(name)) await env.DB.prepare(`ALTER TABLE service_items ADD COLUMN ${name} ${definition}`).run();
   const c = await env.DB.prepare(
     "SELECT COUNT(*) total FROM service_items",
   ).first<{ total: number }>();
@@ -150,6 +164,16 @@ export function mapServiceItem(r: Record<string, unknown>): ServiceItem {
     routes: j(r.routes),
     timeline: j(r.timeline),
     inquiryFields: j(r.inquiry_fields),
+    inquiryRequired: j(r.inquiry_required),
+    inquiryPromptFields: j(r.inquiry_prompt_fields),
+    maxGuests: Number(r.max_guests || 14),
+    guestNote: String(r.guest_note || "根据同行人数及行李数量匹配合适车型"),
+    airports: j(r.airports),
+    directions: j(r.directions),
+    serviceAreas: j(r.service_areas),
+    otherAreaNote: String(r.other_area_note || "其他区域可咨询"),
+    vehicleDisplayMode: String(r.vehicle_display_mode || "车型类别"),
+    vehicles: j(r.vehicles),
     priceMode: String(r.price_mode),
     price: Number(r.price),
     priceUnit: String(r.price_unit),

@@ -1,0 +1,11 @@
+ALTER TABLE service_items ADD COLUMN inquiry_required TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE service_items ADD COLUMN inquiry_prompt_fields TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE service_items ADD COLUMN max_guests INTEGER NOT NULL DEFAULT 14;
+ALTER TABLE service_items ADD COLUMN guest_note TEXT NOT NULL DEFAULT '根据同行人数及行李数量匹配合适车型';
+ALTER TABLE service_items ADD COLUMN airports TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE service_items ADD COLUMN directions TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE service_items ADD COLUMN service_areas TEXT NOT NULL DEFAULT '[]';
+ALTER TABLE service_items ADD COLUMN other_area_note TEXT NOT NULL DEFAULT '其他区域可咨询';
+ALTER TABLE service_items ADD COLUMN vehicle_display_mode TEXT NOT NULL DEFAULT '车型类别';
+ALTER TABLE service_items ADD COLUMN vehicles TEXT NOT NULL DEFAULT '[]';
+CREATE TABLE IF NOT EXISTS service_items(id INTEGER PRIMARY KEY AUTOINCREMENT,slug TEXT NOT NULL UNIQUE,type TEXT NOT NULL,city TEXT NOT NULL,category TEXT NOT NULL,name_zh TEXT NOT NULL,name_en TEXT NOT NULL DEFAULT '',subtitle_zh TEXT NOT NULL DEFAULT '',subtitle_en TEXT NOT NULL DEFAULT '',intro_zh TEXT NOT NULL DEFAULT '',intro_en TEXT NOT NULL DEFAULT '',images TEXT NOT NULL DEFAULT '[]',tags TEXT NOT NULL DEFAULT '[]',steps TEXT NOT NULL DEFAULT '[]',routes TEXT NOT NULL DEFAULT '[]',timeline TEXT NOT NULL DEFAULT '[]',inquiry_fields TEXT NOT NULL DEFAULT '[]',price_mode TEXT NOT NULL DEFAULT '咨询报价',price REAL NOT NULL DEFAULT 0,price_unit TEXT NOT NULL DEFAULT '每次',price_note TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'draft',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
