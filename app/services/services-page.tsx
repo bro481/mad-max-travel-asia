@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { ServiceCategory } from "../../db/services";
 import type { ServiceItem } from "../../db/service-items";
 import { ServiceMenu } from "../service-menu";
+import { AirportTransferModal } from "./airport-transfer-modal";
 type Lang = "zh" | "en";
 type Offer = {
   title: [string, string];
@@ -10,6 +11,12 @@ type Offer = {
   tags: [[string, string], [string, string]];
   image: string;
   detail: string;
+};
+type AirportVehicle = {
+  name: [string, string];
+  people: [string, string];
+  note: [string, string];
+  image: string;
 };
 type Group = { name: [string, string]; icon: string; items: Offer[] };
 type Destination = {
@@ -20,6 +27,32 @@ type Destination = {
 };
 const img = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=84`;
+const airportVehicles: AirportVehicle[] = [
+  {
+    name: ["舒适轿车", "Comfort sedan"],
+    people: ["建议 1–3 人", "Suggested for 1–3"],
+    note: ["少人数出行", "Small groups"],
+    image: img("photo-1549317661-bd32c8ce0db2"),
+  },
+  {
+    name: ["多人车型", "People carrier"],
+    people: ["建议 4–6 人", "Suggested for 4–6"],
+    note: ["家庭出行", "Families"],
+    image: img("photo-1550355291-bbee04a92027"),
+  },
+  {
+    name: ["商务 Van", "Business van"],
+    people: ["建议 7–10 人", "Suggested for 7–10"],
+    note: ["多人 / 多行李", "Groups / luggage"],
+    image: img("photo-1515569067071-ec3b51335dd0"),
+  },
+  {
+    name: ["更多车型", "More vehicles"],
+    people: ["最高可安排 14 人", "Up to 14 guests"],
+    note: ["按人数与行李匹配", "Matched to your needs"],
+    image: img("photo-1544620347-c4fd4a3d5957"),
+  },
+];
 const destinations: Destination[] = [
   {
     key: "kl",
@@ -41,7 +74,7 @@ const destinations: Destination[] = [
               ["提前预约", "Pre-booked"],
             ],
             image: img("photo-1549317661-bd32c8ce0db2"),
-            detail: "private-car",
+            detail: "airport-transfer",
           },
           {
             title: ["吉隆坡私人包车", "KL Private Car"],
@@ -83,46 +116,30 @@ const destinations: Destination[] = [
         icon: "▱",
         items: [
           {
-            title: ["马六甲专车接送", "Melaka Private Transfer"],
+            title: ["吉隆坡 ⇄ 马六甲接送", "Kuala Lumpur ⇄ Melaka Transfer"],
             desc: [
-              "吉隆坡 ↔ 马六甲点对点接送",
-              "Door-to-door transfer from Kuala Lumpur",
+              "点对点专车接送",
+              "Private door-to-door transfer",
             ],
             tags: [
-              ["酒店接送", "Hotel pickup"],
               ["舒适专车", "Private vehicle"],
+              ["酒店接送", "Hotel pickup"],
             ],
             image: img("photo-1550355291-bbee04a92027"),
             detail: "private-car",
           },
           {
-            title: ["马六甲一日包车", "Melaka Day Car"],
-            desc: ["经典景点与餐饮自由组合", "Flexible sightseeing and dining"],
+            title: ["马六甲私人包车", "Melaka Private Car"],
+            desc: [
+              "半日 / 全日包车，自由安排路线",
+              "Half-day or full-day flexible routes",
+            ],
             tags: [
-              ["行程灵活", "Flexible"],
               ["中文沟通", "Chinese support"],
+              ["行程灵活", "Flexible"],
             ],
             image: img("photo-1596422846543-75c6fc197f07"),
             detail: "private-car",
-          },
-        ],
-      },
-      {
-        name: ["文化体验", "Culture"],
-        icon: "◇",
-        items: [
-          {
-            title: ["古城文化漫游", "Heritage Walk"],
-            desc: [
-              "荷兰红屋、鸡场街与河岸风光",
-              "Dutch Square, Jonker Street and riverside",
-            ],
-            tags: [
-              ["历史文化", "Heritage"],
-              ["轻松步行", "Easy walk"],
-            ],
-            image: img("photo-1582883049036-dfe40c02521b"),
-            detail: "custom-trip",
           },
         ],
       },
@@ -148,7 +165,7 @@ const destinations: Destination[] = [
               ["提前预约", "Pre-booked"],
             ],
             image: img("photo-1549317661-bd32c8ce0db2"),
-            detail: "private-car",
+            detail: "airport-transfer",
           },
           {
             title: ["亚庇私人包车", "KK Private Car"],
@@ -316,7 +333,7 @@ const destinations: Destination[] = [
               ["提前预约", "Pre-booked"],
             ],
             image: img("photo-1549317661-bd32c8ce0db2"),
-            detail: "private-car",
+            detail: "airport-transfer",
           },
         ],
       },
@@ -520,9 +537,25 @@ export function ServicesPage({
           : [
               "Approximate travel dates",
               "Group size",
-              "Places and experiences you like",
-            ]
+            "Places and experiences you like",
+          ]
     : [];
+  const isAirportTransfer = selectedOffer?.detail === "airport-transfer";
+  const managedAirport = selectedOffer
+    ? managed.find(
+        (item) =>
+          item.type === "交通接送" && item.nameZh === selectedOffer.title[0],
+      )
+    : undefined;
+  const displayedAirportVehicles: AirportVehicle[] =
+    managedAirport?.routes.length
+      ? managedAirport.routes.slice(0, 4).map((vehicle) => ({
+          name: [vehicle.name, vehicle.name],
+          people: [vehicle.duration, vehicle.duration],
+          note: [vehicle.description || vehicle.tag, vehicle.description || vehicle.tag],
+          image: vehicle.image,
+        }))
+      : airportVehicles;
   return (
     <>
       <header id="top">
@@ -533,7 +566,7 @@ export function ServicesPage({
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{t.rooms}</a>
           <ServiceMenu lang={lang} active />
-          <a href="/#about">{t.about}</a>
+          <a href="/about">{t.about}</a>
           <a href="/#contact">{t.contact}</a>
           <div className="language-switch mobile-language">
             <button
@@ -768,9 +801,10 @@ export function ServicesPage({
           </div>
         </section>
       </main>
-      {selectedOffer && (
+      {selectedOffer && isAirportTransfer && <AirportTransferModal onClose={()=>setSelectedOffer(null)} data={{title:managedAirport?.nameZh||selectedOffer.title[l],subtitle:managedAirport?.subtitleZh||selectedOffer.desc[l],tags:managedAirport?.tags||["私人接送","中文沟通","提前预约"],image:managedAirport?.images[0]||selectedOffer.image,maxGuests:managedAirport?.maxGuests||14,guestNote:managedAirport?.guestNote||"根据同行人数及行李数量匹配合适车型",vehicles:managedAirport?.vehicles?.filter(x=>x.visible).map(x=>({image:x.image,name:x.nameZh,people:x.people,luggage:x.luggage,note:x.description}))||displayedAirportVehicles.map(x=>({image:x.image,name:x.name[l],people:x.people[l],note:x.note[l]})),questions:managedAirport?.inquiryPromptFields?.length?managedAirport.inquiryPromptFields:["接送日期 & 航班号","接送地址（酒店 / 市区）","同行人数","行李数量"]}}/>}
+      {selectedOffer && !isAirportTransfer && (
         <div
-          className="service-quick-modal"
+          className={`service-quick-modal${isAirportTransfer ? " airport-transfer-modal" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-label={selectedOffer.title[l]}
@@ -786,6 +820,9 @@ export function ServicesPage({
             </button>
             <div className="quick-modal-visual">
               <img src={selectedOffer.image} alt={selectedOffer.title[l]} />
+              {isAirportTransfer && (
+                <p className="airport-visual-eyebrow">MAD MAX · LOCAL SERVICE</p>
+              )}
               <div>
                 <span>{lang === "zh" ? "专属安排" : "PERSONAL SERVICE"}</span>
                 <b>
@@ -793,6 +830,13 @@ export function ServicesPage({
                     ? "轻松出发，安心抵达"
                     : "An easy journey, thoughtfully arranged"}
                 </b>
+                {isAirportTransfer && (
+                  <small>
+                    {lang === "zh"
+                      ? "专业司机 · 准时接送 · 舒适出行"
+                      : "Professional drivers · Punctual pickup · Easy travel"}
+                  </small>
+                )}
               </div>
             </div>
             <section>

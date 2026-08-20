@@ -1,5 +1,6 @@
 import { ServiceProductDetail } from "./service-product-detail";
 import type { ServiceItem } from "../../../../db/service-items";
+import { redirect } from "next/navigation";
 
 const image = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`;
@@ -133,5 +134,6 @@ export default async function Page({
         <a href="/services">返回当地服务</a>
       </main>
     );
+  if (x.type === "交通接送") redirect("/services");
   return <ServiceProductDetail service={x} />;
 }
