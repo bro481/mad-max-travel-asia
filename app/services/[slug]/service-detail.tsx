@@ -402,7 +402,8 @@ export function ServiceDetail({
       },
       {
         title: ["黑风洞文化路线", "Batu Caves & Culture"],
-        image: photo("photo-1581791538302-03537b9c97bf"),
+        image:
+          "https://media.traveler.es/photos/613769168f298b3a7a5bc8f3/master/w_1600,c_limit/153003.jpg",
         duration: ["约10小时", "About 10 hours"],
         tags: [
           ["家庭友好", "Family friendly"],
@@ -458,7 +459,8 @@ export function ServiceDetail({
       },
       {
         title: ["美食购物休闲路线", "Food & Shopping Day"],
-        image: photo("photo-1525625293386-3f8f99389edd"),
+        image:
+          "https://upload.wikimedia.org/wikipedia/commons/d/db/Jalan_Alor_-_Kuala_Lumpur.jpg",
         duration: ["约6小时", "About 6 hours"],
         tags: [
           ["适合购物", "Shopping"],
@@ -511,7 +513,8 @@ export function ServiceDetail({
       },
       {
         title: ["马六甲跨城一日游", "Melaka Day Trip"],
-        image: photo("photo-1565967511849-76a60a516170"),
+        image:
+          "https://publicholidays.com.my/wp-content/uploads/2016/10/Malaysia_MelakaHeritageDay_Output.jpg",
         duration: ["约10小时", "About 10 hours"],
         tags: [
           ["跨城包车", "Intercity"],
@@ -817,7 +820,11 @@ export function ServiceDetail({
     activeStopImages[0] ||
     activeStop?.image ||
     selected?.image;
-  const activePhotoCount = activeStopImages.length || 1;
+  const modalStopCount = modalStops.length || 1;
+  const moveModalStop = (step: number) => {
+    setStopIndex((current) => (current + step + modalStopCount) % modalStopCount);
+    setStopPhotoIndex(0);
+  };
   return (
     <>
       <header>
@@ -828,7 +835,7 @@ export function ServiceDetail({
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{zh ? "房源" : "Stays"}</a>
           <ServiceMenu lang={lang} active />
-          <a href="/#about">{zh ? "关于我们" : "About"}</a>
+          <a href="/about">{zh ? "关于我们" : "About"}</a>
           <a href="/#contact">{zh ? "联系我们" : "Contact"}</a>
         </nav>
         <div className="header-right">
@@ -988,30 +995,21 @@ export function ServiceDetail({
                   alt={activeStop?.title[l] || selected.title[l]}
                 />
                 <button
-                  onClick={() =>
-                    setStopPhotoIndex(
-                      (stopPhotoIndex - 1 + activePhotoCount) %
-                        activePhotoCount,
-                    )
-                  }
-                  disabled={activePhotoCount <= 1}
+                  onClick={() => moveModalStop(-1)}
+                  disabled={modalStopCount <= 1}
                   aria-label={zh ? "上一张图片" : "Previous photo"}
                 >
                   ‹
                 </button>
                 <button
-                  onClick={() =>
-                    setStopPhotoIndex(
-                      (stopPhotoIndex + 1) % activePhotoCount,
-                    )
-                  }
-                  disabled={activePhotoCount <= 1}
+                  onClick={() => moveModalStop(1)}
+                  disabled={modalStopCount <= 1}
                   aria-label={zh ? "下一张图片" : "Next photo"}
                 >
                   ›
                 </button>
                 <span>
-                  {stopPhotoIndex + 1}/{activePhotoCount}
+                  {stopIndex + 1}/{modalStopCount}
                 </span>
               </div>
               <div className="modal-gallery-thumbs">

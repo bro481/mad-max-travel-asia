@@ -6,6 +6,164 @@
 .airport-modal-content{display:flex;flex-direction:column;padding:34px 38px 30px;overflow-y:auto}.airport-modal-content>.eyebrow{margin:0;color:#b7793f;font-size:10px;font-weight:800;letter-spacing:.15em}.airport-modal-content h2{margin:12px 0 6px;color:#2d3842;font:600 38px/1.15 var(--serif)}.airport-modal-content .quick-modal-desc{margin:0 0 13px;color:#68727a;font-size:13px}.airport-modal-tags{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}.airport-modal-tags span{padding:6px 10px;border-radius:999px;background:#f6eee5;color:#805f3f;font-size:9px}
 .airport-capacity{display:flex;gap:14px;align-items:center;margin-bottom:15px;padding:14px 16px;border:1px solid #ead4b8;border-radius:13px;background:#fcf8f3}.airport-capacity>span{font-size:22px;color:#bf7c3c}.airport-capacity b,.airport-capacity small{display:block}.airport-capacity b{font-size:16px}.airport-capacity small{margin-top:5px;color:#6f7981;font-size:10px}
 .airport-vehicles-heading h3{margin:0 0 9px;font-size:12px}.airport-vehicle-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.airport-vehicle-grid article{min-width:0;padding:7px;border:1px solid #eadfd4;border-radius:11px}.airport-vehicle-grid img{display:block;width:100%;height:74px;object-fit:cover;border-radius:7px}.airport-vehicle-grid b,.airport-vehicle-grid span,.airport-vehicle-grid small{display:block}.airport-vehicle-grid b{margin-top:7px;font-size:10px}.airport-vehicle-grid span,.airport-vehicle-grid small{margin-top:4px;color:#737c83;font-size:8px}.airport-vehicle-note{margin:10px 0;color:#6f7981;font-size:9px}
-.airport-modal-flow{display:grid;grid-template-columns:1fr 25px 1fr 25px 1fr;align-items:center;margin:0 0 10px;padding:10px 8px;border-top:1px solid #eadfd4;border-bottom:1px solid #eadfd4;text-align:center}.airport-modal-flow>div b,.airport-modal-flow>div span{display:block}.airport-modal-flow>div b{width:23px;height:23px;margin:0 auto 5px;border-radius:50%;background:#ead4b7;color:#805e3d;font-size:8px;line-height:23px}.airport-modal-flow>div span{font-size:8px}.airport-modal-flow>i{height:1px;background:#d8b891}
 .airport-modal-info{padding:12px 15px;border-radius:12px;background:#f7f2ec}.airport-modal-info h3{margin:0 0 7px;font-size:11px}.airport-modal-info ul{display:grid;grid-template-columns:1fr 1fr;gap:2px 24px;margin:0;padding:0;list-style:none;color:#68727a;font-size:8px;line-height:1.7}.airport-modal-info li:before{content:"✓";margin-right:6px;color:#bd7b3e;font-weight:800}.airport-modal-content>.button{width:100%;margin-top:11px;padding:12px;border-radius:10px;background:#d3a269;color:#fff;text-align:center;text-decoration:none}
 @media(max-width:700px){.airport-transfer-modal{align-items:end;padding:0}.airport-transfer-modal>div{display:block;width:100%;max-height:96vh;overflow-y:auto;border-radius:21px 21px 0 0}.airport-transfer-modal .quick-modal-visual{height:230px;min-height:0}.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy{bottom:62px}.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy span,.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy small{display:none}.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy b{font-size:20px}.airport-modal-content{display:block;padding:23px 18px 20px}.airport-modal-content h2{font-size:29px}.airport-vehicle-grid{display:flex;overflow-x:auto}.airport-vehicle-grid article{flex:0 0 38%}.airport-modal-info ul{grid-template-columns:1fr}}
+
+/* Airport transfer keeps the image complete and gives the service copy enough room to breathe. */
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img{object-fit:contain;background:#273038}
+.airport-transfer-modal>div{height:min(94vh,760px);max-height:calc(100vh - 32px)}
+.airport-transfer-modal .quick-modal-visual{height:100%;min-height:0}
+.airport-transfer-modal .quick-modal-visual>.gallery-carousel{position:relative;inset:auto;left:auto;right:auto;bottom:auto;width:100%;height:100%;z-index:0}
+.airport-transfer-modal .quick-modal-visual>.gallery-carousel .gallery-stage{position:relative;width:100%;height:100%;z-index:0}
+.airport-transfer-modal .quick-modal-visual>.gallery-carousel .gallery-stage>img.gallery-backdrop{background:transparent}
+.airport-transfer-modal .quick-modal-visual .gallery-thumbnails{display:none}
+.airport-transfer-modal .quick-modal-visual .gallery-count{bottom:58px;right:20px}
+.airport-transfer-modal .quick-modal-visual .gallery-dots{position:absolute;z-index:5;bottom:20px;left:50%;display:flex;gap:7px;transform:translateX(-50%)}
+.airport-transfer-modal .quick-modal-visual .gallery-dots button{width:7px;height:7px;padding:0;border:1px solid rgba(255,255,255,.85);border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer}
+.airport-transfer-modal .quick-modal-visual .gallery-dots button.active{background:#d3a269;border-color:#d3a269;box-shadow:0 0 0 2px rgba(211,162,105,.25)}
+.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy{bottom:58px}
+.airport-transfer-modal .airport-visual-eyebrow{font-size:11px}
+.airport-transfer-modal .airport-visual-copy span{font-size:11px}
+.airport-transfer-modal .quick-modal-visual b{font-size:32px}
+.airport-transfer-modal .quick-modal-visual small{font-size:13px}
+.airport-transfer-modal .airport-modal-content h2{font-size:40px}
+.airport-transfer-modal .airport-modal-content .quick-modal-desc{font-size:16px}
+.airport-transfer-modal .airport-modal-tags span{padding:8px 12px;font-size:12px}
+.airport-transfer-modal .airport-capacity{padding:16px 18px}
+.airport-transfer-modal .airport-capacity b{font-size:20px}
+.airport-transfer-modal .airport-capacity small{font-size:14px;line-height:1.45}
+.airport-transfer-modal .airport-vehicles-heading h3{font-size:16px}
+.airport-transfer-modal .airport-vehicle-grid img{height:88px}
+.airport-transfer-modal .airport-vehicle-grid b{font-size:14px}
+.airport-transfer-modal .airport-vehicle-grid span{font-size:12px;line-height:1.4}
+.airport-transfer-modal .airport-vehicle-note{font-size:13px}
+.airport-transfer-modal .airport-modal-info h3{font-size:15px}
+.airport-transfer-modal .airport-modal-info ul{font-size:13px}
+.airport-transfer-modal .airport-modal-content>.button{padding:14px;font-size:15px}
+@media(max-width:700px){.airport-transfer-modal>div{height:auto;max-height:96vh}.airport-transfer-modal .quick-modal-visual{height:230px}.airport-transfer-modal .quick-modal-visual .gallery-count{bottom:45px;right:12px}.airport-transfer-modal .quick-modal-visual .gallery-dots{bottom:12px}.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy{bottom:54px}.airport-transfer-modal .airport-modal-content h2{font-size:29px}}
+
+/* Quick-decision density: keep the title and CTA visible while reducing secondary blocks. */
+.airport-transfer-modal .airport-modal-content{padding-top:30px;padding-bottom:24px}
+.airport-transfer-modal .airport-capacity{gap:12px;margin-bottom:15px;padding:9px 14px;border-color:#eadfd4}
+.airport-transfer-modal .airport-capacity>span{font-size:20px}
+.airport-transfer-modal .airport-capacity b{font-size:17px}
+.airport-transfer-modal .airport-capacity small{margin-top:2px;font-size:12px;line-height:1.35}
+.airport-transfer-modal .airport-vehicles-heading h3{margin-bottom:8px}
+.airport-transfer-modal .airport-vehicle-grid{gap:8px}
+.airport-transfer-modal .airport-vehicle-grid article{padding:7px}
+.airport-transfer-modal .airport-vehicle-grid img{height:70px}
+.airport-transfer-modal .airport-vehicle-grid b{margin-top:6px;font-size:13px;white-space:nowrap}
+.airport-transfer-modal .airport-vehicle-grid span{margin-top:3px;font-size:11px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.airport-transfer-modal .airport-modal-info{padding:11px 15px}
+.airport-transfer-modal .airport-modal-info h3{margin-bottom:5px;font-size:14px}
+.airport-transfer-modal .airport-modal-info ul{font-size:12px;line-height:1.55}
+.airport-transfer-modal .airport-modal-content>.button{margin-top:9px;padding:12px;font-size:15px}
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){object-position:center top}
+.airport-transfer-modal .quick-modal-visual:after{background:linear-gradient(180deg,rgba(18,23,26,.02) 24%,rgba(18,23,26,.78) 100%)}
+@media(max-width:700px){.airport-transfer-modal .airport-modal-content{padding-top:20px}.airport-transfer-modal .airport-vehicle-grid img{height:72px}}
+
+/* Final service-modal rhythm: image-led left panel and a simpler decision path on the right. */
+.airport-transfer-modal .quick-modal-visual>.gallery-carousel{top:0;height:75%;bottom:auto}
+.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy{top:75%;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:20px 34px;background:#172027}
+.airport-transfer-modal .quick-modal-visual:after{inset:0 0 25%;background:linear-gradient(180deg,rgba(18,23,26,.02) 55%,rgba(18,23,26,.72) 100%)}
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){object-fit:contain;object-position:center center}
+.airport-transfer-modal .airport-modal-content{gap:0}
+.airport-transfer-modal .airport-capacity{border:0;background:transparent;padding:0;margin:0 0 16px;align-items:flex-start}
+.airport-transfer-modal .airport-capacity>span{font-size:18px;line-height:1.35}
+.airport-transfer-modal .airport-capacity b{font-size:17px;font-weight:650}
+.airport-transfer-modal .airport-capacity small{font-size:12px;color:#737c83}
+.airport-transfer-modal .airport-vehicle-grid img{height:78px}
+.airport-transfer-modal .airport-vehicle-grid span{font-size:11px;white-space:nowrap;overflow:visible;text-overflow:clip}
+.airport-transfer-modal .airport-modal-info{margin-top:14px}
+.airport-transfer-modal .airport-modal-content>.button{margin-top:9px}
+@media(max-width:700px){.airport-transfer-modal .quick-modal-visual>.gallery-carousel{height:75%}.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy{top:75%;padding:12px 22px}.airport-transfer-modal .airport-vehicle-grid img{height:72px}.airport-transfer-modal .airport-capacity{margin-bottom:14px}}
+
+/* Give the existing content room to breathe without pushing the CTA off-screen. */
+.airport-transfer-modal .airport-modal-content h2{margin-top:18px;margin-bottom:10px}
+.airport-transfer-modal .airport-modal-content .quick-modal-desc{margin-bottom:19px}
+.airport-transfer-modal .airport-modal-tags{margin-bottom:20px}
+.airport-transfer-modal .airport-capacity{padding:8px 0;margin-bottom:21px}
+.airport-transfer-modal .airport-capacity>span{margin-top:2px}
+.airport-transfer-modal .airport-vehicles-heading h3{margin-bottom:11px}
+.airport-transfer-modal .airport-vehicle-grid article{padding:9px;min-height:172px}
+.airport-transfer-modal .airport-vehicle-grid img{height:86px}
+.airport-transfer-modal .airport-vehicle-grid b{margin-top:9px}
+.airport-transfer-modal .airport-vehicle-grid span{margin-top:5px}
+.airport-transfer-modal .airport-modal-info{margin-top:28px;padding:18px 19px;min-height:106px}
+.airport-transfer-modal .airport-modal-info h3{margin-bottom:8px}
+.airport-transfer-modal .airport-modal-info ul{line-height:1.7}
+.airport-transfer-modal .airport-modal-content>.button{margin-top:15px}
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){transform:scale(1.1)}
+@media(max-width:700px){.airport-transfer-modal .airport-modal-content h2{margin-top:14px}.airport-transfer-modal .airport-modal-tags{margin-bottom:16px}.airport-transfer-modal .airport-vehicle-grid article{min-height:0}.airport-transfer-modal .airport-modal-info{margin-top:18px}.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){transform:scale(1.06)}}
+
+/* Airport transfer request card */
+.airport-transfer-modal .airport-open-request{border:0;cursor:pointer}
+.airport-request-layer{position:absolute;inset:0;z-index:20;display:grid;place-items:center;padding:22px;background:rgba(35,39,42,.5);backdrop-filter:blur(8px)}
+.airport-request-card{position:relative;width:min(520px,calc(100vw - 52px));max-height:calc(100vh - 72px);overflow-y:auto;border-radius:22px;background:#fffdfb;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+.airport-request-close{position:absolute;top:14px;right:14px;z-index:2;display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:50%;background:#f4eee7;color:#765638;font-size:24px;line-height:1;cursor:pointer}
+.airport-request-form,.airport-request-result{padding:32px}
+.airport-request-form .eyebrow,.airport-request-result .eyebrow{margin:0 0 12px;color:#b7793f;font-size:10px;font-weight:800;letter-spacing:.14em}
+.airport-request-form h3,.airport-request-result h3{margin:0 44px 8px 0;color:#2d3842;font:600 28px/1.15 var(--serif)}
+.airport-request-form p,.airport-request-result>p{margin:0 0 22px;color:#68727a;font-size:13px;line-height:1.65}
+.airport-request-form label,.airport-stepper-grid>div{display:block;margin-bottom:15px}
+.airport-request-form label>span,.airport-stepper-grid>div>span{display:block;margin-bottom:7px;color:#7a5d40;font-size:12px;font-weight:800}
+.airport-request-form input{box-sizing:border-box;width:100%;height:42px;padding:0 13px;border:1px solid #eadfd4;border-radius:11px;background:#fff;color:#2d3842;font:inherit;font-size:14px;outline:none}
+.airport-request-form input:focus{border-color:#d3a269;box-shadow:0 0 0 3px rgba(211,162,105,.16)}
+.airport-direction-field>div{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.airport-direction-field button,.airport-stepper button,.airport-request-actions button{border:1px solid #eadfd4;border-radius:999px;background:#fff;color:#7a5d40;font-weight:800;cursor:pointer}
+.airport-direction-field button{height:40px;font-size:13px}
+.airport-direction-field button.active{border-color:#d3a269;background:#f6eee5;color:#2d3842}
+.airport-request-grid,.airport-stepper-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.airport-stepper{display:flex;align-items:center;justify-content:space-between;height:42px;padding:0 8px;border:1px solid #eadfd4;border-radius:11px;background:#fff}
+.airport-stepper button{display:grid;place-items:center;width:28px;height:28px;padding:0;font-size:17px;line-height:1}
+.airport-stepper b{color:#2d3842;font-size:14px}
+.airport-generate-request{width:100%;margin-top:4px;border:0;cursor:pointer}
+.airport-request-next{display:block;margin-top:9px;color:#8a9399;font-size:11px;text-align:center}
+.airport-request-result pre{margin:0 0 16px;padding:17px;border:1px solid #eadfd4;border-radius:14px;background:#f9f4ee;color:#34414b;font:600 13px/1.75 var(--sans);white-space:pre-wrap}
+.airport-request-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:17px}
+.airport-request-actions button{height:40px;font-size:12px}
+.airport-request-actions button:first-child,.airport-request-actions button.primary{border-color:#d3a269;background:#d3a269;color:#fff}
+.airport-request-actions button.secondary{background:#fff;color:#775738}
+.airport-wechat{display:grid;grid-template-columns:104px 1fr;gap:16px;align-items:center;padding-top:17px;border-top:1px solid #eadfd4}
+.airport-wechat-qr{display:flex;width:104px;height:104px;align-items:center;justify-content:center;flex-direction:column;border:1px dashed #c9945f;border-radius:14px;background:repeating-linear-gradient(45deg,#f8f2eb,#f8f2eb 6px,#fff 6px,#fff 12px);color:#2d3842}
+.airport-wechat-qr b{font-size:18px}
+.airport-wechat-qr small{font-size:10px;color:#7b858c}
+.airport-wechat span{display:block;color:#7a5d40;font-size:11px;font-weight:800}
+.airport-wechat div:last-child>b{display:block;margin:4px 0;color:#2d3842;font-size:20px}
+.airport-wechat div:last-child>small{color:#737c83;font-size:12px;line-height:1.55}
+@media(max-width:700px){.airport-request-layer{position:fixed;padding:14px}.airport-request-card{width:min(100%,520px);max-height:calc(100vh - 28px)}.airport-request-form,.airport-request-result{padding:27px 20px 22px}.airport-request-form h3,.airport-request-result h3{font-size:25px}.airport-request-grid,.airport-stepper-grid,.airport-request-actions{grid-template-columns:1fr}.airport-wechat{grid-template-columns:88px 1fr}.airport-wechat-qr{width:88px;height:88px}}
+
+/* Final left-panel composition: make the image area larger without enlarging the car itself. */
+.airport-transfer-modal .quick-modal-visual{background:#172027}
+.airport-transfer-modal .quick-modal-visual>.gallery-carousel{top:0;height:78%;bottom:auto}
+.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy{top:78%;bottom:0;display:flex;flex-direction:column;justify-content:center;padding:16px 40px 28px;background:#172027}
+.airport-transfer-modal .quick-modal-visual:after{inset:0 0 22%;background:linear-gradient(180deg,rgba(18,23,26,.12) 0%,rgba(18,23,26,0) 32%,rgba(18,23,26,.18) 100%)}
+.airport-transfer-modal .airport-visual-eyebrow{top:32px;left:40px;z-index:6;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.38)}
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img.gallery-backdrop{display:block;opacity:.42;filter:blur(18px) brightness(.72) saturate(.92)}
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){background:transparent;object-fit:contain;object-position:center center;transform:scale(1)}
+.airport-transfer-modal .airport-visual-copy span{margin-bottom:10px}
+.airport-transfer-modal .quick-modal-visual b{font-size:29px}
+.airport-transfer-modal .quick-modal-visual small{margin-top:8px}
+.airport-transfer-modal .quick-modal-visual .gallery-count{bottom:18px;right:20px}
+.airport-transfer-modal .quick-modal-visual .gallery-dots{bottom:22px}
+@media(max-width:700px){.airport-transfer-modal .quick-modal-visual>.gallery-carousel{height:74%}.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy{top:74%;padding:12px 22px}.airport-transfer-modal .quick-modal-visual:after{inset:0 0 26%}.airport-transfer-modal .airport-visual-eyebrow{top:18px;left:22px}.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){transform:scale(1)}}
+
+/* Service cover mode: the left side is one full-height visual, not separate blocks. */
+.airport-transfer-modal .quick-modal-visual{background:#172027}
+.airport-transfer-modal .quick-modal-visual>.gallery-carousel{position:absolute;inset:0;width:100%;height:100%}
+.airport-transfer-modal .quick-modal-visual>.gallery-carousel .gallery-stage{height:100%}
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img.gallery-backdrop{display:none}
+.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){width:100%;height:100%;object-fit:cover;object-position:center center;transform:none;background:transparent}
+.airport-transfer-modal .quick-modal-visual:after{inset:0;background:linear-gradient(180deg,rgba(16,22,26,.08) 0%,rgba(16,22,26,0) 38%,rgba(16,22,26,.72) 100%)}
+.airport-transfer-modal .airport-visual-eyebrow{top:34px;left:40px;z-index:6;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.45)}
+.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy,.airport-transfer-modal .airport-visual-copy{top:auto;bottom:0;left:40px;right:40px;display:block;padding:0 0 44px;background:transparent;color:#fff}
+.airport-transfer-modal .airport-visual-copy span{margin-bottom:12px;color:#e0ad75}
+.airport-transfer-modal .quick-modal-visual b{font-size:34px;text-shadow:0 2px 16px rgba(0,0,0,.38)}
+.airport-transfer-modal .quick-modal-visual small{margin-top:10px;font-size:13px;text-shadow:0 2px 12px rgba(0,0,0,.38)}
+.airport-transfer-modal .quick-modal-visual .gallery-count{right:20px;bottom:20px;z-index:7;background:rgba(17,22,25,.58);font-size:12px}
+.airport-transfer-modal .quick-modal-visual .gallery-dots{display:none}
+.airport-transfer-modal .quick-modal-visual .gallery-arrow{opacity:0;transition:opacity .22s ease,background .22s ease,transform .22s ease}
+.airport-transfer-modal .quick-modal-visual:hover .gallery-arrow{opacity:1}
+.airport-transfer-modal .quick-modal-visual .gallery-arrow:hover{background:rgba(20,25,28,.72);transform:translateY(-50%) scale(1.04)}
+@media(hover:none){.airport-transfer-modal .quick-modal-visual .gallery-arrow{opacity:1}}
+@media(max-width:700px){.airport-transfer-modal .quick-modal-visual>.gallery-carousel{height:100%}.airport-transfer-modal .quick-modal-visual.has-gallery .airport-visual-copy,.airport-transfer-modal .airport-visual-copy{top:auto;bottom:0;padding:0 0 24px;left:22px;right:22px}.airport-transfer-modal .airport-visual-eyebrow{top:20px;left:22px}.airport-transfer-modal .quick-modal-visual .gallery-stage>img:not(.gallery-backdrop){transform:none}}

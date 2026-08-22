@@ -9,7 +9,7 @@ const steps = [
   "空间信息",
   "介绍",
   "设施",
-  "亮点",
+  "亮点与适合人群",
   "周边",
   "参考价格",
   "发布",
@@ -54,6 +54,11 @@ const blank: Omit<PropertyRecord, "id" | "updatedAt"> = {
   descriptionEn: "",
   amenities: [...amenityOptions],
   highlights: highlightTemplates.map((item) => ({ ...item })),
+  suitableFor: ["2–3 人朋友出行", "喜欢逛街", "连住几晚"],
+  guestQuote: "",
+  guestQuoteAuthor: "",
+  spaceConfig: { layout: "1室1厅1卫", area: "", floor: "", recommendedGuests: "2–3人", maxGuests: 3 },
+  sleepingArrangements: [{ space: "主卧", bedType: "双人床", width: "1.5", length: "2.0", quantity: 1, sleeps: 2 }, { space: "客厅", bedType: "沙发床", width: "0.9", length: "2.0", quantity: 1, sleeps: 1 }],
   nearby: nearbyTemplates.map((item) => ({ ...item })),
   priceFrom: 0,
   priceNote: "旺季价格请咨询",
@@ -784,14 +789,15 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
             </Block>
           )}
           {step === 5 && (
-            <Repeater
-              title="亮点"
-              hint="例如：城市景观 / 晚上可以看到 KLCC 夜景"
-              items={data.highlights}
-              onChange={(x) => set("highlights", x)}
-              labels={["标题", "描述"]}
-              templates={highlightTemplates}
-            />
+            <>
+              <Block title="房型信息" desc="填写空间配置和睡眠安排；空白字段不会在前台显示。">
+                <div className="stat-inputs"><Field label="户型"><input value={data.spaceConfig?.layout || ""} onChange={(e) => set("spaceConfig", { ...(data.spaceConfig || {}), layout: e.target.value })} /></Field><Field label="面积"><input placeholder="例如：约 55㎡" value={data.spaceConfig?.area || ""} onChange={(e) => set("spaceConfig", { ...(data.spaceConfig || {}), area: e.target.value })} /></Field><Field label="楼层"><input value={data.spaceConfig?.floor || ""} onChange={(e) => set("spaceConfig", { ...(data.spaceConfig || {}), floor: e.target.value })} /></Field><Field label="推荐入住"><input placeholder="例如：2–3人" value={data.spaceConfig?.recommendedGuests || ""} onChange={(e) => set("spaceConfig", { ...(data.spaceConfig || {}), recommendedGuests: e.target.value })} /></Field><Field label="最多入住"><input type="number" value={data.spaceConfig?.maxGuests || ""} onChange={(e) => set("spaceConfig", { ...(data.spaceConfig || {}), maxGuests: Number(e.target.value) || undefined })} /></Field></div>
+                <Repeater title="睡眠安排" hint="按房间填写床型、尺寸和可睡人数。" items={(data.sleepingArrangements || []).map((x) => ({ ...x, quantity: String(x.quantity), sleeps: String(x.sleeps) }))} onChange={(items) => set("sleepingArrangements", items.map((x) => ({ ...x, quantity: Number(x.quantity) || 1, sleeps: Number(x.sleeps) || 1 })))} labels={["空间", "床型", "宽（米）", "长（米）", "数量", "可睡人数"]} templates={[]} />
+              </Block>
+              <Repeater title="亮点" hint="只填写真正能区分这套房的特点，不需要每套都填满。" items={data.highlights} onChange={(x) => set("highlights", x)} labels={["标题", "描述"]} templates={highlightTemplates} />
+              <div className="admin-subblock"><div className="block-head"><h2>这套比较适合</h2><p>用标签帮助客人快速判断是否适合自己，可自由新增。</p></div><div className="tag-editor">{(data.suitableFor || []).map((value, i) => <div key={i}><input value={value} onChange={(e) => set("suitableFor", (data.suitableFor || []).map((x, n) => n === i ? e.target.value : x))} /><button type="button" onClick={() => set("suitableFor", (data.suitableFor || []).filter((_, n) => n !== i))}>删除</button></div>)}<button type="button" className="add-row" onClick={() => set("suitableFor", [...(data.suitableFor || []), ""])}>＋ 添加适合标签</button></div></div>
+              <div className="admin-subblock"><div className="block-head"><h2>住过的客人提到（可选）</h2><p>只放真实、有针对性的反馈；没有就留空，前台不会显示。</p></div><Field label="客人原话"><textarea rows={3} value={data.guestQuote || ""} onChange={(e) => set("guestQuote", e.target.value)} /></Field><Field label="场景标签"><input value={data.guestQuoteAuthor || ""} placeholder="例如：3 人朋友出行" onChange={(e) => set("guestQuoteAuthor", e.target.value)} /></Field></div>
+            </>
           )}
           {step === 6 && (
             <Repeater
@@ -837,7 +843,7 @@ export function PropertyEditor({ initial }: { initial?: PropertyRecord }) {
                   <li className={data.images.length ? "ok" : ""}>
                     至少一张图片
                   </li>
-                  <li className={data.descriptionZh ? "ok" : ""}>房源介绍</li>
+                  <li className={data.descriptionZh ? "ok" : ""}>房源说明</li>
                   <li className={data.priceFrom ? "ok" : ""}>参考价格</li>
                 </ul>
                 <button
@@ -949,8 +955,7 @@ function Repeater({
   labels: string[];
   templates?: Record<string, string>[];
 }) {
-  const keys =
-    title === "亮点" ? ["title", "description"] : ["name", "type", "distance"];
+  const keys = title === "亮点" ? ["title", "description"] : title === "睡眠安排" ? ["space", "bedType", "width", "length", "quantity", "sleeps"] : ["name", "type", "distance"];
   return (
     <>
       <div className="block-head">

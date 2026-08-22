@@ -21,7 +21,11 @@ export default function ServiceEditor() {
     [notice, setNotice] = useState("");
   useEffect(() => {
     fetch(`/api/admin/service-items/${id}`)
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) return null;
+        const text = await r.text();
+        return text ? JSON.parse(text) : null;
+      })
       .then(setD);
   }, [id]);
   if (!d) return <div className="admin-loading">正在打开服务编辑器…</div>;

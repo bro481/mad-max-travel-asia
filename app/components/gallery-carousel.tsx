@@ -6,9 +6,11 @@ import "./gallery-carousel.css";
 export function GalleryCarousel({
   images,
   alt,
+  compact = false,
 }: {
   images: string[];
   alt: string;
+  compact?: boolean;
 }) {
   const clean = useMemo(() => images.filter(Boolean), [images]);
   const [index, setIndex] = useState(0);
@@ -39,7 +41,7 @@ export function GalleryCarousel({
 
   return (
     <div
-      className="gallery-carousel"
+      className={`gallery-carousel${compact ? " compact-gallery-carousel" : ""}`}
       onTouchStart={(e) => {
         start.current = e.touches[0].clientX;
       }}
@@ -51,7 +53,16 @@ export function GalleryCarousel({
       }}
     >
       <div className="gallery-stage">
-        <img src={clean[index]} alt={`${alt} ${index + 1}`} />
+        {compact && (
+          <img
+            key={`${clean[index]}-backdrop-${index}`}
+            className="gallery-backdrop"
+            src={clean[index]}
+            alt=""
+            aria-hidden="true"
+          />
+        )}
+        <img key={`${clean[index]}-${index}`} src={clean[index]} alt={`${alt} ${index + 1}`} />
         {multi && (
           <>
             <button
@@ -88,6 +99,19 @@ export function GalleryCarousel({
             >
               <img src={image} alt="" />
             </button>
+          ))}
+        </div>
+      )}
+      {multi && compact && (
+        <div className="gallery-dots" aria-label="图片分页">
+          {clean.map((image, i) => (
+            <button
+              type="button"
+              key={`${image}-dot-${i}`}
+              className={i === index ? "active" : ""}
+              aria-label={`查看第 ${i + 1} 张图片`}
+              onClick={() => setIndex(i)}
+            />
           ))}
         </div>
       )}

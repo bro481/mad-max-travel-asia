@@ -2,17 +2,27 @@ import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../chatgpt-auth";
 import { ensureProperties, listProperties } from "../../../../db/properties";
+import {
+  createLocalProperty,
+  listLocalProperties,
+  useLocalProperties,
+} from "./local-dev-store";
 
 export async function GET() {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (useLocalProperties()) return NextResponse.json(listLocalProperties());
   return NextResponse.json(await listProperties());
 }
 export async function POST(request: Request) {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await ensureProperties();
   const b = (await request.json()) as Record<string, unknown>;
+  if (useLocalProperties()) {
+    const item = createLocalProperty(b);
+    return NextResponse.json({ id: item.id, slug: item.slug }, { status: 201 });
+  }
+  await ensureProperties();
   const base =
     String(b.slug || b.nameEn || "new-stay")
       .toLowerCase()

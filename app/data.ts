@@ -1,10 +1,14 @@
 export type Lang = "en" | "zh";
 export type Localized = { zh:string; en:string };
 export type IconItem = { name:Localized; icon:string };
+export type SleepingArrangement = { space:string; bedType:string; width:string; length:string; quantity:number; sleeps:number };
+export type RoomSpaceConfig = { layout:string; area?:string; floor?:string; recommendedGuests?:string; maxGuests?:number };
 export type Room = {
   id:string; name:Localized; location:Localized; area:Localized; image:string; images:string[];
   guests:number; bedrooms:number; beds:number; bathrooms:number; priceFrom:number;
   description:Localized; amenities:IconItem[]; highlights:IconItem[];
+  suitableFor?:string[]; guestQuote?:Localized; guestQuoteAuthor?:Localized;
+  spaceConfig?:RoomSpaceConfig; sleepingArrangements?:SleepingArrangement[];
   nearbyPlaces:{name:Localized;category:Localized;distance:Localized;icon:string}[];
 };
 
@@ -27,9 +31,14 @@ function makeRoom(id:string,nameEn:string,nameZh:string,loc:"kl"|"kk"|"semporna"
   const location=loc==="kl"?{zh:"吉隆坡",en:"Kuala Lumpur"}:loc==="kk"?{zh:"亚庇",en:"Kota Kinabalu"}:{zh:"仙本那",en:"Semporna"};
   const areaMap:Record<string,Localized>={"kl-city-apartment":{zh:"KLCC 附近",en:"Near KLCC"},"kl-cozy-suite":{zh:"武吉免登",en:"Bukit Bintang"},"kl-family-residence":{zh:"市中心",en:"City Centre"},"kl-modern-loft":{zh:"满家乐",en:"Mont Kiara"},"kk-seaview-suite":{zh:"海滨区",en:"Waterfront"},"kk-cozy-home":{zh:"市中心",en:"City Centre"},"kk-family-loft":{zh:"哲斯顿港附近",en:"Near Jesselton Point"},"kk-ocean-view-villa":{zh:"丹绒亚路",en:"Tanjung Aru"},"semporna-ocean-stay":{zh:"码头附近",en:"Near the Jetty"},"semporna-dive-lodge":{zh:"市中心",en:"Town Centre"},"semporna-family-house":{zh:"安静住宅区",en:"Quiet Residential Area"},"semporna-island-villa":{zh:"海岛区域",en:"Island Area"}};
   const priceMap:Record<string,number>={"kl-city-apartment":250,"kl-cozy-suite":190,"kl-family-residence":360,"kl-modern-loft":280,"kk-seaview-suite":260,"kk-cozy-home":180,"kk-family-loft":330,"kk-ocean-view-villa":420,"semporna-ocean-stay":220,"semporna-dive-lodge":160,"semporna-family-house":300,"semporna-island-villa":480};
+  const sizeMap:Record<number,string>={1:"约55㎡",2:"约78㎡",3:"约110㎡"};
+  const floorMap:Record<string,string>={"kl-cozy-suite":"18楼","kl-city-apartment":"25楼","kl-family-residence":"12楼","kl-modern-loft":"21楼","kk-seaview-suite":"16楼","kk-cozy-home":"8楼","kk-family-loft":"10楼","kk-ocean-view-villa":"2楼","semporna-ocean-stay":"5楼","semporna-dive-lodge":"3楼","semporna-family-house":"2楼","semporna-island-villa":"1楼"};
   const extraDescription=loc==="kl"?{zh:"适合第一次来到吉隆坡的家庭和朋友旅行。房间拥有舒适的生活空间，附近交通便利，可以轻松前往购物中心、餐厅和城市景点。",en:"A welcoming choice for families and friends visiting Kuala Lumpur for the first time, with comfortable living space and easy access to shopping, dining and city sights."}:loc==="kk"?{zh:"适合家庭、情侣和朋友探索亚庇，既方便前往海滨与码头，也能在一天行程后享受轻松舒适的休息空间。",en:"A comfortable base for families, couples and friends exploring Kota Kinabalu, with easy access to the waterfront and a relaxing place to return to."}:{zh:"适合准备跳岛、潜水或轻松度假的旅客，前往码头和当地餐饮都很方便，也可协助安排接送与当地行程。",en:"Ideal for island hopping, diving or a relaxed coastal break, with convenient jetty access and help arranging local transfers and activities."};
   const image=u(cover);
-  return {id,name:{zh:nameZh,en:nameEn},location,area:areaMap[id],image,images:[cover,...extra.filter(x=>x!==cover)].map((x,i)=>u(x,i===0?1800:1200)),guests,bedrooms,beds,bathrooms,priceFrom:priceMap[id],description:{zh:`${descriptionZh}${extraDescription.zh}`,en:`${descriptionEn} ${extraDescription.en}`},amenities:commonAmenities,highlights:highlights[loc],nearbyPlaces:placeSets[loc]};
+  const suitable=guests<=3?["2–3 人朋友出行","喜欢逛街","连住几晚"]:guests>=6?["小家庭","行李较多","更在意居住空间"]:["家庭或朋友出行","希望空间舒适","探索城市景点"];
+  const sleeping:SleepingArrangement[]=[{space:"主卧",bedType:"双人床",width:guests>=6?"1.8":"1.5",length:"2.0",quantity:1,sleeps:2}];
+  if(guests>2) sleeping.push({space:"客厅",bedType:"沙发床",width:"0.9",length:"2.0",quantity:1,sleeps:Math.min(2,guests-2)});
+  return {id,name:{zh:nameZh,en:nameEn},location,area:areaMap[id],image,images:[cover,...extra.filter(x=>x!==cover)].map((x,i)=>u(x,i===0?1800:1200)),guests,bedrooms,beds,bathrooms,priceFrom:priceMap[id],description:{zh:`${descriptionZh}${extraDescription.zh}`,en:`${descriptionEn} ${extraDescription.en}`},amenities:commonAmenities,highlights:highlights[loc],suitableFor:suitable,spaceConfig:{layout:`${bedrooms}室${bedrooms>1?2:1}厅${bathrooms}卫`,area:sizeMap[Math.min(bedrooms,3)],floor:floorMap[id],recommendedGuests:guests<=3?"2–3人":"舒适入住",maxGuests:guests},sleepingArrangements:sleeping,nearbyPlaces:placeSets[loc]};
 }
 
 export const rooms:Room[]=[

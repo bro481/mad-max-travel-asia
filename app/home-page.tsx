@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useState } from "react";
+import { FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 import { services, type Lang, type Room } from "./data";
 import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
 import { ServiceMenu } from "./service-menu";
@@ -33,10 +33,47 @@ const serviceOptions = {
   zh: ["住宿", "机场接送", "私人包车", "海岛接送", "一日游", "其他"],
 };
 const timeOptions = {
-  en: ["Dates confirmed", "Approximate month", "Not decided yet"],
-  zh: ["日期已确定", "大概月份", "还没决定"],
+  en: ["Choose a date", "Approximate month", "Not decided yet"],
+  zh: ["选择日期", "大概月份", "还没决定"],
 };
 const MYR_TO_CNY = 1.7;
+type RoomIconName = "layout" | "area" | "floor" | "guests" | "bed" | "sofa" | "pin";
+
+function RoomIcon({ name }: { name: RoomIconName }) {
+  const paths: Record<RoomIconName, JSX.Element> = {
+    layout: <path d="M4 11.5 12 5l8 6.5v7a1 1 0 0 1-1 1h-5v-5h-4v5H5a1 1 0 0 1-1-1z" />,
+    area: <path d="M5 8V5h3M16 5h3v3M19 16v3h-3M8 19H5v-3M8 5h8M19 8v8M16 19H8M5 16V8" />,
+    floor: <path d="M6 20V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v15M9 8h2M13 8h2M9 12h2M13 12h2M10 20v-4h4v4" />,
+    guests: <path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.5 20a5.5 5.5 0 0 1 11 0M16 11a2.5 2.5 0 1 0 0-5M15.5 14.5A4.7 4.7 0 0 1 20.5 20" />,
+    bed: <path d="M4 19V8M20 19v-5a3 3 0 0 0-3-3H4v8M4 14h16M7 11V8h5v3" />,
+    sofa: <path d="M5 12V9a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M4 12h16a1.5 1.5 0 0 1 1.5 1.5V19H2.5v-5.5A1.5 1.5 0 0 1 4 12ZM5 19v2M19 19v2" />,
+    pin: <path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11ZM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />,
+  };
+  return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
+}
+
+function formatGuestPhrase(spaceConfig: Room["spaceConfig"], lang: Lang) {
+  const max = spaceConfig?.maxGuests;
+  if (lang === "zh") {
+    return max ? `最多 ${max} 人` : "";
+  }
+  return max ? `Up to ${max} guests` : "";
+}
+
+function modalLocationLabel(room: Room, lang: Lang) {
+  if (lang === "zh" && room.location.zh === "吉隆坡") {
+    if (room.area.zh === "市中心" || room.area.zh === "武吉免登") return "武吉免登 · 市中心";
+    if (room.area.zh.includes("KLCC")) return `${room.area.zh} · 市中心`;
+    return room.area.zh;
+  }
+  if (lang === "en" && room.location.en === "Kuala Lumpur") {
+    if (room.area.en === "City Centre" || room.area.en === "Bukit Bintang") return "Bukit Bintang · City Centre";
+    if (room.area.en.includes("KLCC")) return `${room.area.en} · City Centre`;
+    return room.area.en;
+  }
+  return `${room.area[lang]} · ${room.location[lang]}`;
+}
+
 const c = {
   en: {
     rooms: "Rooms",
@@ -93,7 +130,10 @@ const c = {
     contactPh: "The easiest way to reach you",
     destination: "Where are you planning to go?",
     need: "Which services do you need?",
-    time: "Travel time (optional)",
+    needHint: "Select all that apply",
+    time: "When are you leaving? (optional)",
+    dateLabel: "Choose a date",
+    monthLabel: "Choose a month",
     message: "Anything else you’d like us to know?",
     messagePh:
       "For example: 2 adults and 1 child, prefer somewhere near the sea, or need a private car…",
@@ -138,7 +178,7 @@ const c = {
     start: "开始规划",
     plan: "开始规划你的马来西亚之旅",
     planSub:
-      "告诉我们你的目的地和需求，我们会根据你的行程提供合适的住宿和当地服务建议。",
+      "简单告诉我们你想去哪里、需要什么就好，其他细节可以之后慢慢确认。",
     steps: [
       ["告诉我们你的想法", "选择目的地和需要的服务。"],
       ["我们帮你安排", "根据行程和需求提供合适建议。"],
@@ -151,7 +191,10 @@ const c = {
     contactPh: "方便我们联系您的方式",
     destination: "您计划去哪里？",
     need: "您需要哪些服务？",
-    time: "预计出行时间（可选）",
+    needHint: "可多选",
+    time: "什么时候出发？（选填）",
+    dateLabel: "选择具体日期",
+    monthLabel: "选择大概月份",
     message: "还有什么想告诉我们？",
     messagePh: "例如：2位成人+1个孩子，希望靠近海边，或者想安排包车……",
     advice: "获取旅行建议",
@@ -175,7 +218,15 @@ function Logo() {
   );
 }
 
-function RoomCarousel({ room, lang }: { room: Room; lang: Lang }) {
+function RoomCarousel({
+  room,
+  lang,
+  onOpen,
+}: {
+  room: Room;
+  lang: Lang;
+  onOpen: () => void;
+}) {
   const [index, setIndex] = useState(0);
   const images = room.images?.length ? room.images : [room.image];
   const move = (direction: number) =>
@@ -184,9 +235,14 @@ function RoomCarousel({ room, lang }: { room: Room; lang: Lang }) {
     );
   return (
     <div className="card-carousel">
-      <a href={`/rooms/${room.id}`} aria-label={room.name[lang]}>
+      <button
+        type="button"
+        className="card-carousel-open"
+        onClick={onOpen}
+        aria-label={room.name[lang]}
+      >
         <img src={images[index]} alt={`${room.name[lang]} ${index + 1}`} />
-      </a>
+      </button>
       <span className="location-pill">{room.location[lang]}</span>
       {images.length > 1 && (
         <>
@@ -223,13 +279,231 @@ function RoomCarousel({ room, lang }: { room: Room; lang: Lang }) {
   );
 }
 
+type RoomModalTab = "intro" | "amenities" | "stay" | "nearby";
+
+function RoomDetailModal({
+  room,
+  lang,
+  onClose,
+}: {
+  room: Room;
+  lang: Lang;
+  onClose: () => void;
+}) {
+  const [photo, setPhoto] = useState(0);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [photoZoomed, setPhotoZoomed] = useState(false);
+  const [tab, setTab] = useState<RoomModalTab>("intro");
+  const touchStartX = useRef<number | null>(null);
+  const images = room.images?.length ? room.images : [room.image];
+  const price = Math.round(room.priceFrom * MYR_TO_CNY);
+  const coreAmenityKeys = ["High-speed WiFi", "Air Conditioning", "Fully Equipped Kitchen", "Washer"];
+  const coreAmenities = coreAmenityKeys
+    .map((key) => room.amenities.find((item) => item.name.en === key))
+    .filter((item): item is Room["amenities"][number] => Boolean(item));
+  const amenityName = (name: Room["amenities"][number]["name"]) => {
+    if (lang === "zh" && name.zh === "设备齐全的厨房") return "厨房";
+    if (lang === "en" && name.en === "Fully Equipped Kitchen") return "Kitchen";
+    return name[lang];
+  };
+  const move = (direction: number) =>
+    setPhoto((current) => (current + direction + images.length) % images.length);
+  const openGallery = (index = photo) => {
+    setPhoto(index);
+    setPhotoZoomed(false);
+    setGalleryOpen(true);
+  };
+  const openGalleryFromEvent = (event: MouseEvent, index = photo) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openGallery(index);
+  };
+  const closeGallery = () => {
+    setPhotoZoomed(false);
+    setGalleryOpen(false);
+  };
+  useEffect(() => {
+    if (!galleryOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" && event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.key === "Escape") {
+        if (photoZoomed) setPhotoZoomed(false);
+        else closeGallery();
+      }
+      if (event.key === "ArrowLeft") move(-1);
+      if (event.key === "ArrowRight") move(1);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [galleryOpen, photoZoomed, images.length]);
+  const tabs: { key: RoomModalTab; zh: string; en: string }[] = [
+    { key: "intro", zh: "房型信息", en: "Room info" },
+    { key: "amenities", zh: "设施", en: "Amenities" },
+    { key: "stay", zh: "入住须知", en: "Stay info" },
+    { key: "nearby", zh: "周边", en: "Nearby" },
+  ];
+
+  return (
+    <div className="room-detail-modal" role="dialog" aria-modal="true" onMouseDown={onClose}>
+      <div className="room-modal-shell" onMouseDown={(event) => event.stopPropagation()}>
+        <button className="room-modal-close" type="button" onClick={onClose} aria-label="Close">
+          ×
+        </button>
+        <div className={`room-modal-gallery${images.length > 1 ? "" : " single"}`}>
+          <div className="room-modal-main-photo">
+            <img key={images[photo]} src={images[photo]} alt={`${room.name[lang]} ${photo + 1}`} />
+            {images.length > 1 && (
+              <>
+                <button type="button" className="prev" onClick={() => move(-1)} aria-label="Previous photo">‹</button>
+                <button type="button" className="next" onClick={() => move(1)} aria-label="Next photo">›</button>
+                <button type="button" className="room-modal-count" onMouseDown={(event) => openGalleryFromEvent(event)} onClick={(event) => openGalleryFromEvent(event)} aria-label={lang === "zh" ? `查看全部 ${images.length} 张图片` : `View all ${images.length} photos`}>
+                  <span>▦</span>{lang === "zh" ? "查看全部" : "View all"}
+                </button>
+              </>
+            )}
+          </div>
+          {images.length > 1 && (
+            <div className="room-modal-thumbs">
+              {images.slice(0, 5).map((image, index) => (
+                <button
+                  type="button"
+                  key={image}
+                  className={photo === index ? "active" : ""}
+                  onMouseDown={(event) => index === 4 && images.length > 5 ? openGalleryFromEvent(event, index) : undefined}
+                  onClick={(event) => index === 4 && images.length > 5 ? openGalleryFromEvent(event, index) : setPhoto(index)}
+                  aria-label={index === 4 && images.length > 5 ? (lang === "zh" ? `查看全部 ${images.length} 张图片` : `View all ${images.length} photos`) : `Photo ${index + 1}`}
+                >
+                  <img src={image} alt="" />
+                  {index === 4 && images.length > 5 && <span><b>+{images.length - 5}</b><small>{lang === "zh" ? "全部照片" : "All photos"}</small></span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <section className="room-modal-info">
+          <p className="eyebrow">MAD MAX · MALAYSIA STAY</p>
+          <h2>{room.name[lang]}</h2>
+          <div className="room-modal-area room-modal-title-location"><RoomIcon name="pin" /><b>{modalLocationLabel(room, lang)}</b></div>
+          <div className="room-modal-price">
+            <strong>{lang === "zh" ? `¥${price}` : `RM ${room.priceFrom}`}</strong>
+            <b>{lang === "zh" ? "起 / 晚" : "from / night"}</b>
+            <small>{lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date"}</small>
+          </div>
+          <div className="room-modal-tabs" role="tablist">
+            {tabs.map((item) => (
+              <button
+                type="button"
+                key={item.key}
+                className={tab === item.key ? "active" : ""}
+                onClick={() => setTab(item.key)}
+              >
+                {item[lang]}
+              </button>
+            ))}
+          </div>
+          <div className="room-modal-tab-content">
+            {tab === "intro" && (
+              <>
+                <div className="room-modal-space"><h3>{lang === "zh" ? "空间配置" : "Space configuration"}</h3><div className="room-modal-space-grid">
+                  {room.spaceConfig?.layout ? <div><i><RoomIcon name="layout" /></i><b>{lang === "zh" ? "户型" : "Layout"}</b><strong>{room.spaceConfig.layout}</strong></div> : null}
+                  {room.spaceConfig?.area ? <div><i><RoomIcon name="area" /></i><b>{lang === "zh" ? "房屋面积" : "Area"}</b><strong>{room.spaceConfig.area}</strong></div> : null}
+                  {(room.spaceConfig?.recommendedGuests || room.spaceConfig?.maxGuests) ? <div><i><RoomIcon name="guests" /></i><b>{lang === "zh" ? "入住人数" : "Guests"}</b><strong>{formatGuestPhrase(room.spaceConfig, lang)}</strong></div> : null}
+                  {room.spaceConfig?.floor ? <div><i><RoomIcon name="floor" /></i><b>{lang === "zh" ? "所在楼层" : "Floor"}</b><strong>{room.spaceConfig.floor}</strong></div> : null}
+                </div></div>
+                {room.sleepingArrangements?.length ? <div className="room-modal-sleeping"><h3>{lang === "zh" ? "睡眠安排" : "Sleeping arrangements"}</h3>{room.sleepingArrangements.map((item, i) => <div className="room-modal-sleep-row" key={`${item.space}-${i}`}><i><RoomIcon name={item.space.includes("客厅") ? "sofa" : "bed"} /></i><p><b>{item.space}</b><strong>{item.width}m × {item.length}m {item.bedType} × {item.quantity}</strong></p><span>{lang === "zh" ? `可睡 ${item.sleeps} 人` : `Sleeps ${item.sleeps}`}</span></div>)}</div> : null}
+              </>
+            )}
+            {tab === "amenities" && (
+              <div className="room-modal-all-amenities">
+                {room.amenities.map((item) => <span key={item.name.en}><i>{item.icon}</i>{amenityName(item.name)}</span>)}
+              </div>
+            )}
+            {tab === "stay" && (
+              <div className="room-modal-stay">
+                <div className="room-modal-stay-info">
+                  <div><b>{lang === "zh" ? "入住时间" : "Check-in"}</b><span>{lang === "zh" ? "15:00 后" : "After 15:00"}</span></div>
+                  <div><b>{lang === "zh" ? "退房时间" : "Check-out"}</b><span>{lang === "zh" ? "11:00 前" : "Before 11:00"}</span></div>
+                  <div><b>{lang === "zh" ? "最多入住" : "Guests"}</b><span>{lang === "zh" ? `${room.guests} 位` : `Up to ${room.guests}`}</span></div>
+                  <div><b>{lang === "zh" ? "入住方式" : "Arrival"}</b><span>{lang === "zh" ? "确认后发送入住说明" : "Instructions sent after confirmation"}</span></div>
+                </div>
+                <div className="room-modal-reminders">
+                  <b>{lang === "zh" ? "入住提醒" : "A few reminders"}</b>
+                  <span>○ {lang === "zh" ? "室内请勿吸烟" : "No smoking indoors"}</span>
+                  <span>○ {lang === "zh" ? "请勿举办聚会" : "No parties"}</span>
+                  <span>○ {lang === "zh" ? "请保持室内整洁" : "Please keep the home tidy"}</span>
+                </div>
+              </div>
+            )}
+            {tab === "nearby" && (
+              <>
+                <div className="room-modal-nearby">
+                  {room.nearbyPlaces.slice(0, 5).map((place) => (
+                    <div key={place.name.en}><i>{place.icon}</i><p><b>{place.name[lang]}</b><small>{place.distance[lang]}</small></p></div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <a className="button room-modal-cta" href="#contact" onClick={onClose}>{lang === "zh" ? "咨询入住" : "Ask about this stay"} →</a>
+        </section>
+      </div>
+      {galleryOpen && (
+        <div className={`room-photo-viewer${photoZoomed ? " zoomed" : ""}`} role="dialog" aria-modal="true" onMouseDown={closeGallery}>
+          <div onMouseDown={(event) => event.stopPropagation()}>
+            <div className="room-photo-viewer-head">
+              <button type="button" className="room-photo-viewer-back" onClick={closeGallery}>{lang === "zh" ? "← 返回房源" : "← Back to room"}</button>
+              <div><span>{photo + 1} / {images.length}</span><button type="button" onClick={closeGallery} aria-label="Close gallery">×</button></div>
+            </div>
+            <div
+              className="room-photo-viewer-main"
+              onTouchStart={(event) => { touchStartX.current = event.touches[0]?.clientX ?? null; }}
+              onTouchEnd={(event) => {
+                if (touchStartX.current === null) return;
+                const delta = event.changedTouches[0].clientX - touchStartX.current;
+                touchStartX.current = null;
+                if (Math.abs(delta) > 42) move(delta > 0 ? -1 : 1);
+              }}
+            >
+              <button type="button" className="prev" onClick={() => move(-1)} aria-label="Previous photo">‹</button>
+              <img key={images[photo]} src={images[photo]} alt={`${room.name[lang]} ${photo + 1}`} onClick={() => setPhotoZoomed((value) => !value)} />
+              <button type="button" className="next" onClick={() => move(1)} aria-label="Next photo">›</button>
+            </div>
+            <div className="room-photo-viewer-thumbs">
+              {images.map((image, index) => (
+                <button type="button" key={image} className={photo === index ? "active" : ""} onClick={() => setPhoto(index)} aria-label={`Photo ${index + 1}`}>
+                  <img src={image} alt="" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function HomePage({ rooms }: { rooms: Room[] }) {
   const [lang, setLang] = useState<Lang>("zh"),
     [status, setStatus] = useState(""),
     [sent, setSent] = useState(false),
     [menu, setMenu] = useState(false),
     [layout, setLayout] = useState("all"),
-    [selectedLocation, setSelectedLocation] = useState("all");
+    [selectedLocation, setSelectedLocation] = useState("all"),
+    [timeMode, setTimeMode] = useState(""),
+    [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  useEffect(() => {
+    if (!selectedRoom) return;
+    const close = (event: KeyboardEvent) => event.key === "Escape" && setSelectedRoom(null);
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", close);
+    };
+  }, [selectedRoom]);
   const t = c[lang];
   const roomLayouts = [
     ...new Map(
@@ -282,6 +556,7 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
     });
     if (res.ok) {
       form.reset();
+      setTimeMode("");
       setStatus("");
       setSent(true);
     } else setStatus(t.error);
@@ -296,7 +571,7 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
         <nav className={menu ? "open" : ""}>
           <a href="#stays">{t.rooms}</a>
           <ServiceMenu lang={lang} />
-          <a href="#about">{t.about}</a>
+          <a href="/about">{t.about}</a>
           <a href="#contact">{t.contact}</a>
           <div className="language-switch mobile-language">
             <button
@@ -434,7 +709,7 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
           <div className="room-grid stay-results-grid">
             {visibleRooms.map((room) => (
               <article className="room-card" key={room.id}>
-                <RoomCarousel room={room} lang={lang} />
+                <RoomCarousel room={room} lang={lang} onOpen={() => setSelectedRoom(room)} />
                 <div className="card-body">
                   <h4>{room.name[lang]}</h4>
                   <div className="room-info-row">
@@ -455,10 +730,10 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
                       ? `¥${Math.round(room.priceFrom * MYR_TO_CNY)} 起/晚`
                       : `RM ${room.priceFrom} / night`}
                   </div>
-                  <a className="text-link" href={`/rooms/${room.id}`}>
+                  <button className="text-link" type="button" onClick={() => setSelectedRoom(room)}>
                     {t.viewRoom}
                     <span>↗</span>
-                  </a>
+                  </button>
                 </div>
               </article>
             ))}
@@ -508,17 +783,13 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
             <p className="eyebrow">{t.start}</p>
             <h2>{t.plan}</h2>
             <p>{t.planSub}</p>
-            <div className="planning-steps">
-              {t.steps.map((s, i) => (
-                <div className="contact-note" key={s[0]}>
-                  <span>0{i + 1}</span>
-                  <p>
-                    <b>{s[0]}</b>
-                    <br />
-                    {s[1]}
-                  </p>
-                </div>
-              ))}
+            <div className="planning-welcome">
+              <b>{lang === "zh" ? "先聊聊你的想法" : "Start with the basics"}</b>
+              <p>
+                {lang === "zh"
+                  ? "不用一次准备完整行程，我们会根据你的需求继续和你确认。"
+                  : "You do not need a complete itinerary. We can confirm the details together afterwards."}
+              </p>
             </div>
             <div className="trust-list">
               {t.advantages.map((a) => (
@@ -577,7 +848,9 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
                 </div>
               </fieldset>
               <fieldset>
-                <legend>{t.need}</legend>
+                <legend>
+                  {t.need} <small>{t.needHint}</small>
+                </legend>
                 <div className="choice-grid">
                   {serviceOptions[lang].map((n, i) => (
                     <label key={n}>
@@ -598,13 +871,30 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
                     <label key={n}>
                       <input
                         type="radio"
-                        name="travelTime"
+                        name="travelTimeMode"
                         value={timeOptions.en[i]}
+                        checked={timeMode === timeOptions.en[i]}
+                        onChange={() => setTimeMode(timeOptions.en[i])}
                       />
                       <span>{n}</span>
                     </label>
                   ))}
                 </div>
+                {timeMode === timeOptions.en[0] && (
+                  <label className="time-detail">
+                    {t.dateLabel}
+                    <input type="date" name="travelTime" />
+                  </label>
+                )}
+                {timeMode === timeOptions.en[1] && (
+                  <label className="time-detail">
+                    {t.monthLabel}
+                    <input type="month" name="travelTime" />
+                  </label>
+                )}
+                {timeMode === timeOptions.en[2] && (
+                  <input type="hidden" name="travelTime" value={timeOptions.en[2]} />
+                )}
               </fieldset>
               <label>
                 {t.message}
@@ -619,13 +909,16 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
           )}
         </section>
       </main>
+      {selectedRoom && (
+        <RoomDetailModal key={selectedRoom.id} room={selectedRoom} lang={lang} onClose={() => setSelectedRoom(null)} />
+      )}
       <footer>
         <Logo />
         <p>{t.footer}</p>
         <div>
           <a href="#stays">{t.rooms}</a>
           <a href="/services">{t.services}</a>
-          <a href="#about">{t.about}</a>
+          <a href="/about">{t.about}</a>
           <a href="#contact">{t.contact}</a>
         </div>
         <small>© 2026 MAD MAX Malaysia Stay</small>

@@ -5,16 +5,26 @@ import {
   ensureServiceItems,
   listServiceItems,
 } from "../../../../db/service-items";
+import {
+  createLocalServiceItem,
+  listLocalServiceItems,
+  useLocalServiceItems,
+} from "./local-dev-store";
 export async function GET() {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (useLocalServiceItems()) return NextResponse.json(listLocalServiceItems());
   return NextResponse.json(await listServiceItems(true));
 }
 export async function POST(r: Request) {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await ensureServiceItems();
   const b = await r.json();
+  if (useLocalServiceItems()) {
+    const item = createLocalServiceItem(b);
+    return NextResponse.json({ id: item.id, slug: item.slug }, { status: 201 });
+  }
+  await ensureServiceItems();
   const base =
     String(b.slug || b.nameEn || "new-service")
       .toLowerCase()

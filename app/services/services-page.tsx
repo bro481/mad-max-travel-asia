@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { ServiceCategory } from "../../db/services";
 import type { ServiceItem } from "../../db/service-items";
+import { GalleryCarousel } from "../components/gallery-carousel";
 import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
 type Lang = "zh" | "en";
@@ -18,6 +19,34 @@ type AirportVehicle = {
   note: [string, string];
   image: string;
 };
+type IntercityRequest = {
+  date: string;
+  time: string;
+  pickup: string;
+  destination: string;
+  people: number;
+  luggage: number;
+};
+type ExperienceStop = {
+  title: [string, string];
+  note: [string, string];
+  image: string;
+  featured?: boolean;
+  compact?: boolean;
+};
+type ExperienceDetail = {
+  title: [string, string];
+  desc: [string, string];
+  tags: Array<[string, string]>;
+  timelineTitle: [string, string];
+  visualLabel: [string, string];
+  visualTitle: [string, string];
+  visualNote: [string, string];
+  note: [string, string];
+  includes: [string, string][];
+  cta: [string, string];
+  stops: ExperienceStop[];
+};
 type Group = { name: [string, string]; icon: string; items: Offer[] };
 type Destination = {
   key: string;
@@ -27,6 +56,198 @@ type Destination = {
 };
 const img = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=84`;
+const airportTransferGalleryImages = [
+  img("photo-1549317661-bd32c8ce0db2"),
+  img("photo-1550355291-bbee04a92027"),
+  img("photo-1515569067071-ec3b51335dd0"),
+  img("photo-1544620347-c4fd4a3d5957"),
+];
+const intercityGalleryImages = [
+  img("photo-1515569067071-ec3b51335dd0"),
+  img("photo-1500530855697-b586d89ba3ee"),
+  img("photo-1549317661-bd32c8ce0db2"),
+  img("photo-1494526585095-c41746248156"),
+];
+const WECHAT_ID = "MADMAX_STAY";
+const getExperienceDetail = (offer: Offer): ExperienceDetail => {
+  if (offer.title[0].includes("美人鱼岛")) {
+    return {
+      title: offer.title,
+      desc: ["浮潜、沙滩、午餐与接送", "Snorkelling, beach, lunch and transfer"],
+      tags: [
+        ["约8小时", "About 8 hours"],
+        ["海岛一日游", "Island day trip"],
+        ["含接送", "Transfer included"],
+      ],
+      timelineTitle: ["建议行程 · 约8小时", "Suggested itinerary · about 8 hours"],
+      visualLabel: ["海岛体验", "ISLAND EXPERIENCE"],
+      visualTitle: ["从酒店出发，一天看完整个海岛体验", "A full island day from hotel pickup"],
+      visualNote: ["酒店接送 · 乘船 · 浮潜 · 午餐", "Pickup · boat ride · snorkelling · lunch"],
+      note: [
+        "实际出海时间及体验顺序可能根据天气、海况及当天安排调整。",
+        "Departure time and activity order may change with weather, sea conditions and local arrangements.",
+      ],
+      includes: [
+        ["往返接送", "Return transfer"],
+        ["船程", "Boat ride"],
+        ["浮潜装备", "Snorkelling gear"],
+        ["午餐", "Lunch"],
+      ],
+      cta: ["咨询这个体验", "Ask about this experience"],
+      stops: [
+        {
+          title: ["酒店接送", "Hotel pickup"],
+          note: ["前往码头", "Head to the jetty"],
+          image: img("photo-1549317661-bd32c8ce0db2"),
+          compact: true,
+        },
+        {
+          title: ["码头乘船", "Jetty & boat"],
+          note: ["抵达码头后乘船前往美人鱼岛", "Board the boat from the jetty to Mantanani"],
+          image: img("photo-1500530855697-b586d89ba3ee"),
+        },
+        {
+          title: ["美人鱼岛", "Mantanani Island"],
+          note: ["抵达海岛，欣赏清澈海水与沙滩", "Arrive at the island for clear water and beach time"],
+          image: img("photo-1544550285-f813152fb2fd"),
+          featured: true,
+        },
+        {
+          title: ["浮潜体验", "Snorkelling"],
+          note: ["体验清澈海域与珊瑚生态", "Explore clear waters and coral life"],
+          image: img("photo-1544551763-46a013bb70d5"),
+          featured: true,
+        },
+        {
+          title: ["午餐 / 自由活动", "Lunch & free time"],
+          note: ["午餐、沙滩休息、拍照", "Lunch, beach rest and photo time"],
+          image: img("photo-1507525428034-b723cf961d3e"),
+          featured: true,
+        },
+        {
+          title: ["返程", "Return"],
+          note: ["送回酒店", "Transfer back to your hotel"],
+          image: img("photo-1510414842594-a61c69b5ae57"),
+          compact: true,
+        },
+      ],
+    };
+  }
+
+  if (offer.title[0].includes("神山")) {
+    return {
+      title: offer.title,
+      desc: offer.desc,
+      tags: [
+        ["约10小时", "About 10 hours"],
+        ["私人包车", "Private car"],
+        ["行程可调整", "Flexible route"],
+      ],
+      timelineTitle: ["建议行程 · 约10小时", "Suggested itinerary · about 10 hours"],
+      visualLabel: ["自然体验", "NATURE EXPERIENCE"],
+      visualTitle: ["高山风光，轻松安排一天路线", "Mountain scenery in an easy day route"],
+      visualNote: ["酒店接送 · 神山公园 · 吊桥 · 牧场", "Pickup · park · canopy walk · dairy farm"],
+      note: [
+        "行程顺序及停留时间可根据当天情况与个人喜好灵活调整。",
+        "Route order and time at each stop can be adjusted around the day and your preferences.",
+      ],
+      includes: [
+        ["往返接送", "Return transfer"],
+        ["司机服务", "Driver service"],
+        ["路线建议", "Route planning"],
+        ["时间灵活", "Flexible timing"],
+      ],
+      cta: ["咨询这个体验", "Ask about this experience"],
+      stops: [
+        {
+          title: ["酒店接送", "Hotel pickup"],
+          note: ["前往神山", "Head to Kinabalu"],
+          image: img("photo-1549317661-bd32c8ce0db2"),
+          compact: true,
+        },
+        {
+          title: ["神山公园", "Kinabalu Park"],
+          note: ["欣赏神山壮丽景色，拍照打卡", "Enjoy Mount Kinabalu scenery and photo stops"],
+          image: img("photo-1500530855697-b586d89ba3ee"),
+          featured: true,
+        },
+        {
+          title: ["吊桥体验", "Canopy walk"],
+          note: ["体验雨林吊桥，感受热带森林", "Walk the canopy bridge through tropical forest"],
+          image: img("photo-1448375240586-882707db888b"),
+          featured: true,
+        },
+        {
+          title: ["奶牛牧场", "Dairy farm"],
+          note: ["与奶牛互动，享受自然风光", "Meet the cows and enjoy pastoral views"],
+          image: img("photo-1500595046743-cd271d694d30"),
+          featured: true,
+        },
+        {
+          title: ["返回酒店", "Return to hotel"],
+          note: ["送回酒店", "Transfer back to your hotel"],
+          image: img("photo-1500530855697-b586d89ba3ee"),
+          compact: true,
+        },
+      ],
+    };
+  }
+
+  const isIsland = offer.detail === "island";
+  return {
+    title: offer.title,
+    desc: offer.desc,
+    tags: isIsland
+      ? [
+          ["约8小时", "About 8 hours"],
+          ["海岛体验", "Island experience"],
+          ["可安排接送", "Pickup available"],
+        ]
+      : [
+          ["半日 / 一日", "Half / full day"],
+          ["自然体验", "Nature experience"],
+          ["可安排接送", "Pickup available"],
+        ],
+    timelineTitle: isIsland
+      ? ["建议行程 · 海岛体验", "Suggested itinerary · island experience"]
+      : ["建议行程 · 自然体验", "Suggested itinerary · nature experience"],
+    visualLabel: isIsland ? ["海岛体验", "ISLAND EXPERIENCE"] : ["自然体验", "NATURE EXPERIENCE"],
+    visualTitle: isIsland ? ["看海、浮潜与轻松出行", "Sea, snorkelling and easy travel"] : ["亲近自然，轻松安排", "Nature made easy"],
+    visualNote: isIsland ? ["接送 · 出海 · 体验 · 返程", "Pickup · boat · experience · return"] : ["接送 · 景点 · 体验 · 返程", "Pickup · stops · experience · return"],
+    note: [
+      "实际体验顺序可能根据天气、交通及当天安排调整。",
+      "The final order may change with weather, traffic and local arrangements.",
+    ],
+    includes: isIsland
+      ? [
+          ["接送安排", "Transfer arrangement"],
+          ["出海行程", "Boat arrangement"],
+          ["体验建议", "Experience planning"],
+          ["人工确认", "Manual confirmation"],
+        ]
+      : [
+          ["接送安排", "Transfer arrangement"],
+          ["路线建议", "Route planning"],
+          ["时间灵活", "Flexible timing"],
+          ["人工确认", "Manual confirmation"],
+        ],
+    cta: ["咨询这个体验", "Ask about this experience"],
+    stops: isIsland
+      ? [
+          { title: ["酒店接送", "Hotel pickup"], note: ["前往码头", "Head to the jetty"], image: img("photo-1549317661-bd32c8ce0db2"), compact: true },
+          { title: ["出发登船", "Boat departure"], note: ["前往码头，准备出海", "Head to the jetty and get ready for the sea"], image: img("photo-1500530855697-b586d89ba3ee") },
+          { title: [offer.title[0], offer.title[1]], note: [offer.desc[0], offer.desc[1]], image: offer.image, featured: true },
+          { title: ["自由活动", "Free time"], note: ["拍照、休息或体验当天项目", "Photo time, rest or scheduled activities"], image: img("photo-1507525428034-b723cf961d3e"), featured: true },
+          { title: ["返程", "Return"], note: ["送回酒店", "Transfer back to your hotel"], image: img("photo-1510414842594-a61c69b5ae57"), compact: true },
+        ]
+      : [
+          { title: ["酒店接送", "Hotel pickup"], note: ["前往体验点", "Head to the experience"], image: img("photo-1549317661-bd32c8ce0db2"), compact: true },
+          { title: [offer.title[0], offer.title[1]], note: [offer.desc[0], offer.desc[1]], image: offer.image, featured: true },
+          { title: ["自由体验", "Free time"], note: ["按当天安排体验与停留", "Enjoy the experience at a comfortable pace"], image: img("photo-1500530855697-b586d89ba3ee"), featured: true },
+          { title: ["返回酒店", "Return to hotel"], note: ["送回酒店", "Transfer back to your hotel"], image: img("photo-1549317661-bd32c8ce0db2"), compact: true },
+        ],
+  };
+};
 const airportVehicles: AirportVehicle[] = [
   {
     name: ["舒适轿车", "Comfort sedan"],
@@ -115,19 +336,6 @@ const destinations: Destination[] = [
         name: ["交通服务", "Transport"],
         icon: "▱",
         items: [
-          {
-            title: ["吉隆坡 ⇄ 马六甲接送", "Kuala Lumpur ⇄ Melaka Transfer"],
-            desc: [
-              "点对点专车接送",
-              "Private door-to-door transfer",
-            ],
-            tags: [
-              ["舒适专车", "Private vehicle"],
-              ["酒店接送", "Hotel pickup"],
-            ],
-            image: img("photo-1550355291-bbee04a92027"),
-            detail: "private-car",
-          },
           {
             title: ["马六甲私人包车", "Melaka Private Car"],
             desc: [
@@ -509,6 +717,19 @@ export function ServicesPage({
     [menu, setMenu] = useState(false),
     [destination, setDestination] = useState("all"),
     [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [experienceIndex, setExperienceIndex] = useState(0);
+  const [intercityRequestOpen, setIntercityRequestOpen] = useState(false);
+  const [intercityGenerated, setIntercityGenerated] = useState(false);
+  const [intercityCopied, setIntercityCopied] = useState(false);
+  const [intercityWechatCopied, setIntercityWechatCopied] = useState(false);
+  const [intercityRequest, setIntercityRequest] = useState<IntercityRequest>({
+    date: "",
+    time: "",
+    pickup: "",
+    destination: "",
+    people: 2,
+    luggage: 2,
+  });
   const t = copy[lang],
     l = lang === "zh" ? 0 : 1,
     shown =
@@ -541,6 +762,64 @@ export function ServicesPage({
           ]
     : [];
   const isAirportTransfer = selectedOffer?.detail === "airport-transfer";
+  const isIntercityTransfer =
+    selectedOffer?.detail === "private-car" &&
+    /跨城|跨境|接送|⇄|↔/.test(`${selectedOffer.title[0]} ${selectedOffer.desc[0]}`);
+  const isExperienceOffer =
+    selectedOffer?.detail === "island" || selectedOffer?.detail === "nature";
+  const experienceDetail =
+    selectedOffer && isExperienceOffer ? getExperienceDetail(selectedOffer) : null;
+  const experienceStops = experienceDetail?.stops ?? [];
+  const activeExperienceStop =
+    experienceStops[experienceIndex] || experienceStops[0];
+  const moveExperienceImage = (step: number) => {
+    if (!experienceStops.length) return;
+    setExperienceIndex(
+      (current) => (current + step + experienceStops.length) % experienceStops.length,
+    );
+  };
+  const intercityRoutes = selectedOffer
+    ? selectedOffer.desc[0].includes("斗湖") || selectedOffer.desc[0].includes("神山")
+      ? ["亚庇 ⇄ 神山", "亚庇 ⇄ 斗湖"]
+      : selectedOffer.title[0].includes("马六甲") && !selectedOffer.desc[0].includes("新加坡")
+        ? ["吉隆坡 ⇄ 马六甲"]
+        : selectedOffer.title[0].includes("新加坡") || selectedOffer.desc[0].includes("新加坡")
+          ? ["吉隆坡 ⇄ 新加坡", "马来西亚 ⇄ 新加坡"]
+          : ["吉隆坡 ⇄ 马六甲", "吉隆坡 ⇄ 新加坡"]
+    : [];
+  const intercityRequestText = selectedOffer
+    ? [
+        `【官网咨询｜${selectedOffer.title[0]}】`,
+        `出发日期：${intercityRequest.date || "待补充"}`,
+        `大概时间：${intercityRequest.time || "待补充"}`,
+        `出发地点：${intercityRequest.pickup || "待补充"}`,
+        `目的地：${intercityRequest.destination || "待补充"}`,
+        `同行人数：${intercityRequest.people} 人`,
+        `行李数量：${intercityRequest.luggage} 件`,
+      ].join("\n")
+    : "";
+  const updateIntercityRequest = <K extends keyof IntercityRequest>(
+    key: K,
+    value: IntercityRequest[K],
+  ) => {
+    setIntercityCopied(false);
+    setIntercityWechatCopied(false);
+    setIntercityRequest((current) => ({ ...current, [key]: value }));
+  };
+  const copyIntercityText = async (text: string, type: "request" | "wechat") => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    if (type === "request") setIntercityCopied(true);
+    else setIntercityWechatCopied(true);
+  };
   const managedAirport = selectedOffer
     ? managed.find(
         (item) =>
@@ -661,11 +940,15 @@ export function ServicesPage({
                       return (
                         <button
                           className="offer-card"
-                          onClick={() =>
-                            hasFullPage
-                              ? (window.location.href = `/services/private-car?city=${place.key}`)
-                              : setSelectedOffer(item)
-                          }
+                          onClick={() => {
+                            if (hasFullPage) {
+                              window.location.href = `/services/private-car?city=${place.key}`;
+                              return;
+                            }
+                            setExperienceIndex(0);
+                            setIntercityRequestOpen(false);
+                            setSelectedOffer(item);
+                          }}
                           key={item.title[0]}
                         >
                           <img src={item.image} alt={item.title[l]} />
@@ -801,10 +1084,109 @@ export function ServicesPage({
           </div>
         </section>
       </main>
-      {selectedOffer && isAirportTransfer && <AirportTransferModal onClose={()=>setSelectedOffer(null)} data={{title:managedAirport?.nameZh||selectedOffer.title[l],subtitle:managedAirport?.subtitleZh||selectedOffer.desc[l],tags:managedAirport?.tags||["私人接送","中文沟通","提前预约"],images:managedAirport?.images?.length?managedAirport.images:[selectedOffer.image],maxGuests:managedAirport?.maxGuests||14,guestNote:managedAirport?.guestNote||"根据同行人数及行李数量匹配合适车型",vehicles:managedAirport?.vehicles?.filter(x=>x.visible).map(x=>({image:x.image,name:x.nameZh,people:x.people,luggage:x.luggage,note:x.description}))||displayedAirportVehicles.map(x=>({image:x.image,name:x.name[l],people:x.people[l],note:x.note[l]})),questions:managedAirport?.inquiryPromptFields?.length?managedAirport.inquiryPromptFields:["接送日期 & 航班号","接送地址（酒店 / 市区）","同行人数","行李数量"]}}/>}
-      {selectedOffer && !isAirportTransfer && (
+      {selectedOffer && isAirportTransfer && <AirportTransferModal onClose={()=>setSelectedOffer(null)} data={{title:managedAirport?.nameZh||selectedOffer.title[l],subtitle:managedAirport?.subtitleZh||selectedOffer.desc[l],tags:managedAirport?.tags||["私人接送","中文沟通","提前预约"],images:managedAirport?.images?.length?managedAirport.images:airportTransferGalleryImages,maxGuests:managedAirport?.maxGuests||14,guestNote:managedAirport?.guestNote||"根据同行人数及行李数量匹配合适车型",vehicles:managedAirport?.vehicles?.filter(x=>x.visible).map(x=>({image:x.image,name:x.nameZh,people:x.people,luggage:x.luggage,note:x.description}))||displayedAirportVehicles.map(x=>({image:x.image,name:x.name[l],people:x.people[l],note:x.note[l]})),questions:managedAirport?.inquiryPromptFields?.length?managedAirport.inquiryPromptFields:["接送日期 & 航班号","接送地址（酒店 / 市区）","同行人数","行李数量"]}}/>}
+      {selectedOffer && experienceDetail && (
         <div
-          className={`service-quick-modal${isAirportTransfer ? " airport-transfer-modal" : ""}`}
+          className="route-modal experience-detail-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={experienceDetail.title[l]}
+          onClick={() => setSelectedOffer(null)}
+        >
+          <div onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              onClick={() => setSelectedOffer(null)}
+              aria-label={lang === "zh" ? "关闭" : "Close"}
+            >
+              ×
+            </button>
+            <div className="modal-gallery experience-gallery">
+              <div className="modal-gallery-main">
+                <img
+                  src={activeExperienceStop?.image || selectedOffer.image}
+                  alt={activeExperienceStop?.title[l] || experienceDetail.title[l]}
+                />
+                <button
+                  type="button"
+                  onClick={() => moveExperienceImage(-1)}
+                  disabled={experienceStops.length <= 1}
+                  aria-label={lang === "zh" ? "上一张图片" : "Previous photo"}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveExperienceImage(1)}
+                  disabled={experienceStops.length <= 1}
+                  aria-label={lang === "zh" ? "下一张图片" : "Next photo"}
+                >
+                  ›
+                </button>
+                <span>
+                  {experienceIndex + 1}/{experienceStops.length}
+                </span>
+              </div>
+              <div className="modal-gallery-thumbs experience-gallery-thumbs">
+                {experienceStops.map((stop, i) => (
+                  <button
+                    type="button"
+                    className={i === experienceIndex ? "active" : ""}
+                    onClick={() => setExperienceIndex(i)}
+                    key={`${stop.title[0]}-${i}`}
+                  >
+                    <img src={stop.image} alt="" />
+                    <span>{stop.title[l]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="modal-route experience-modal-route">
+              <p className="eyebrow">MAD MAX · LOCAL EXPERIENCE</p>
+              <h2>{experienceDetail.title[l]}</h2>
+              <p className="quick-modal-desc experience-route-lead">
+                {experienceDetail.desc[l]}
+              </p>
+              <div className="modal-tags">
+                {experienceDetail.tags.map((tag) => (
+                  <span key={tag[0]}>{tag[l]}</span>
+                ))}
+              </div>
+              <p className="modal-itinerary-title">
+                {experienceDetail.timelineTitle[l]}
+              </p>
+              <div className="timeline experience-timeline">
+                {experienceStops.map((stop, i) => (
+                  <button
+                    type="button"
+                    className={[
+                      i === experienceIndex ? "active" : "",
+                      stop.featured ? "featured" : "",
+                      stop.compact ? "compact" : "",
+                    ].filter(Boolean).join(" ")}
+                    onClick={() => setExperienceIndex(i)}
+                    key={`${stop.title[0]}-${i}`}
+                  >
+                    <time>{String(i + 1).padStart(2, "0")}</time>
+                    <i />
+                    <p>
+                      <b>{stop.title[l]}</b>
+                      <small>{stop.note[l]}</small>
+                    </p>
+                  </button>
+                ))}
+              </div>
+              <p className="modal-flex-note">{experienceDetail.note[l]}</p>
+              <a className="button" href="/#contact">
+                {experienceDetail.cta[l]}
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedOffer && !isAirportTransfer && !experienceDetail && (
+        <div
+          className={`service-quick-modal${isIntercityTransfer ? " intercity-transfer-modal" : ""}`}
           role="dialog"
           aria-modal="true"
           aria-label={selectedOffer.title[l]}
@@ -818,23 +1200,31 @@ export function ServicesPage({
             >
               ×
             </button>
-            <div className="quick-modal-visual">
-              <img src={selectedOffer.image} alt={selectedOffer.title[l]} />
-              {isAirportTransfer && (
-                <p className="airport-visual-eyebrow">MAD MAX · LOCAL SERVICE</p>
+            <div className={`quick-modal-visual${isIntercityTransfer ? " intercity-visual has-gallery" : ""}`}>
+              {isIntercityTransfer ? (
+                <GalleryCarousel
+                  images={intercityGalleryImages}
+                  alt={selectedOffer.title[l]}
+                  compact
+                />
+              ) : (
+                <img src={selectedOffer.image} alt={selectedOffer.title[l]} />
+              )}
+              {isIntercityTransfer && (
+                <p className="intercity-visual-eyebrow">MAD MAX · LOCAL SERVICE</p>
               )}
               <div>
-                <span>{lang === "zh" ? "专属安排" : "PERSONAL SERVICE"}</span>
+                <span>{isIntercityTransfer ? "跨城出行" : lang === "zh" ? "专属安排" : "PERSONAL SERVICE"}</span>
                 <b>
-                  {lang === "zh"
-                    ? "轻松出发，安心抵达"
-                    : "An easy journey, thoughtfully arranged"}
+                  {isIntercityTransfer
+                    ? "一路舒适，安心抵达"
+                    : lang === "zh"
+                      ? "轻松出发，安心抵达"
+                      : "An easy journey, thoughtfully arranged"}
                 </b>
-                {isAirportTransfer && (
+                {isIntercityTransfer && (
                   <small>
-                    {lang === "zh"
-                      ? "专业司机 · 准时接送 · 舒适出行"
-                      : "Professional drivers · Punctual pickup · Easy travel"}
+                    {intercityRoutes.join(" · ")}
                   </small>
                 )}
               </div>
@@ -842,51 +1232,200 @@ export function ServicesPage({
             <section>
               <p className="eyebrow">MAD MAX · LOCAL SERVICE</p>
               <h2>{selectedOffer.title[l]}</h2>
-              <p className="quick-modal-desc">{selectedOffer.desc[l]}</p>
+              <p className={isIntercityTransfer ? "quick-modal-desc intercity-route-lead" : "quick-modal-desc"}>
+                {isIntercityTransfer ? selectedOffer.desc[0].replace("↔", "⇄") : selectedOffer.desc[l]}
+              </p>
               <div className="quick-modal-tags">
-                {selectedOffer.tags.map((tag) => (
+                {(isIntercityTransfer
+                  ? [["私人包车", "Private car"], ["点对点接送", "Door-to-door"], ["长途出行", "Long-distance"]] as [[string, string], [string, string], [string, string]]
+                  : selectedOffer.tags
+                ).map((tag) => (
                   <span key={tag[0]}>✓ {tag[l]}</span>
                 ))}
               </div>
-              <div className="quick-modal-flow">
-                <div>
-                  <b>01</b>
-                  <span>
-                    {lang === "zh" ? "告诉我们行程" : "Share your plan"}
-                  </span>
+              {isIntercityTransfer ? (
+                <div className="intercity-route-box">
+                  <h3>常见接送路线</h3>
+                  <div>
+                    {intercityRoutes.map((route) => (
+                      <span key={route}>{route}</span>
+                    ))}
+                  </div>
                 </div>
-                <i />
-                <div>
-                  <b>02</b>
-                  <span>
-                    {lang === "zh" ? "确认合适安排" : "Confirm details"}
-                  </span>
+              ) : (
+                <div className="quick-modal-flow">
+                  <div>
+                    <b>01</b>
+                    <span>
+                      {lang === "zh" ? "告诉我们行程" : "Share your plan"}
+                    </span>
+                  </div>
+                  <i />
+                  <div>
+                    <b>02</b>
+                    <span>
+                      {lang === "zh" ? "确认合适安排" : "Confirm details"}
+                    </span>
+                  </div>
+                  <i />
+                  <div>
+                    <b>03</b>
+                    <span>{lang === "zh" ? "轻松出发" : "Travel with ease"}</span>
+                  </div>
                 </div>
-                <i />
-                <div>
-                  <b>03</b>
-                  <span>{lang === "zh" ? "轻松出发" : "Travel with ease"}</span>
-                </div>
-              </div>
-              <div className="quick-modal-info">
+              )}
+              <div className={`quick-modal-info${isIntercityTransfer ? " intercity-modal-info" : ""}`}>
                 <h3>
                   {lang === "zh" ? "咨询时告诉我们" : "What to share with us"}
                 </h3>
                 <ul>
-                  {modalQuestions.map((question) => (
+                  {(isIntercityTransfer
+                    ? ["日期 & 时间", "出发地点", "目的地", "人数 & 行李"]
+                    : modalQuestions
+                  ).map((question) => (
                     <li key={question}>{question}</li>
                   ))}
                 </ul>
               </div>
               <p className="quick-modal-note">
-                {lang === "zh"
-                  ? "无需立即预订，我们会先为您确认安排。"
-                  : "No booking commitment—we will confirm the arrangement first."}
+                {isIntercityTransfer
+                  ? "先确认路线与车型，无需立即预订。"
+                  : lang === "zh"
+                    ? "无需立即预订，我们会先为您确认安排。"
+                    : "No booking commitment—we will confirm the arrangement first."}
               </p>
-              <a className="button" href="/#contact">
-                {lang === "zh" ? "咨询这项服务" : "Ask about this service"}
-              </a>
+              {isIntercityTransfer ? (
+                <button
+                  className="button"
+                  type="button"
+                  onClick={() => {
+                    setIntercityRequestOpen(true);
+                    setIntercityGenerated(false);
+                    setIntercityCopied(false);
+                    setIntercityWechatCopied(false);
+                  }}
+                >
+                  告诉我你的行程 →
+                </button>
+              ) : (
+                <a className="button" href="/#contact">
+                  {lang === "zh" ? "咨询这项服务" : "Ask about this service"}
+                </a>
+              )}
             </section>
+            {isIntercityTransfer && intercityRequestOpen && (
+              <div
+                className="airport-request-layer"
+                role="dialog"
+                aria-modal="true"
+                aria-label="填写跨城接送需求"
+                onClick={() => setIntercityRequestOpen(false)}
+              >
+                <div className="airport-request-card" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    className="airport-request-close"
+                    type="button"
+                    onClick={() => setIntercityRequestOpen(false)}
+                    aria-label="关闭需求卡"
+                  >
+                    ×
+                  </button>
+                  {intercityGenerated ? (
+                    <div className="airport-request-result">
+                      <p className="eyebrow">REQUEST READY</p>
+                      <h3>跨城接送需求已整理好</h3>
+                      <p>复制后添加微信发送给我们，我们会根据路线、人数和行李确认车型和价格。</p>
+                      <pre>{intercityRequestText}</pre>
+                      <div className="airport-request-actions">
+                        <button type="button" onClick={() => copyIntercityText(intercityRequestText, "request")}>
+                          {intercityCopied ? "已复制" : "复制需求"}
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => {
+                            setIntercityCopied(false);
+                            setIntercityWechatCopied(false);
+                            setIntercityGenerated(false);
+                          }}
+                        >
+                          返回修改
+                        </button>
+                        <button type="button" className="primary" onClick={() => copyIntercityText(WECHAT_ID, "wechat")}>
+                          {intercityWechatCopied ? "微信号已复制" : "添加微信"}
+                        </button>
+                      </div>
+                      <div className="airport-wechat">
+                        <div className="airport-wechat-qr">
+                          <b>微信</b>
+                          <small>二维码</small>
+                        </div>
+                        <div>
+                          <span>微信号</span>
+                          <b>{WECHAT_ID}</b>
+                          <small>复制需求后扫码或搜索微信号添加</small>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <form
+                      className="airport-request-form"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        setIntercityGenerated(true);
+                        setIntercityCopied(false);
+                      }}
+                    >
+                      <p className="eyebrow">INTERCITY REQUEST</p>
+                      <h3>告诉我你的跨城行程</h3>
+                      <p>填好后自动整理需求 → 添加微信发送 → 更快确认路线、车型和价格。</p>
+                      <div className="airport-request-grid">
+                        <label>
+                          <span>出发日期</span>
+                          <input type="date" value={intercityRequest.date} onChange={(event) => updateIntercityRequest("date", event.target.value)} />
+                        </label>
+                        <label>
+                          <span>大概时间</span>
+                          <input type="time" value={intercityRequest.time} onChange={(event) => updateIntercityRequest("time", event.target.value)} />
+                        </label>
+                      </div>
+                      <label>
+                        <span>出发地点</span>
+                        <input value={intercityRequest.pickup} placeholder="酒店 / 地址 / 城市" onChange={(event) => updateIntercityRequest("pickup", event.target.value)} />
+                      </label>
+                      <label>
+                        <span>目的地</span>
+                        <input value={intercityRequest.destination} placeholder="例如 马六甲 / 新加坡酒店" onChange={(event) => updateIntercityRequest("destination", event.target.value)} />
+                      </label>
+                      <div className="airport-stepper-grid">
+                        <div>
+                          <span>人数</span>
+                          <div className="airport-stepper">
+                            <button type="button" onClick={() => updateIntercityRequest("people", Math.max(1, intercityRequest.people - 1))}>−</button>
+                            <b>{intercityRequest.people} 人</b>
+                            <button type="button" onClick={() => updateIntercityRequest("people", intercityRequest.people + 1)}>+</button>
+                          </div>
+                        </div>
+                        <div>
+                          <span>行李</span>
+                          <div className="airport-stepper">
+                            <button type="button" onClick={() => updateIntercityRequest("luggage", Math.max(0, intercityRequest.luggage - 1))}>−</button>
+                            <b>{intercityRequest.luggage} 件</b>
+                            <button type="button" onClick={() => updateIntercityRequest("luggage", intercityRequest.luggage + 1)}>+</button>
+                          </div>
+                        </div>
+                      </div>
+                      <button className="button airport-generate-request" type="submit">
+                        生成跨城接送需求 →
+                      </button>
+                      <small className="airport-request-next">
+                        下一步：添加微信并发送需求
+                      </small>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

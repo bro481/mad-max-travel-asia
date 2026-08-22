@@ -9,12 +9,17 @@ export default function ServiceList() {
     [activeType, setActiveType] = useState("全部");
   const load = () =>
     fetch("/api/admin/service-items")
-      .then((r) => {
+      .then(async (r) => {
         if (r.status === 401) {
           location.href = "/signin-with-chatgpt?return_to=%2Fadmin%2Fservices";
           return [];
         }
-        return r.json();
+        if (!r.ok) {
+          setNotice("服务数据暂时没有返回，请刷新重试。");
+          return [];
+        }
+        const text = await r.text();
+        return text ? JSON.parse(text) : [];
       })
       .then(setItems);
   useEffect(() => {
@@ -40,7 +45,12 @@ export default function ServiceList() {
         slug: x.slug + "-copy",
       }),
     });
-    const c = await r.json();
+    const text = await r.text();
+    const c = text ? JSON.parse(text) : null;
+    if (!c?.id) {
+      setNotice("复制失败，请刷新后重试。");
+      return;
+    }
     await fetch(`/api/admin/service-items/${c.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
