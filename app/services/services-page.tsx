@@ -1,7 +1,12 @@
 "use client";
 import { useState } from "react";
+import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
-import type { ServiceItem } from "../../db/service-items";
+import type {
+  ServiceItem,
+  ServiceRouteNode,
+  ServiceRoutePlan,
+} from "../../db/service-items";
 import { GalleryCarousel } from "../components/gallery-carousel";
 import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
@@ -12,6 +17,8 @@ type Offer = {
   tags: [[string, string], [string, string]];
   image: string;
   detail: string;
+  serviceId?: number;
+  serviceSlug?: string;
 };
 type AirportVehicle = {
   name: [string, string];
@@ -46,6 +53,20 @@ type ExperienceDetail = {
   includes: [string, string][];
   cta: [string, string];
   stops: ExperienceStop[];
+};
+type PrivateRouteStop = {
+  title: [string, string];
+  note: [string, string];
+  image: string;
+  time?: string;
+};
+type PrivateRoute = {
+  title: [string, string];
+  desc: [string, string];
+  duration: [string, string];
+  tags: Array<[string, string]>;
+  image: string;
+  stops: PrivateRouteStop[];
 };
 type Group = { name: [string, string]; icon: string; items: Offer[] };
 type Destination = {
@@ -246,6 +267,65 @@ const getExperienceDetail = (offer: Offer): ExperienceDetail => {
           { title: ["自由体验", "Free time"], note: ["按当天安排体验与停留", "Enjoy the experience at a comfortable pace"], image: img("photo-1500530855697-b586d89ba3ee"), featured: true },
           { title: ["返回酒店", "Return to hotel"], note: ["送回酒店", "Transfer back to your hotel"], image: img("photo-1549317661-bd32c8ce0db2"), compact: true },
         ],
+  };
+};
+const textPair = (
+  zh?: string,
+  en?: string,
+  fallback = "",
+): [string, string] => [zh || fallback, en || zh || fallback];
+const routePlanTitle = (route: ServiceRoutePlan, fallback: string) =>
+  route.nameZh || route.name || fallback;
+const routePlanDescription = (route: ServiceRoutePlan, fallback: string) =>
+  route.descriptionZh || route.description || fallback;
+const routePlanTags = (route: ServiceRoutePlan) => {
+  const tags = route.tags?.length
+    ? route.tags
+    : [route.duration, route.tag].filter(Boolean);
+  return tags.filter(Boolean).slice(0, 3).map((tag) => [tag, tag] as [string, string]);
+};
+const routePlanNodes = (
+  route: ServiceRoutePlan,
+  service: ServiceItem,
+  fallbackImage: string,
+): PrivateRouteStop[] => {
+  const nodes = route.nodes?.length
+    ? route.nodes
+    : (route.stops || "")
+        .split(/[·、,，]/)
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .map((name) => ({ nameZh: name } as ServiceRouteNode));
+  return nodes.map((node, index) => ({
+    title: textPair(node.nameZh || node.title, node.nameEn, `路线节点 ${index + 1}`),
+    note: textPair(
+      node.descriptionZh || node.description,
+      node.descriptionEn,
+      index === 0 ? "从酒店或约定地点出发" : "可根据当天时间灵活调整停留",
+    ),
+    time: node.stayTime || node.time || "",
+    image:
+      node.image ||
+      route.image ||
+      service.images[index % Math.max(service.images.length, 1)] ||
+      fallbackImage,
+  }));
+};
+const routePlanToPrivateRoute = (
+  route: ServiceRoutePlan,
+  service: ServiceItem,
+  fallbackImage: string,
+  index: number,
+): PrivateRoute => {
+  const titleZh = routePlanTitle(route, `${service.city}推荐路线 ${index + 1}`);
+  const descZh = routePlanDescription(route, "路线仅作参考，可根据您的时间与兴趣灵活调整。");
+  return {
+    title: textPair(titleZh, route.nameEn, titleZh),
+    desc: textPair(descZh, route.descriptionEn, descZh),
+    duration: textPair(route.duration || "时间灵活", route.duration || "Flexible duration"),
+    tags: routePlanTags(route),
+    image: route.image || service.images[0] || fallbackImage,
+    stops: routePlanNodes(route, service, fallbackImage),
   };
 };
 const airportVehicles: AirportVehicle[] = [
@@ -709,14 +789,18 @@ function Logo() {
 export function ServicesPage({
   services,
   managed,
+  destinationSettings = [],
 }: {
   services: ServiceCategory[];
   managed: ServiceItem[];
+  destinationSettings?: DestinationRecord[];
 }) {
   const [lang, setLang] = useState<Lang>("zh"),
     [menu, setMenu] = useState(false),
     [destination, setDestination] = useState("all"),
     [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedPrivateRoute, setSelectedPrivateRoute] =
+    useState<PrivateRoute | null>(null);
   const [experienceIndex, setExperienceIndex] = useState(0);
   const [intercityRequestOpen, setIntercityRequestOpen] = useState(false);
   const [intercityGenerated, setIntercityGenerated] = useState(false);
@@ -730,12 +814,76 @@ export function ServicesPage({
     people: 2,
     luggage: 2,
   });
+  const serviceDestinations = destinationSettings
+    .filter((item) => item.useForServices && item.status !== "hidden")
+    .filter((item) => !item.onlyShowWithContent || destinations.some((destination) => destination.name[0] === item.nameZh) || managed.some((service) => (service.destinationId === item.id || service.city === item.nameZh) && service.status === "published"))
+    .sort((a, b) => a.serviceSort - b.serviceSort || a.id - b.id);
+  const managedPublished = managed.filter((service) => service.status === "published");
+  const destinationNameSet = new Set(serviceDestinations.map((item) => item.nameZh));
+  const staticVisibleDestinations = (serviceDestinations.length
+    ? [
+        ...serviceDestinations
+          .map((setting) => destinations.find((destination) => destination.name[0] === setting.nameZh))
+          .filter((item): item is Destination => Boolean(item)),
+        ...destinations.filter((destination) => !destinationNameSet.has(destination.name[0])),
+      ]
+    : destinations
+  ).filter((item) => !serviceDestinations.length || destinationNameSet.has(item.name[0]) || !destinationSettings.length);
+  const enabledCategories = services
+    .filter((category) => category.visible !== false)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+  const dynamicDestinationSettings = serviceDestinations.filter((setting) =>
+    managedPublished.some((service) => service.destinationId === setting.id || service.city === setting.nameZh) || !setting.onlyShowWithContent,
+  );
+  const offerFromService = (service: ServiceItem, category?: ServiceCategory): Offer => {
+    const fallbackTag = category?.nameZh || service.category || "当地服务";
+    const tags = (service.tags.length ? service.tags : [fallbackTag, service.city]).slice(0, 2).map((tag) => [tag, tag] as [string, string]);
+    while (tags.length < 2) tags.push([service.city, service.city]);
+    return {
+      title: [service.nameZh, service.nameEn || service.nameZh],
+      desc: [service.subtitleZh || service.introZh || "告诉我们日期和人数即可确认安排。", service.subtitleEn || service.subtitleZh || "Share your date and group size to confirm arrangements."],
+      tags: tags as [[string, string], [string, string]],
+      image: service.images[0] || img("photo-1549317661-bd32c8ce0db2"),
+      serviceId: service.id,
+      serviceSlug: service.slug,
+      detail:
+        service.templateType === "transfer" || service.type === "交通接送"
+          ? "airport-transfer"
+          : service.templateType === "route" || service.type === "私人包车"
+            ? "private-car"
+            : /海岛|Island/i.test(`${category?.nameZh || ""} ${category?.nameEn || ""} ${service.type}`)
+              ? "island"
+              : "nature",
+    };
+  };
+  const dynamicVisibleDestinations: Destination[] = dynamicDestinationSettings
+    .map((setting) => {
+      const staticItem = destinations.find((item) => item.name[0] === setting.nameZh);
+      const groups = enabledCategories
+        .map((category) => {
+          const items = managedPublished
+            .filter((service) => (service.destinationId === setting.id || service.city === setting.nameZh) && service.categoryId === category.id)
+            .sort((a, b) => (a.displayOrder || 99) - (b.displayOrder || 99) || a.id - b.id)
+            .map((service) => offerFromService(service, category));
+          return items.length ? { name: [category.nameZh, category.nameEn] as [string, string], icon: category.icon || "✦", items } : null;
+        })
+        .filter((group): group is Group => Boolean(group));
+      return {
+        key: setting.slug || staticItem?.key || setting.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        name: [setting.nameZh, setting.nameEn] as [string, string],
+        intro: [setting.introZh || staticItem?.intro[0] || "", setting.introEn || staticItem?.intro[1] || setting.introZh || ""] as [string, string],
+        groups,
+      };
+    })
+    .filter((item) => item.groups.length || !destinationSettings.find((setting) => setting.nameZh === item.name[0])?.onlyShowWithContent);
+  const usingManagedLayout = managedPublished.length > 0 && enabledCategories.length > 0;
+  const visibleDestinations = usingManagedLayout ? dynamicVisibleDestinations : staticVisibleDestinations;
   const t = copy[lang],
     l = lang === "zh" ? 0 : 1,
     shown =
       destination === "all"
-        ? destinations
-        : destinations.filter((x) => x.key === destination);
+        ? visibleDestinations
+        : visibleDestinations.filter((x) => x.key === destination);
   const modalQuestions = selectedOffer
     ? selectedOffer.detail === "private-car"
       ? lang === "zh"
@@ -761,9 +909,32 @@ export function ServicesPage({
             "Places and experiences you like",
           ]
     : [];
+  const selectedManagedService = selectedOffer?.serviceId
+    ? managed.find((item) => item.id === selectedOffer.serviceId)
+    : undefined;
+  const selectedPrivateCar =
+    selectedManagedService &&
+    (selectedManagedService.templateType === "route" ||
+      selectedManagedService.type === "私人包车")
+      ? selectedManagedService
+      : undefined;
+  const privateCarRoutes = selectedPrivateCar
+    ? selectedPrivateCar.routes
+        .filter((route) => route.visible !== false)
+        .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99))
+        .map((route, index) =>
+          routePlanToPrivateRoute(
+            route,
+            selectedPrivateCar,
+            selectedOffer?.image || img("photo-1550355291-bbee04a92027"),
+            index,
+          ),
+        )
+    : [];
   const isAirportTransfer = selectedOffer?.detail === "airport-transfer";
   const isIntercityTransfer =
     selectedOffer?.detail === "private-car" &&
+    !selectedPrivateCar &&
     /跨城|跨境|接送|⇄|↔/.test(`${selectedOffer.title[0]} ${selectedOffer.desc[0]}`);
   const isExperienceOffer =
     selectedOffer?.detail === "island" || selectedOffer?.detail === "nature";
@@ -829,10 +1000,13 @@ export function ServicesPage({
   const displayedAirportVehicles: AirportVehicle[] =
     managedAirport?.routes.length
       ? managedAirport.routes.slice(0, 4).map((vehicle) => ({
-          name: [vehicle.name, vehicle.name],
-          people: [vehicle.duration, vehicle.duration],
-          note: [vehicle.description || vehicle.tag, vehicle.description || vehicle.tag],
-          image: vehicle.image,
+          name: [vehicle.name || vehicle.nameZh || "车型", vehicle.name || vehicle.nameZh || "Vehicle"],
+          people: [vehicle.duration || "按人数匹配", vehicle.duration || "Matched to group size"],
+          note: [
+            vehicle.description || vehicle.descriptionZh || vehicle.tag || "根据人数与行李安排",
+            vehicle.descriptionEn || vehicle.description || vehicle.descriptionZh || vehicle.tag || "Matched to your group and luggage",
+          ],
+          image: vehicle.image || airportTransferGalleryImages[0],
         }))
       : airportVehicles;
   return (
@@ -905,7 +1079,7 @@ export function ServicesPage({
             >
               <b>{t.all}</b>
             </button>
-            {destinations.map((d) => (
+            {visibleDestinations.map((d) => (
               <button
                 className={destination === d.key ? "active" : ""}
                 onClick={() => setDestination(d.key)}
@@ -941,12 +1115,13 @@ export function ServicesPage({
                         <button
                           className="offer-card"
                           onClick={() => {
-                            if (hasFullPage) {
+                            if (hasFullPage && !item.serviceId) {
                               window.location.href = `/services/private-car?city=${place.key}`;
                               return;
                             }
                             setExperienceIndex(0);
                             setIntercityRequestOpen(false);
+                            setSelectedPrivateRoute(null);
                             setSelectedOffer(item);
                           }}
                           key={item.title[0]}
@@ -970,7 +1145,7 @@ export function ServicesPage({
             </div>
           ))}
         </section>
-        {managed.length > 0 && (
+        {!usingManagedLayout && managed.length > 0 && (
           <section className="managed-services">
             <div className="section-heading">
               <p className="eyebrow">MAD MAX · CURATED</p>
@@ -1184,7 +1359,205 @@ export function ServicesPage({
           </div>
         </div>
       )}
-      {selectedOffer && !isAirportTransfer && !experienceDetail && (
+      {selectedOffer && selectedPrivateCar && (
+        <div
+          className="service-quick-modal private-car-managed-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedOffer.title[l]}
+          onClick={() => {
+            setSelectedOffer(null);
+            setSelectedPrivateRoute(null);
+          }}
+        >
+          <div onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              onClick={() => {
+                setSelectedOffer(null);
+                setSelectedPrivateRoute(null);
+              }}
+              aria-label={lang === "zh" ? "关闭" : "Close"}
+            >
+              ×
+            </button>
+            <div className="quick-modal-visual private-car-visual has-gallery">
+              <GalleryCarousel
+                images={
+                  selectedPrivateCar.images.length
+                    ? selectedPrivateCar.images
+                    : [selectedOffer.image]
+                }
+                alt={selectedOffer.title[l]}
+                compact
+              />
+              <p className="intercity-visual-eyebrow">MAD MAX · PRIVATE CAR</p>
+              <div>
+                <span>{lang === "zh" ? "专属包车" : "PRIVATE CAR"}</span>
+                <b>
+                  {lang === "zh"
+                    ? "路线可选，也可自由安排"
+                    : "Choose a route, or shape your own"}
+                </b>
+                <small>
+                  {selectedPrivateCar.city} ·{" "}
+                  {selectedPrivateCar.category || "交通服务"}
+                </small>
+              </div>
+            </div>
+            <section>
+              <p className="eyebrow">MAD MAX · LOCAL SERVICE</p>
+              <h2>{selectedOffer.title[l]}</h2>
+              <p className="quick-modal-desc intercity-route-lead">
+                {selectedOffer.desc[l]}
+              </p>
+              <div className="quick-modal-tags">
+                {selectedOffer.tags.map((tag) => (
+                  <span key={tag[0]}>✓ {tag[l]}</span>
+                ))}
+              </div>
+              <div className="private-route-section">
+                <h3>
+                  {lang === "zh"
+                    ? selectedPrivateCar.routeSectionTitleZh || "热门包车方案"
+                    : selectedPrivateCar.routeSectionTitleEn ||
+                      selectedPrivateCar.routeSectionTitleZh ||
+                      "Popular private car routes"}
+                </h3>
+                <p>
+                  {lang === "zh"
+                    ? selectedPrivateCar.routeSectionIntroZh ||
+                      "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"
+                    : selectedPrivateCar.routeSectionIntroEn ||
+                      selectedPrivateCar.routeSectionIntroZh ||
+                      "Routes are references only and can be adjusted around your time and interests."}
+                </p>
+                <div className="private-route-grid">
+                  {privateCarRoutes.length ? (
+                    privateCarRoutes.map((route, index) => (
+                      <article key={`${route.title[0]}-${index}`}>
+                        <img src={route.image} alt="" />
+                        <div>
+                          <div>
+                            <span>{route.duration[l]}</span>
+                            {route.tags[0] && <span>{route.tags[0][l]}</span>}
+                          </div>
+                          <h4>{route.title[l]}</h4>
+                          <p>{route.desc[l]}</p>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPrivateRoute(route)}
+                          >
+                            {lang === "zh" ? "查看路线 →" : "View route →"}
+                          </button>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="private-route-empty">
+                      {lang === "zh"
+                        ? "后台还没有添加路线方案。"
+                        : "No route plans have been added yet."}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="quick-modal-info intercity-modal-info">
+                <h3>
+                  {lang === "zh" ? "咨询时告诉我们" : "What to share with us"}
+                </h3>
+                <ul>
+                  {(
+                    selectedPrivateCar.inquiryPromptFields.length
+                      ? selectedPrivateCar.inquiryPromptFields
+                      : ["日期 & 时间", "酒店 / 出发地点", "同行人数", "希望路线"]
+                  ).map((question) => (
+                    <li key={question}>{question}</li>
+                  ))}
+                </ul>
+              </div>
+              <p className="quick-modal-note">
+                {lang === "zh"
+                  ? "路线只是参考，我们会先确认当天时间、车型和价格。"
+                  : "Routes are references; we will confirm timing, vehicle and price first."}
+              </p>
+              <a className="button" href="/#contact">
+                {lang === "zh" ? "咨询这项服务" : "Ask about this service"}
+              </a>
+            </section>
+          </div>
+        </div>
+      )}
+      {selectedPrivateRoute && (
+        <div
+          className="route-modal private-route-detail-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedPrivateRoute.title[l]}
+          onClick={() => setSelectedPrivateRoute(null)}
+        >
+          <div onClick={(event) => event.stopPropagation()}>
+            <button
+              className="modal-close"
+              onClick={() => setSelectedPrivateRoute(null)}
+              aria-label={lang === "zh" ? "关闭" : "Close"}
+            >
+              ×
+            </button>
+            <div className="modal-gallery experience-gallery">
+              <GalleryCarousel
+                images={[
+                  selectedPrivateRoute.image,
+                  ...selectedPrivateRoute.stops.map((stop) => stop.image),
+                ]}
+                alt={selectedPrivateRoute.title[l]}
+                compact
+              />
+            </div>
+            <div className="modal-route experience-modal-route">
+              <p className="eyebrow">MAD MAX · ROUTE PLAN</p>
+              <h2>{selectedPrivateRoute.title[l]}</h2>
+              <p className="quick-modal-desc experience-route-lead">
+                {selectedPrivateRoute.desc[l]}
+              </p>
+              <div className="modal-tags">
+                <span>{selectedPrivateRoute.duration[l]}</span>
+                {selectedPrivateRoute.tags.map((tag) => (
+                  <span key={tag[0]}>{tag[l]}</span>
+                ))}
+              </div>
+              <p className="modal-itinerary-title">
+                {lang === "zh" ? "路线节点" : "Route stops"}
+              </p>
+              <div className="timeline experience-timeline private-route-timeline">
+                {selectedPrivateRoute.stops.map((stop, i) => (
+                  <div key={`${stop.title[0]}-${i}`}>
+                    <time>{String(i + 1).padStart(2, "0")}</time>
+                    <i />
+                    <p>
+                      <b>{stop.title[l]}</b>
+                      <small>
+                        {stop.note[l]}
+                        {stop.time ? ` · ${stop.time}` : ""}
+                      </small>
+                    </p>
+                    <img src={stop.image} alt="" />
+                  </div>
+                ))}
+              </div>
+              <p className="modal-flex-note">
+                {lang === "zh"
+                  ? "这条路线可作为参考，也可以根据兴趣、天气和时间现场调整。"
+                  : "This route is a reference and can be adjusted around your interests, weather and time."}
+              </p>
+              <a className="button" href="/#contact">
+                {lang === "zh" ? "咨询这条路线" : "Ask about this route"}
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedOffer && !isAirportTransfer && !experienceDetail && !selectedPrivateCar && (
         <div
           className={`service-quick-modal${isIntercityTransfer ? " intercity-transfer-modal" : ""}`}
           role="dialog"

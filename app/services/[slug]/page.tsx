@@ -118,7 +118,9 @@ export default async function Page({
   const { slug } = await params;
   const { city } = await searchParams;
   const service =
-    process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.VERCEL === "1"
+    process.env.NODE_ENV === "development" ||
+    process.env.LOCAL_BROWSER_PREVIEW === "1" ||
+    process.env.VERCEL === "1"
       ? staticServices.find((item) => item.slug === slug)
       : await import("../../../db/services").then(({ getService }) =>
           getService(slug),

@@ -1940,6 +1940,45 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 @media(hover:none){.intercity-transfer-modal .quick-modal-visual .gallery-arrow{opacity:1}}
 @media(max-width:700px){.intercity-transfer-modal>div{display:block}.intercity-transfer-modal .quick-modal-visual{height:260px}.intercity-transfer-modal section{padding:26px 21px 24px}.intercity-modal-info ul{grid-template-columns:1fr}.intercity-visual-eyebrow{top:20px;left:22px}.intercity-transfer-modal .quick-modal-visual>div:not(.gallery-carousel){left:22px;right:22px;bottom:20px}}
 
+/* Managed private-car service modal: service owns route plans */
+.private-car-managed-modal>div{width:min(1080px,96vw);grid-template-columns:43% 57%;max-height:92vh}
+.private-car-managed-modal .private-car-visual{min-height:700px;background:#172027}
+.private-car-managed-modal .private-car-visual>.gallery-carousel{position:absolute;inset:0;width:100%;height:100%}
+.private-car-managed-modal .private-car-visual .gallery-stage{height:100%}
+.private-car-managed-modal .private-car-visual .gallery-stage>img.gallery-backdrop{display:none}
+.private-car-managed-modal .private-car-visual .gallery-stage>img:not(.gallery-backdrop){width:100%;height:100%;object-fit:cover;filter:saturate(.92) contrast(.95)}
+.private-car-managed-modal .private-car-visual:after{inset:0;background:linear-gradient(180deg,rgba(16,22,26,.08) 0%,rgba(16,22,26,0) 42%,rgba(16,22,26,.76) 100%)}
+.private-car-managed-modal .private-car-visual>div:not(.gallery-carousel){z-index:6;left:34px;right:34px;bottom:34px}
+.private-car-managed-modal .private-car-visual small{display:block;margin-top:9px;color:rgba(255,255,255,.84);font-size:10px;letter-spacing:.05em}
+.private-car-managed-modal .private-car-visual .gallery-thumbnails,.private-car-managed-modal .private-car-visual .gallery-dots{display:none}
+.private-car-managed-modal .private-car-visual .gallery-count{right:17px;bottom:17px;background:rgba(17,22,25,.58)}
+.private-car-managed-modal .private-car-visual .gallery-arrow{opacity:0;transition:opacity .22s ease,background .22s ease,transform .22s ease}
+.private-car-managed-modal .private-car-visual:hover .gallery-arrow{opacity:1}
+.private-car-managed-modal .private-car-visual .gallery-arrow:hover{background:rgba(20,25,28,.72);transform:translateY(-50%) scale(1.04)}
+.private-car-managed-modal section{padding:42px 42px 34px}
+.private-route-section{margin:0 0 18px;padding:20px 0 6px;border-top:1px solid #eee4d8;border-bottom:1px solid #eee4d8}
+.private-route-section h3{margin:0 0 7px;font-size:17px}
+.private-route-section>p{margin:0 0 16px;color:#68747d;font-size:11px;line-height:1.7}
+.private-route-grid{display:grid;gap:10px}
+.private-route-card{}
+.private-route-grid article{display:grid;grid-template-columns:128px 1fr;gap:13px;padding:10px;border:1px solid #eadfd4;border-radius:15px;background:#fffaf5}
+.private-route-grid img{display:block;width:100%;height:96px;border-radius:11px;object-fit:cover}
+.private-route-grid article>div>div{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.private-route-grid span{padding:5px 8px;border-radius:999px;background:#f4eadf;color:#7d5c3d;font-size:8px;font-weight:800}
+.private-route-grid h4{margin:0 0 5px;font:600 18px var(--serif)}
+.private-route-grid p{margin:0;color:#66717a;font-size:10px;line-height:1.5}
+.private-route-grid button{margin-top:8px;padding:0;border:0;background:transparent;color:#b4763c;font-weight:800;font-size:10px;cursor:pointer}
+.private-route-empty{padding:18px;border:1px dashed #e6d7c7;border-radius:13px;background:#fff;color:#7a858d}
+.private-route-detail-modal .modal-gallery{min-height:560px}
+.private-route-detail-modal .modal-gallery>.gallery-carousel{height:100%}
+.private-route-detail-modal .modal-gallery .gallery-stage{height:100%}
+.private-route-detail-modal .modal-gallery .gallery-stage>img{border-radius:14px}
+.private-route-timeline>div{grid-template-columns:50px 10px 1fr 66px}
+.private-route-timeline img{width:66px;height:52px;object-fit:cover;border-radius:8px}
+@media(hover:none){.private-car-managed-modal .private-car-visual .gallery-arrow{opacity:1}}
+@media(max-width:950px){.private-car-managed-modal>div{grid-template-columns:1fr;max-width:720px;overflow-y:auto}.private-car-managed-modal .private-car-visual{height:300px;min-height:0}.private-car-managed-modal section{overflow:visible}.private-route-detail-modal .modal-gallery{min-height:330px}}
+@media(max-width:700px){.private-car-managed-modal{padding:0;align-items:end}.private-car-managed-modal>div{display:block;width:100%;max-height:94vh;border-radius:22px 22px 0 0}.private-car-managed-modal .private-car-visual{height:255px}.private-car-managed-modal section{padding:26px 21px 24px}.private-route-grid article{grid-template-columns:96px 1fr}.private-route-grid img{height:84px}.private-route-grid h4{font-size:16px}.private-route-detail-modal .modal-gallery{min-height:250px}.private-route-timeline>div{grid-template-columns:44px 9px 1fr 54px}.private-route-timeline img{width:54px;height:43px}}
+
 /* Airport transfer modal: compact, data-driven vehicle matching */
 .airport-transfer-modal>div{grid-template-columns:43% 57%;width:min(1180px,96vw);max-height:92vh}
 .airport-transfer-modal .quick-modal-visual{min-height:720px}
@@ -2004,12 +2043,19 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .experience-gallery-thumbs button{flex:1 0 82px;min-width:82px}
 .experience-modal-route{display:flex;flex-direction:column}
 .experience-route-lead{margin:0 0 13px;color:#66717a;font-size:12px;line-height:1.65}
-.experience-modal-route .modal-tags{margin-bottom:22px}
-.experience-timeline{gap:3px}
+.experience-modal-route .modal-tags{margin-bottom:18px}
+.experience-modal-route .modal-itinerary-title{margin-bottom:10px}
+.experience-timeline{gap:1px}
+.experience-timeline>button{min-height:54px;padding-top:4px;padding-bottom:4px}
 .experience-timeline>button.featured b{font-size:13px}
 .experience-timeline>button.featured small{color:#5f6b74}
-.experience-includes{margin-bottom:17px;padding-top:2px}
-.experience-includes span{color:#35414a;font-weight:700}
+.experience-timeline>button.compact{align-items:center;min-height:34px}
+.experience-timeline>button.compact i{margin-top:2px}
+.experience-timeline>button.compact i:after{height:24px}
+.experience-timeline>button.compact p{display:flex;align-items:baseline;gap:8px}
+.experience-timeline>button.compact small{margin-top:0;font-size:9px;line-height:1.2}
+.experience-modal-route .modal-flex-note{margin:10px 0 13px;padding:10px 13px}
+.experience-modal-route>.button{margin-top:auto}
 @media(max-width:950px){.car-hero{height:318px}.route-section{padding-top:38px}.modal-gallery>.modal-gallery-thumbs{grid-template-columns:repeat(auto-fit,minmax(78px,1fr))}}
 @media(max-width:700px){.car-hero{height:305px}.route-section{padding-top:34px}.route-section .detail-heading{margin-bottom:18px}.route-card small{font-size:10px;line-height:1.55}.modal-gallery-thumbs button{height:54px}.modal-gallery-thumbs button span{font-size:8px;left:7px;right:7px;bottom:5px}.modal-itinerary-title{font-size:9px;margin-bottom:12px}.timeline>button{grid-template-columns:36px 10px 1fr;gap:9px;min-height:60px}.timeline>button i:after{height:43px}.modal-flex-note,.modal-best-for{font-size:9px}}
 

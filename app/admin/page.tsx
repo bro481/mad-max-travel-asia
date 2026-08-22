@@ -10,9 +10,18 @@ export default function AdminHome() {
     deals: 0,
   });
   useEffect(() => {
+    const readJson = async (response: Response) => {
+      if (response.status === 401) {
+        location.href = "/signin-with-chatgpt?return_to=%2Fadmin";
+        return [];
+      }
+      if (!response.ok) return [];
+      const text = await response.text();
+      return text ? JSON.parse(text) : [];
+    };
     Promise.all([
-      fetch("/api/admin/properties").then((r) => r.json()),
-      fetch("/api/admin/inquiries").then((r) => r.json()),
+      fetch("/api/admin/properties").then(readJson),
+      fetch("/api/admin/inquiries").then(readJson),
     ])
       .then(([p, q]) => {
         const today = new Date().toISOString().slice(0, 10),

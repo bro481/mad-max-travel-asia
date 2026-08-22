@@ -85,17 +85,25 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
             {s.type === "交通接送" && s.vehicles.length > 0 && <section><h2>可安排车型</h2><div className="route-grid">{s.vehicles.filter(x=>x.visible).map((x,i)=><article key={i}>{x.image&&<img src={x.image} alt={x.nameZh}/>}<h3>{x.nameZh}</h3><p>建议 {x.people} · 行李 {x.luggage}</p><small>{x.description}</small></article>)}</div></section>}
             {s.routes.length > 0 && (
               <section>
-                <h2>热门路线方案</h2>
+                <h2>{s.routeSectionTitleZh || "热门路线方案"}</h2>
+                {s.routeSectionIntroZh && <p>{s.routeSectionIntroZh}</p>}
                 <div className="route-grid">
-                  {s.routes.map((x, i) => (
+                  {s.routes.filter((x) => x.visible !== false).map((x, i) => (
                     <article key={i}>
                       {x.image && <img src={x.image} alt="" />}
                       <span>
-                        {x.duration} · {x.tag}
+                        {[x.duration, x.tag || x.tags?.[0]].filter(Boolean).join(" · ")}
                       </span>
-                      <h3>{x.name}</h3>
-                      <p>{x.description}</p>
-                      <small>{x.stops}</small>
+                      <h3>{x.nameZh || x.name}</h3>
+                      <p>{x.descriptionZh || x.description}</p>
+                      <small>
+                        {x.nodes?.length
+                          ? x.nodes
+                              .map((node) => node.nameZh || node.title)
+                              .filter(Boolean)
+                              .join(" · ")
+                          : x.stops}
+                      </small>
                     </article>
                   ))}
                 </div>

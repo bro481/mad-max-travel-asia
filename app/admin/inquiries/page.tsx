@@ -29,9 +29,11 @@ export default function InquiriesPage() {
           location.href = "/signin-with-chatgpt?return_to=%2Fadmin%2Finquiries";
           return [];
         }
+        if (!r.ok) return [];
         return r.json();
       })
-      .then(setItems);
+      .then((data) => setItems(Array.isArray(data) ? data : []))
+      .catch(() => setItems([]));
   }, []);
   const shown = useMemo(
     () =>

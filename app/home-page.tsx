@@ -1,26 +1,15 @@
 "use client";
 import { FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
 import { services, type Lang, type Room } from "./data";
+import type { DestinationRecord } from "../db/destinations";
 import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
 import { ServiceMenu } from "./service-menu";
 
-const locations = ["Kuala Lumpur", "Kota Kinabalu", "Semporna"];
-const destinations = {
-  en: [
-    "Kuala Lumpur",
-    "Kota Kinabalu",
-    "Semporna",
-    "Singapore",
-    "Not decided yet",
-  ],
-  zh: [
-    "吉隆坡 Kuala Lumpur",
-    "亚庇 Kota Kinabalu",
-    "仙本那 Semporna",
-    "新加坡 Singapore",
-    "还没决定",
-  ],
-};
+const fallbackDestinations: DestinationRecord[] = [
+  { id: 1, slug: "kuala-lumpur", nameZh: "吉隆坡", nameEn: "Kuala Lumpur", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 1, serviceSort: 1, onlyShowWithContent: true, status: "visible", updatedAt: "" },
+  { id: 2, slug: "kota-kinabalu", nameZh: "亚庇", nameEn: "Kota Kinabalu", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 2, serviceSort: 2, onlyShowWithContent: true, status: "visible", updatedAt: "" },
+  { id: 3, slug: "semporna", nameZh: "仙本那", nameEn: "Semporna", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 3, serviceSort: 3, onlyShowWithContent: true, status: "visible", updatedAt: "" },
+];
 const serviceOptions = {
   en: [
     "Accommodation",
@@ -281,22 +270,28 @@ function RoomCarousel({
 
 type RoomModalTab = "intro" | "amenities" | "stay" | "nearby";
 
-function RoomDetailModal({
+export function RoomDetailModal({
   room,
   lang,
   onClose,
+  initialTab = "intro",
 }: {
   room: Room;
   lang: Lang;
   onClose: () => void;
+  initialTab?: RoomModalTab;
 }) {
   const [photo, setPhoto] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [photoZoomed, setPhotoZoomed] = useState(false);
-  const [tab, setTab] = useState<RoomModalTab>("intro");
+  const [tab, setTab] = useState<RoomModalTab>(initialTab);
   const touchStartX = useRef<number | null>(null);
   const images = room.images?.length ? room.images : [room.image];
-  const price = Math.round(room.priceFrom * MYR_TO_CNY);
+  const space = room.spaceConfig as (Room["spaceConfig"] & Record<string, any>) | undefined;
+  const showCnyPrice = space?.currency ? space.currency !== "MYR" : lang === "zh";
+  const visiblePrice = space?.currency && space.currency !== "MYR" ? room.priceFrom : Math.round(room.priceFrom * MYR_TO_CNY);
+  const priceUnit = space?.priceUnit || (lang === "zh" ? "/晚" : "/ night");
+  const priceNote = room.description[lang] ? space?.priceNote || (lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date") : "";
   const coreAmenityKeys = ["High-speed WiFi", "Air Conditioning", "Fully Equipped Kitchen", "Washer"];
   const coreAmenities = coreAmenityKeys
     .map((key) => room.amenities.find((item) => item.name.en === key))
@@ -344,6 +339,7 @@ function RoomDetailModal({
     { key: "stay", zh: "入住须知", en: "Stay info" },
     { key: "nearby", zh: "周边", en: "Nearby" },
   ];
+  useEffect(() => setTab(initialTab), [initialTab]);
 
   return (
     <div className="room-detail-modal" role="dialog" aria-modal="true" onMouseDown={onClose}>
@@ -388,9 +384,15 @@ function RoomDetailModal({
           <h2>{room.name[lang]}</h2>
           <div className="room-modal-area room-modal-title-location"><RoomIcon name="pin" /><b>{modalLocationLabel(room, lang)}</b></div>
           <div className="room-modal-price">
-            <strong>{lang === "zh" ? `¥${price}` : `RM ${room.priceFrom}`}</strong>
-            <b>{lang === "zh" ? "起 / 晚" : "from / night"}</b>
-            <small>{lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date"}</small>
+            {room.priceFrom ? (
+              <>
+                <strong>{showCnyPrice ? `¥${visiblePrice}` : `RM ${room.priceFrom}`}</strong>
+                <b>{space?.showPriceFrom === false ? priceUnit : `起 ${priceUnit}`}</b>
+                {priceNote ? <small>{priceNote}</small> : null}
+              </>
+            ) : (
+              <strong>{lang === "zh" ? "价格咨询" : "Ask for price"}</strong>
+            )}
           </div>
           <div className="room-modal-tabs" role="tablist">
             {tabs.map((item) => (
@@ -424,16 +426,18 @@ function RoomDetailModal({
             {tab === "stay" && (
               <div className="room-modal-stay">
                 <div className="room-modal-stay-info">
-                  <div><b>{lang === "zh" ? "入住时间" : "Check-in"}</b><span>{lang === "zh" ? "15:00 后" : "After 15:00"}</span></div>
-                  <div><b>{lang === "zh" ? "退房时间" : "Check-out"}</b><span>{lang === "zh" ? "11:00 前" : "Before 11:00"}</span></div>
-                  <div><b>{lang === "zh" ? "最多入住" : "Guests"}</b><span>{lang === "zh" ? `${room.guests} 位` : `Up to ${room.guests}`}</span></div>
-                  <div><b>{lang === "zh" ? "入住方式" : "Arrival"}</b><span>{lang === "zh" ? "确认后发送入住说明" : "Instructions sent after confirmation"}</span></div>
+                  <div><b>{lang === "zh" ? "入住时间" : "Check-in"}</b><span>{space?.checkInTime || (lang === "zh" ? "15:00 后" : "After 15:00")}</span></div>
+                  <div><b>{lang === "zh" ? "退房时间" : "Check-out"}</b><span>{space?.checkOutTime || (lang === "zh" ? "11:00 前" : "Before 11:00")}</span></div>
+                  <div><b>{lang === "zh" ? "最多入住" : "Guests"}</b><span>{space?.guestRule || (lang === "zh" ? `${room.guests} 位` : `Up to ${room.guests}`)}</span></div>
+                  <div><b>{lang === "zh" ? "入住方式" : "Arrival"}</b><span>{space?.checkInMethod || (lang === "zh" ? "确认后发送入住说明" : "Instructions sent after confirmation")}</span></div>
                 </div>
                 <div className="room-modal-reminders">
                   <b>{lang === "zh" ? "入住提醒" : "A few reminders"}</b>
-                  <span>○ {lang === "zh" ? "室内请勿吸烟" : "No smoking indoors"}</span>
-                  <span>○ {lang === "zh" ? "请勿举办聚会" : "No parties"}</span>
-                  <span>○ {lang === "zh" ? "请保持室内整洁" : "Please keep the home tidy"}</span>
+                  {(space?.reminders?.length ? space.reminders : [
+                    { icon: "🚭", text: lang === "zh" ? "室内请勿吸烟" : "No smoking indoors" },
+                    { icon: "🎉", text: lang === "zh" ? "请勿举办聚会" : "No parties" },
+                    { icon: "🧹", text: lang === "zh" ? "请保持室内整洁" : "Please keep the home tidy" },
+                  ]).map((item: { icon?: string; text: string }, index: number) => <span key={`${item.text}-${index}`}>{item.icon || "○"} {item.text}</span>)}
                 </div>
               </div>
             )}
@@ -444,6 +448,7 @@ function RoomDetailModal({
                     <div key={place.name.en}><i>{place.icon}</i><p><b>{place.name[lang]}</b><small>{place.distance[lang]}</small></p></div>
                   ))}
                 </div>
+                {space?.nearbyNote ? <p className="room-modal-nearby-note">{space.nearbyNote}</p> : null}
               </>
             )}
           </div>
@@ -485,7 +490,7 @@ function RoomDetailModal({
   );
 }
 
-export function HomePage({ rooms }: { rooms: Room[] }) {
+export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms: Room[]; destinations?: DestinationRecord[] }) {
   const [lang, setLang] = useState<Lang>("zh"),
     [status, setStatus] = useState(""),
     [sent, setSent] = useState(false),
@@ -505,6 +510,10 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
     };
   }, [selectedRoom]);
   const t = c[lang];
+  const destinationOptions = destinations
+    .filter((destination) => destination.useForProperties && destination.status !== "hidden")
+    .filter((destination) => !destination.onlyShowWithContent || rooms.some((room) => room.location.zh === destination.nameZh || room.location.en === destination.nameEn))
+    .sort((a, b) => a.propertySort - b.propertySort || a.id - b.id);
   const roomLayouts = [
     ...new Map(
       rooms.map((room) => [
@@ -520,7 +529,7 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
   const destinationRooms =
     selectedLocation === "all"
       ? rooms
-      : rooms.filter((room) => room.location.en === selectedLocation);
+      : rooms.filter((room) => room.location.en === selectedLocation || room.location.zh === selectedLocation);
   const visibleRooms =
     layout === "all"
       ? destinationRooms
@@ -646,13 +655,10 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
                     label: lang === "zh" ? "全部" : "All",
                     count: rooms.length,
                   },
-                  ...locations.map((location) => ({
-                    key: location,
-                    label:
-                      rooms.find((r) => r.location.en === location)?.location[
-                        lang
-                      ] || location,
-                    count: rooms.filter((r) => r.location.en === location)
+                  ...destinationOptions.map((destination) => ({
+                    key: destination.nameEn || destination.nameZh,
+                    label: lang === "zh" ? destination.nameZh : destination.nameEn || destination.nameZh,
+                    count: rooms.filter((r) => r.location.en === destination.nameEn || r.location.zh === destination.nameZh)
                       .length,
                   })),
                 ].map((option) => (
@@ -702,7 +708,7 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
                 ? lang === "zh"
                   ? "全部房源"
                   : "All stays"
-                : `${rooms.find((r) => r.location.en === selectedLocation)?.location[lang] || selectedLocation} · ${destinationRooms.length} ${t.stayCount}`}
+                : `${rooms.find((r) => r.location.en === selectedLocation || r.location.zh === selectedLocation)?.location[lang] || selectedLocation} · ${destinationRooms.length} ${t.stayCount}`}
             </h3>
             <span>{lang === "zh" ? "默认排序 ▾" : "Default order ▾"}</span>
           </div>
@@ -835,14 +841,14 @@ export function HomePage({ rooms }: { rooms: Room[] }) {
               <fieldset>
                 <legend>{t.destination}</legend>
                 <div className="choice-grid destinations">
-                  {destinations[lang].map((n, i) => (
-                    <label key={n}>
+                  {[...destinationOptions.map((destination) => ({label: lang==="zh"?`${destination.nameZh} ${destination.nameEn}`:destination.nameEn||destination.nameZh,value: destination.nameEn||destination.nameZh})),{label: lang==="zh"?"还没决定":"Not decided yet",value:"Not decided yet"}].map((destination) => (
+                    <label key={destination.value}>
                       <input
                         type="checkbox"
                         name="destinations"
-                        value={destinations.en[i]}
+                        value={destination.value}
                       />
-                      <span>{n}</span>
+                      <span>{destination.label}</span>
                     </label>
                   ))}
                 </div>

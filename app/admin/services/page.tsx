@@ -1,12 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { DestinationRecord } from "../../../db/destinations";
+import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem } from "../../../db/service-items";
 export default function ServiceList() {
   const [items, setItems] = useState<ServiceItem[]>([]),
     [notice, setNotice] = useState(""),
     [activeCity, setActiveCity] = useState("全部"),
-    [activeType, setActiveType] = useState("全部");
+    [activeType, setActiveType] = useState("全部"),
+    [categories, setCategories] = useState<ServiceCategory[]>([]),
+    [destinations, setDestinations] = useState<DestinationRecord[]>([]);
   const load = () =>
     fetch("/api/admin/service-items")
       .then(async (r) => {
@@ -24,6 +28,21 @@ export default function ServiceList() {
       .then(setItems);
   useEffect(() => {
     load();
+    Promise.all([
+      fetch("/api/admin/destinations").then(async (r) => {
+        if (!r.ok) return [];
+        const text = await r.text();
+        return text ? JSON.parse(text) : [];
+      }),
+      fetch("/api/admin/services").then(async (r) => {
+        if (!r.ok) return [];
+        const text = await r.text();
+        return text ? JSON.parse(text) : [];
+      }),
+    ]).then(([dests, cats]) => {
+      setDestinations(dests);
+      setCategories(cats);
+    });
   }, []);
   const update = async (x: ServiceItem, status: ServiceItem["status"]) => {
     await fetch(`/api/admin/service-items/${x.id}`, {
@@ -64,20 +83,38 @@ export default function ServiceList() {
     });
     location.href = `/admin/services/${c.id}`;
   };
-  const cities = [...new Set(items.map((x) => x.city))];
+  const cities = [
+    ...destinations
+      .filter((destination) => destination.useForServices && destination.status !== "hidden")
+      .sort((a, b) => a.serviceSort - b.serviceSort || a.id - b.id)
+      .map((destination) => destination.nameZh),
+    ...[...new Set(items.map((x) => x.city))].filter((city) => city && !destinations.some((destination) => destination.nameZh === city)),
+  ];
   const kind = (x: ServiceItem) =>
-    x.type === "交通接送" ? "接送机" : x.type === "私人包车" ? "包车" : "当地体验";
+    x.templateType === "transfer" || x.type === "交通接送" ? "接送机" : x.templateType === "route" || x.type === "私人包车" ? "包车" : "当地体验";
+  const categoryName = (x: ServiceItem) =>
+    categories.find((category) => category.id === x.categoryId)?.nameZh || x.category || "未分类";
   const cityItems = activeCity === "全部" ? items : items.filter((item) => item.city === activeCity);
-  const visibleItems = activeType === "全部" ? cityItems : cityItems.filter((item) => kind(item) === activeType);
-  const categories = [...new Set(visibleItems.map((x) => x.category))];
-  const cityEnglish = (city: string) =>
-    city === "吉隆坡"
-      ? "Kuala Lumpur"
-      : city === "亚庇"
-        ? "Kota Kinabalu"
-        : city === "仙本那"
-          ? "Semporna"
-          : city;
+  const visibleItems = (activeType === "全部" ? cityItems : cityItems.filter((item) => kind(item) === activeType))
+    .sort((a, b) => (a.categoryId || 0) - (b.categoryId || 0) || (a.displayOrder || 99) - (b.displayOrder || 99) || a.id - b.id);
+  const categoryGroups = categories
+    .filter((category) => category.visible !== false && visibleItems.some((item) => item.categoryId === category.id))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+  const orphanCategoryNames = [...new Set(visibleItems.filter((item) => !categories.some((category) => category.id === item.categoryId)).map((x) => categoryName(x)))];
+  const cityEnglish = (city: string) => destinations.find((destination) => destination.nameZh === city)?.nameEn || city;
+  const moveWithinGroup = async (x: ServiceItem, direction: -1 | 1) => {
+    const group = visibleItems.filter((item) => item.city === x.city && item.categoryId === x.categoryId);
+    const index = group.findIndex((item) => item.id === x.id);
+    const target = group[index + direction];
+    if (!target) return;
+    const a = { ...x, displayOrder: target.displayOrder || target.id };
+    const b = { ...target, displayOrder: x.displayOrder || x.id };
+    await Promise.all([
+      fetch(`/api/admin/service-items/${a.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a) }),
+      fetch(`/api/admin/service-items/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }),
+    ]);
+    load();
+  };
   const card = (x: ServiceItem) => (
     <article key={x.id}>
       <div className="service-product-cover">
@@ -104,7 +141,7 @@ export default function ServiceList() {
       </div>
       <div>
         <small>
-          {x.city} · {kind(x)}
+          {x.city} · {categoryName(x)}
         </small>
         <h4>{x.nameZh}</h4>
         <p>{x.subtitleZh || "服务范围或路线待填写"}</p>
@@ -122,6 +159,8 @@ export default function ServiceList() {
           >
             {x.status === "published" ? "隐藏" : "上线"}
           </button>
+          <button onClick={() => moveWithinGroup(x, -1)}>上移</button>
+          <button onClick={() => moveWithinGroup(x, 1)}>下移</button>
         </nav>
       </div>
     </article>
@@ -142,7 +181,8 @@ export default function ServiceList() {
         <Link className="active" href="/admin/services">
           服务列表
         </Link>
-        <Link href="/admin/services/categories">服务分类</Link>
+        <Link href="/admin/services/categories">展示分类</Link>
+        <Link href="/admin/services/templates">编辑模板</Link>
         <Link href="/admin/gifts">伴手礼</Link>
       </div>
       {notice && <p className="lead-notice">{notice}</p>}
@@ -194,18 +234,24 @@ export default function ServiceList() {
             </div>
             <span>{visibleItems.length} 个服务</span>
           </div>
-          {categories.map((category) => (
-            <div className="service-category-group" key={category}>
+          {categoryGroups.map((category) => (
+            <div className="service-category-group" key={category.id}>
               <h3>
-                {category}
+                {category.icon} {category.nameZh}
                 <small>
-                  {visibleItems.filter((x) => x.category === category).length}{" "}
+                  {visibleItems.filter((x) => x.categoryId === category.id).length}{" "}
                   个
                 </small>
               </h3>
               <div className="service-product-grid">
-                {visibleItems.filter((x) => x.category === category).map(card)}
+                {visibleItems.filter((x) => x.categoryId === category.id).map(card)}
               </div>
+            </div>
+          ))}
+          {orphanCategoryNames.map((category) => (
+            <div className="service-category-group" key={category}>
+              <h3>{category}<small>{visibleItems.filter((x) => categoryName(x) === category).length} 个</small></h3>
+              <div className="service-product-grid">{visibleItems.filter((x) => categoryName(x) === category).map(card)}</div>
             </div>
           ))}
         </section>

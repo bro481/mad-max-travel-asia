@@ -1,8 +1,38 @@
-const API = "https://mad-max-apple77ba.dj202429336.chatgpt.site";
+const DEFAULT_API = "http://127.0.0.1:3000";
 const codeEl = document.querySelector("#code");
+const apiEl = document.querySelector("#apiBase");
 const start = document.querySelector("#start");
 const statusEl = document.querySelector("#status");
 const bar = document.querySelector("#progress");
+
+const normalizeApiBase = (value) => {
+  const text = String(value || "").trim();
+  const withProtocol =
+    text.startsWith("http://") || text.startsWith("https://")
+      ? text
+      : `http://${text}`;
+  return withProtocol.replace(/\/+$/, "");
+};
+
+const readSavedApiBase = () =>
+  new Promise((resolve) => {
+    try {
+      chrome.storage.local.get({ apiBase: DEFAULT_API }, (result) => {
+        resolve(normalizeApiBase(result.apiBase || DEFAULT_API));
+      });
+    } catch {
+      resolve(normalizeApiBase(localStorage.getItem("apiBase") || DEFAULT_API));
+    }
+  });
+
+const saveApiBase = (apiBase) => {
+  try {
+    chrome.storage.local.set({ apiBase });
+  } catch {
+    localStorage.setItem("apiBase", apiBase);
+  }
+};
+
 const status = (text, progress = 0) => {
   statusEl.textContent = text;
   bar.style.width = `${progress}%`;
@@ -16,14 +46,21 @@ const json = async (response) => {
   }
 };
 
+readSavedApiBase().then((apiBase) => {
+  if (apiEl) apiEl.value = apiBase;
+});
+
 start.addEventListener("click", async () => {
   const code = codeEl.value.trim();
   if (!/^\d{4,8}$/.test(code)) {
     status("请输入后台生成的数字导入码");
     return;
   }
+  const API = normalizeApiBase(apiEl?.value || DEFAULT_API);
+  saveApiBase(API);
   start.disabled = true;
   try {
+    status(`正在连接后台：${API}`, 2);
     const check = await fetch(`${API}/api/import/${code}`);
     const checked = await json(check);
     if (!check.ok) throw new Error(checked.error || "导入码无效");
