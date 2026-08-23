@@ -1,3 +1,7 @@
 "use client";
+import { Suspense } from "react";
 import {useSearchParams} from "next/navigation";
-export default function ContentEdit(){const name=useSearchParams().get("section")||"首页";return <><div className="admin-head"><div><p>内容管理</p><h1>{name}</h1><span>修改后将同步用于对应公共页面。</span></div><button className="admin-primary">保存内容</button></div><div className="simple-admin-panel simple-admin-form"><label><span>Eyebrow / 小标题</span><input placeholder="例如：MY MALAYSIA"/></label><label><span>主标题</span><input placeholder="舒适入住，自在旅行。"/></label><label><span>描述</span><textarea rows={5}/></label><label><span>按钮文字</span><input/></label><label><span>按钮链接</span><input/></label></div></>}
+
+function ContentEditForm(){const name=useSearchParams().get("section")||"首页";return <><div className="admin-head"><div><p>内容管理</p><h1>{name}</h1><span>修改后将同步用于对应公共页面。</span></div><button className="admin-primary">保存内容</button></div><div className="simple-admin-panel simple-admin-form"><label><span>Eyebrow / 小标题</span><input placeholder="例如：MY MALAYSIA"/></label><label><span>主标题</span><input placeholder="舒适入住，自在旅行。"/></label><label><span>描述</span><textarea rows={5}/></label><label><span>按钮文字</span><input/></label><label><span>按钮链接</span><input/></label></div></>}
+
+export default function ContentEdit(){return <Suspense fallback={null}><ContentEditForm /></Suspense>}

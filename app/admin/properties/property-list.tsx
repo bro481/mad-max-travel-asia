@@ -120,7 +120,8 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "") || "stay";
 
-const cloneSpace = (space: PropertySpaceConfig = {}) => JSON.parse(JSON.stringify(space)) as PropertySpaceConfig;
+const cloneSpace = (space?: Partial<PropertySpaceConfig>) =>
+  JSON.parse(JSON.stringify(space ?? {})) as PropertySpaceConfig;
 
 const copyValue = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 

@@ -45,10 +45,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await getChatGPTUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const current = useLocalDestinations()
-    ? listLocalDestinations().find((item) => item.id === Number(id))
-    : ((await env.DB.prepare("SELECT name_zh FROM destinations WHERE id=?").bind(Number(id)).first()) as { name_zh?: string } | null);
-  const nameZh = useLocalDestinations() ? current?.nameZh : current?.name_zh;
+  const nameZh = useLocalDestinations()
+    ? listLocalDestinations().find((item) => item.id === Number(id))?.nameZh
+    : (
+        (await env.DB.prepare("SELECT name_zh FROM destinations WHERE id=?").bind(Number(id)).first()) as {
+          name_zh?: string;
+        } | null
+      )?.name_zh;
   if (!nameZh) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const counts = await associationCounts(String(nameZh));
   if (counts.propertyCount || counts.serviceCount) {

@@ -35,7 +35,7 @@ export type ServiceItem = {
   serviceAreas: string[];
   otherAreaNote: string;
   vehicleDisplayMode: string;
-  vehicles: { image:string; nameZh:string; nameEn:string; people:string; luggage:string; description:string; price:number; visible:boolean; internalNote:string }[];
+  vehicles: { image:string; nameZh:string; nameEn:string; people:string; luggage:string; description:string; price:number; visible:boolean; internalNote:string; halfDayPrice?:number; fullDayPrice?:number; priceMode?:string }[];
   priceMode: string;
   price: number;
   priceUnit: string;
@@ -50,6 +50,7 @@ export type ServiceRouteNode = {
   descriptionEn?: string;
   image?: string;
   stayTime?: string;
+  type?: string;
   title?: string;
   description?: string;
   time?: string;
@@ -66,6 +67,7 @@ export type ServiceRoutePlan = {
   tag?: string;
   tags?: string[];
   visible?: boolean;
+  recommended?: boolean;
   sortOrder?: number;
   stops?: string;
   nodes?: ServiceRouteNode[];

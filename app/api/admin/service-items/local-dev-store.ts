@@ -103,6 +103,73 @@ function defaultRoutePlans(city = "吉隆坡"): ServiceRoutePlan[] {
   ];
 }
 
+function destinationIdForCity(city: string) {
+  if (city === "吉隆坡") return 1;
+  if (city === "亚庇") return 2;
+  if (city === "仙本那") return 3;
+  if (city === "马六甲") return 4;
+  if (city === "新加坡") return 5;
+  return 0;
+}
+
+function defaultPrivateCarVehicles() {
+  return [
+    {
+      image: img("photo-1550355291-bbee04a92027"),
+      nameZh: "舒适轿车",
+      nameEn: "Sedan",
+      people: "1–3 人",
+      luggage: "2–3 件",
+      description: "少人数出行",
+      price: 380,
+      halfDayPrice: 380,
+      fullDayPrice: 620,
+      priceMode: "起价",
+      visible: true,
+      internalNote: "",
+    },
+    {
+      image: img("photo-1549317661-bd32c8ce0db2"),
+      nameZh: "7座 MPV",
+      nameEn: "MPV",
+      people: "4–6 人",
+      luggage: "4–5 件",
+      description: "家庭 / 小团体",
+      price: 520,
+      halfDayPrice: 520,
+      fullDayPrice: 820,
+      priceMode: "起价",
+      visible: true,
+      internalNote: "",
+    },
+    {
+      image: img("photo-1515569067071-ec3b51335dd0"),
+      nameZh: "商务 Van",
+      nameEn: "Van",
+      people: "7–10 人",
+      luggage: "按需",
+      description: "多人 / 多行李",
+      price: 720,
+      halfDayPrice: 720,
+      fullDayPrice: 1080,
+      priceMode: "起价",
+      visible: true,
+      internalNote: "",
+    },
+  ];
+}
+
+const privateCarInquiryFields = [
+  "日期",
+  "人数",
+  "出发地点",
+  "想去的路线 / 景点",
+  "接送地点",
+  "特殊需求",
+];
+
+const privateCarInquiryRequired = ["日期", "人数", "出发地点", "想去的路线 / 景点"];
+
 const seedItems: ServiceItem[] = [
   {
     id: 1,
@@ -190,31 +257,85 @@ const seedItems: ServiceItem[] = [
 function normalize(item: Partial<ServiceItem>, fallbackId = 1): ServiceItem {
   const base = seedItems[0];
   const type = String(item.type || base.type);
+  const rawName = String(item.nameZh || item.nameEn || item.slug || "");
+  const isPrivateCar = type === "私人包车" || item.templateType === "route";
+  const isKlPrivateCar =
+    isPrivateCar &&
+    (rawName.includes("吉隆坡私人包车") ||
+      String(item.slug || "").includes("kl-private-car") ||
+      String(item.nameEn || "").toLowerCase().includes("kuala"));
+  const city = isKlPrivateCar ? "吉隆坡" : String(item.city || base.city);
+  const category = isPrivateCar ? "交通服务" : String(item.category || base.category);
+  const categoryId = isPrivateCar ? 1 : Number(item.categoryId || 1);
+  const templateType = (item.templateType ||
+    (type === "交通接送" ? "transfer" : isPrivateCar ? "route" : "experience")) as ServiceItem["templateType"];
+  const routeImages =
+    Array.isArray(item.images) && item.images.length
+      ? item.images
+      : isPrivateCar
+        ? [
+            img("photo-1549317661-bd32c8ce0db2"),
+            img("photo-1550355291-bbee04a92027"),
+            img("photo-1515569067071-ec3b51335dd0"),
+          ]
+        : [];
   return {
     ...base,
     ...item,
     id: Number(item.id || fallbackId),
     slug: String(item.slug || `local-service-${fallbackId}`),
     type,
-    destinationId: Number(item.destinationId || (String(item.city || base.city) === "吉隆坡" ? 1 : String(item.city || base.city) === "亚庇" ? 2 : String(item.city || base.city) === "仙本那" ? 3 : String(item.city || base.city) === "马六甲" ? 4 : String(item.city || base.city) === "新加坡" ? 5 : 0)),
-    city: String(item.city || base.city),
-    category: String(item.category || base.category),
-    categoryId: Number(item.categoryId || 1),
-    templateType: (item.templateType || (type === "交通接送" ? "transfer" : type === "私人包车" ? "route" : "experience")) as ServiceItem["templateType"],
+    destinationId: Number(isKlPrivateCar ? 1 : item.destinationId || destinationIdForCity(city)),
+    city,
+    category,
+    categoryId,
+    templateType,
     displayOrder: Number(item.displayOrder || fallbackId),
-    images: Array.isArray(item.images) ? item.images : [],
-    tags: Array.isArray(item.tags) ? item.tags : [],
-    steps: Array.isArray(item.steps) ? item.steps : [],
+    images: routeImages,
+    tags: Array.isArray(item.tags) && item.tags.length ? item.tags : isPrivateCar ? ["中文沟通", "行程灵活", "舒适安全"] : [],
+    steps:
+      Array.isArray(item.steps) && item.steps.length
+        ? item.steps
+        : isPrivateCar
+          ? [
+              { title: "中文司机", description: "沟通更轻松" },
+              { title: "行程灵活", description: "可按时间与兴趣调整" },
+              { title: "酒店接送", description: "减少交通衔接麻烦" },
+            ]
+          : [],
+    introZh: String(item.introZh || (isPrivateCar ? "半日 / 全天包车，可根据时间和兴趣自由安排路线。" : "")),
+    introEn: String(item.introEn || (isPrivateCar ? "Half-day or full-day private car service with flexible routes around your time and interests." : "")),
     routeSectionTitleZh: String(item.routeSectionTitleZh || base.routeSectionTitleZh || "热门包车方案"),
     routeSectionTitleEn: String(item.routeSectionTitleEn || base.routeSectionTitleEn || "Popular Private Car Routes"),
     routeSectionIntroZh: String(item.routeSectionIntroZh || base.routeSectionIntroZh || "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"),
     routeSectionIntroEn: String(item.routeSectionIntroEn || base.routeSectionIntroEn || "These routes are examples and can be adjusted around your time and interests."),
-    routes: Array.isArray(item.routes) && item.routes.length ? item.routes : ((item.templateType === "route" || type === "私人包车") ? defaultRoutePlans(String(item.city || base.city)) : []),
+    routes: Array.isArray(item.routes) && item.routes.length ? item.routes : isPrivateCar ? defaultRoutePlans(city) : [],
     timeline: Array.isArray(item.timeline) ? item.timeline : [],
-    inquiryFields: Array.isArray(item.inquiryFields) ? item.inquiryFields : [],
-    inquiryRequired: Array.isArray(item.inquiryRequired) ? item.inquiryRequired : [],
+    inquiryFields:
+      isPrivateCar && !item.inquiryFields?.includes("想去的路线 / 景点")
+        ? privateCarInquiryFields
+        : Array.isArray(item.inquiryFields) && item.inquiryFields.length
+          ? item.inquiryFields
+          : isPrivateCar
+            ? privateCarInquiryFields
+            : [],
+    inquiryRequired:
+      isPrivateCar && !item.inquiryRequired?.includes("想去的路线 / 景点")
+        ? privateCarInquiryRequired
+        : Array.isArray(item.inquiryRequired) && item.inquiryRequired.length
+          ? item.inquiryRequired
+          : isPrivateCar
+            ? privateCarInquiryRequired
+            : [],
     inquiryPromptFields: Array.isArray(item.inquiryPromptFields) ? item.inquiryPromptFields : [],
-    vehicles: Array.isArray(item.vehicles) ? item.vehicles : [],
+    vehicles:
+      isPrivateCar && !item.vehicles?.some((vehicle) => "halfDayPrice" in vehicle || "fullDayPrice" in vehicle)
+        ? defaultPrivateCarVehicles()
+        : Array.isArray(item.vehicles) && item.vehicles.length
+          ? item.vehicles
+          : isPrivateCar
+            ? defaultPrivateCarVehicles()
+            : [],
     status: item.status || "draft",
     updatedAt: String(item.updatedAt || new Date().toISOString()),
   };

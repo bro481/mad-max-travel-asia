@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, type MouseEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, type MouseEvent, type ReactElement, useEffect, useRef, useState } from "react";
 import { services, type Lang, type Room } from "./data";
 import type { DestinationRecord } from "../db/destinations";
 import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
@@ -29,7 +29,7 @@ const MYR_TO_CNY = 1.7;
 type RoomIconName = "layout" | "area" | "floor" | "guests" | "bed" | "sofa" | "pin";
 
 function RoomIcon({ name }: { name: RoomIconName }) {
-  const paths: Record<RoomIconName, JSX.Element> = {
+  const paths: Record<RoomIconName, ReactElement> = {
     layout: <path d="M4 11.5 12 5l8 6.5v7a1 1 0 0 1-1 1h-5v-5h-4v5H5a1 1 0 0 1-1-1z" />,
     area: <path d="M5 8V5h3M16 5h3v3M19 16v3h-3M8 19H5v-3M8 5h8M19 8v8M16 19H8M5 16V8" />,
     floor: <path d="M6 20V5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v15M9 8h2M13 8h2M9 12h2M13 12h2M10 20v-4h4v4" />,
