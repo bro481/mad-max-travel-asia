@@ -127,6 +127,80 @@ const seeds = [
     "Island hopping and transfers",
   ],
 ] as const;
+const image = (id: string) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`;
+const defaultSteps = [
+  { title: "告诉我们行程", description: "提供日期、地点和人数" },
+  { title: "确认安排", description: "确认车辆或行程细节" },
+  { title: "轻松出发", description: "按约定时间开始服务" },
+];
+const privateCarRoutes: ServiceRoutePlan[] = [
+  {
+    name: "吉隆坡经典一日游",
+    nameZh: "吉隆坡经典一日游",
+    nameEn: "Kuala Lumpur Classic Day Tour",
+    duration: "约 8 小时",
+    tags: ["首次到访", "经典路线"],
+    descriptionZh: "双子塔、独立广场与茨厂街",
+    descriptionEn: "Twin Towers, Merdeka Square and Chinatown",
+    stops: "双子塔 · 独立广场 · 茨厂街",
+    visible: true,
+    sortOrder: 1,
+    image: image("photo-1596422846543-75c6fc197f07"),
+    nodes: [
+      { nameZh: "酒店接送", nameEn: "Hotel pickup", type: "交通", descriptionZh: "从酒店出发，按当天时间灵活安排。", descriptionEn: "Depart from your hotel with a flexible plan for the day.", image: "", stayTime: "" },
+      { nameZh: "双子塔", nameEn: "Petronas Twin Towers", type: "景点", descriptionZh: "吉隆坡城市地标，适合拍照与短暂停留。", descriptionEn: "Kuala Lumpur landmark for photos and a short visit.", image: image("photo-1596422846543-75c6fc197f07"), stayTime: "约45分钟" },
+      { nameZh: "独立广场", nameEn: "Merdeka Square", type: "景点", descriptionZh: "历史建筑与城市广场，适合轻松步行。", descriptionEn: "Historic buildings and a city square for an easy walk.", image: image("photo-1590930754517-64d5fffa06ac"), stayTime: "约45分钟" },
+      { nameZh: "茨厂街", nameEn: "Petaling Street", type: "街区", descriptionZh: "本地街区、小吃与伴手礼，可自由停留。", descriptionEn: "Local streets, snacks and souvenirs with flexible time.", image: image("photo-1584515933487-779824d29309"), stayTime: "约1小时" },
+    ],
+  },
+];
+const richSeeds = seeds.map((s, index) => {
+  const [slug, type, city, category, nameZh, nameEn, subtitleZh, subtitleEn] = s;
+  const isCar = type === "私人包车";
+  const isJourney = type.includes("体验") || type === "城市体验";
+  const images: Record<string, string> = {
+    "kl-airport-transfer": image("photo-1549317661-bd32c8ce0db2"),
+    "kl-private-car": image("photo-1550355291-bbee04a92027"),
+    "kk-airport-transfer": image("photo-1549317661-bd32c8ce0db2"),
+    "kk-nature": image("photo-1500530855697-b586d89ba3ee"),
+    "semporna-island": image("photo-1507525428034-b723cf961d3e"),
+  };
+  return {
+    slug,
+    type,
+    city,
+    category,
+    nameZh,
+    nameEn,
+    subtitleZh,
+    subtitleEn,
+    destinationId: defaultDestinationId(city),
+    categoryId: defaultCategoryId(category, type),
+    templateType: defaultTemplate(type),
+    displayOrder: index + 1,
+    introZh: "告诉我们你的日期、人数和大概想法，我们会根据实际情况帮你确认合适安排。",
+    introEn: "Share your date, group size and rough plan. We will recommend a suitable arrangement.",
+    images: [images[slug]],
+    tags: ["提前预约", "中文沟通"],
+    steps: isCar || isJourney ? [] : defaultSteps,
+    routeSectionTitleZh: isCar ? "热门包车方案" : "热门路线方案",
+    routeSectionTitleEn: isCar ? "Popular Private Car Routes" : "Popular Route Plans",
+    routeSectionIntroZh: "以下路线仅作参考，可根据您的时间与兴趣灵活调整。",
+    routeSectionIntroEn: "These routes are examples and can be adjusted around your time and interests.",
+    routes: isCar ? privateCarRoutes : [],
+    timeline: isJourney
+      ? [
+          { time: "08:00", title: "酒店接送", description: "从住宿地点轻松出发" },
+          { time: "10:00", title: "开始体验", description: "由当地向导带领游览" },
+          { time: "17:30", title: "返回酒店", description: "结束充实的一天" },
+        ]
+      : [],
+    inquiryFields: isCar
+      ? ["计划日期", "出发地点", "同行人数", "想去的地点", "特殊需求"]
+      : ["计划日期", "人数", "出发地点", "特殊需求"],
+  };
+});
 function defaultTemplate(type: string) {
   if (type === "交通接送") return "transfer";
   if (type === "私人包车") return "route";
@@ -152,43 +226,68 @@ export async function ensureServiceItems() {
   await env.DB.prepare("UPDATE service_items SET category_id=CASE WHEN category LIKE '%海岛%' THEN 2 WHEN category LIKE '%自然%' OR category LIKE '%生态%' THEN 3 WHEN category LIKE '%城市%' THEN 4 ELSE 1 END WHERE category_id=0 OR category_id IS NULL").run();
   await env.DB.prepare("UPDATE service_items SET destination_id=CASE WHEN city='吉隆坡' THEN 1 WHEN city='亚庇' THEN 2 WHEN city='仙本那' THEN 3 WHEN city='马六甲' THEN 4 WHEN city='新加坡' THEN 5 ELSE destination_id END WHERE destination_id=0 OR destination_id IS NULL").run();
   await env.DB.prepare("UPDATE service_items SET display_order=id WHERE display_order=99 OR display_order IS NULL").run();
-  const c = await env.DB.prepare(
-    "SELECT COUNT(*) total FROM service_items",
-  ).first<{ total: number }>();
-  if ((c?.total || 0) > 0) return;
-  for (const s of seeds)
-    await env.DB.prepare(
-      "INSERT INTO service_items(slug,type,city,category,name_zh,name_en,subtitle_zh,subtitle_en,tags,steps,timeline,inquiry_fields,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-    )
-      .bind(
-        ...s,
-        JSON.stringify(["提前预约", "中文沟通"]),
-        JSON.stringify([
-          { title: "告诉我们行程", description: "提供日期、地点和人数" },
-          { title: "确认安排", description: "确认车辆或行程细节" },
-          { title: "轻松出发", description: "按约定时间开始服务" },
-        ]),
-        JSON.stringify(
-          s[1].includes("体验")
-            ? [
-                { time: "08:00", title: "酒店接送", description: "从住宿出发" },
-                {
-                  time: "09:30",
-                  title: "开始体验",
-                  description: "按当天路线游览",
-                },
-                {
-                  time: "17:30",
-                  title: "返回酒店",
-                  description: "结束轻松的一天",
-                },
-              ]
-            : [],
-        ),
-        JSON.stringify(["日期", "人数", "出发地点", "特殊需求"]),
+  for (const item of richSeeds) {
+    const current = await env.DB.prepare(
+      "SELECT id,images,routes,intro_zh FROM service_items WHERE slug=?",
+    ).bind(item.slug).first<{ id:number; images:string; routes:string; intro_zh:string }>();
+    if (!current) {
+      await env.DB.prepare(
+        `INSERT INTO service_items(slug,type,destination_id,city,category,category_id,template_type,display_order,name_zh,name_en,subtitle_zh,subtitle_en,intro_zh,intro_en,images,tags,steps,route_section_title_zh,route_section_title_en,route_section_intro_zh,route_section_intro_en,routes,timeline,inquiry_fields,inquiry_required,inquiry_prompt_fields,status)
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ).bind(
+        item.slug,
+        item.type,
+        item.destinationId,
+        item.city,
+        item.category,
+        item.categoryId,
+        item.templateType,
+        item.displayOrder,
+        item.nameZh,
+        item.nameEn,
+        item.subtitleZh,
+        item.subtitleEn,
+        item.introZh,
+        item.introEn,
+        JSON.stringify(item.images),
+        JSON.stringify(item.tags),
+        JSON.stringify(item.steps),
+        item.routeSectionTitleZh,
+        item.routeSectionTitleEn,
+        item.routeSectionIntroZh,
+        item.routeSectionIntroEn,
+        JSON.stringify(item.routes),
+        JSON.stringify(item.timeline),
+        JSON.stringify(item.inquiryFields),
+        JSON.stringify(["计划日期", "人数"]),
+        JSON.stringify(item.inquiryFields),
         "published",
-      )
-      .run();
+      ).run();
+      continue;
+    }
+    const missingImages = !j(current.images).length;
+    const missingRoutes = item.routes.length && !j(current.routes).length;
+    const missingIntro = !String(current.intro_zh || "").trim();
+    if (missingImages || missingRoutes || missingIntro) {
+      await env.DB.prepare(
+        `UPDATE service_items SET images=CASE WHEN images='[]' OR images='' THEN ? ELSE images END,
+          routes=CASE WHEN routes='[]' OR routes='' THEN ? ELSE routes END,
+          intro_zh=CASE WHEN intro_zh='' THEN ? ELSE intro_zh END,
+          intro_en=CASE WHEN intro_en='' THEN ? ELSE intro_en END,
+          inquiry_required=CASE WHEN inquiry_required='[]' OR inquiry_required='' THEN ? ELSE inquiry_required END,
+          inquiry_prompt_fields=CASE WHEN inquiry_prompt_fields='[]' OR inquiry_prompt_fields='' THEN ? ELSE inquiry_prompt_fields END
+          WHERE id=?`,
+      ).bind(
+        JSON.stringify(item.images),
+        JSON.stringify(item.routes),
+        item.introZh,
+        item.introEn,
+        JSON.stringify(["计划日期", "人数"]),
+        JSON.stringify(item.inquiryFields),
+        current.id,
+      ).run();
+    }
+  }
 }
 const j = (x: unknown) => {
   try {
