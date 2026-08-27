@@ -194,7 +194,7 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
     const configured = destinations.filter((item) => item.useForProperties && item.status !== "hidden").sort((a, b) => a.propertySort - b.propertySort || a.id - b.id);
     const includesCurrent = initial?.city && !configured.some((item) => item.nameZh === initial.city);
     return includesCurrent ? [...configured, { ...fallbackDestinationOptions[0], id: -1, nameZh: initial.city, nameEn: initial.city }] : configured.length ? configured : fallbackDestinationOptions;
-  }, [destinations, initial?.city]);
+  }, [destinations, initial]);
   const [data, setData] = useState<PropertyRecord>(() => ({
     ...(initial || blank),
     spaceConfig: { ...blank.spaceConfig, ...(initial?.spaceConfig || {}) },
@@ -264,12 +264,20 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
       let saved = next;
       if (!id) {
         const response = await fetch("/api/admin/properties", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
+        if (response.status === 401) {
+          location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
+          return;
+        }
         const created = (await response.json()) as { id?: number; slug?: string; error?: string };
         if (!response.ok || !created.id) throw new Error(created.error || "无法创建房源");
         id = created.id;
         saved = { ...next, slug: created.slug || next.slug };
       }
       const response = await fetch(`/api/admin/properties/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(saved) });
+      if (response.status === 401) {
+        location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
+        return;
+      }
       if (!response.ok) {
         const result = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(result.error || "服务器未能保存房源");
@@ -297,6 +305,10 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
     const form = new FormData();
     list.forEach((f) => form.append("files", f));
     const response = await fetch("/api/admin/uploads", { method: "POST", body: form });
+    if (response.status === 401) {
+      location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
+      return;
+    }
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
       setImageMessage(result.error || "上传失败");
@@ -396,6 +408,10 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
       const form = new FormData();
       files.forEach((file) => form.append("files", file));
       const uploadedResponse = await fetch("/api/admin/uploads", { method: "POST", body: form });
+      if (uploadedResponse.status === 401) {
+        location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
+        return;
+      }
       const result = await uploadedResponse.json().catch(() => ({}));
       if (!uploadedResponse.ok) throw new Error(result.error || "上传处理后的图片失败");
       const replacements = new Map(selectedImages.map((src, i) => [src, result.urls[i] as string]));

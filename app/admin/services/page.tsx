@@ -19,7 +19,8 @@ export default function ServiceList() {
           return [];
         }
         if (!r.ok) {
-          setNotice("服务数据暂时没有返回，请刷新重试。");
+          const result = (await r.json().catch(() => ({}))) as { error?: string };
+          setNotice(result.error || "服务数据暂时没有返回，请刷新重试。");
           return [];
         }
         const text = await r.text();
@@ -81,7 +82,7 @@ export default function ServiceList() {
         status: "draft",
       }),
     });
-    location.href = `/admin/services/${c.id}`;
+    window.location.assign(`/admin/services/${c.id}`);
   };
   const cities = [
     ...destinations

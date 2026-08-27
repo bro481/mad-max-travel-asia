@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../chatgpt-auth";
@@ -14,7 +15,20 @@ export async function GET() {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (useLocalServiceItems()) return NextResponse.json(listLocalServiceItems());
-  return NextResponse.json(await listServiceItems(true));
+  try {
+    return NextResponse.json(await listServiceItems(true));
+  } catch (error) {
+    console.error("Failed to load service items", error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? `服务数据读取失败：${error.message}`
+            : "服务数据读取失败",
+      },
+      { status: 500 },
+    );
+  }
 }
 export async function POST(r: Request) {
   if (!(await getChatGPTUser()))
