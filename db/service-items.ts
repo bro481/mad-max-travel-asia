@@ -56,6 +56,8 @@ export type ServiceRouteNode = {
   time?: string;
 };
 export type ServiceRoutePlan = {
+  sectionTitleZh?: string;
+  sectionDescriptionZh?: string;
   name?: string;
   nameZh?: string;
   nameEn?: string;

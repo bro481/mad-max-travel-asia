@@ -1975,6 +1975,9 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .private-route-detail-modal .modal-gallery .gallery-stage>img{border-radius:14px}
 .private-route-timeline>div{grid-template-columns:50px 10px 1fr 66px}
 .private-route-timeline img{width:66px;height:52px;object-fit:cover;border-radius:8px}
+.private-route-no-image{align-items:center;background:#e9e0d7;border-radius:14px;color:#806c5a;display:flex!important;height:100%;justify-content:center;margin:0!important;min-height:420px;text-align:center}
+.private-route-stop-no-image{align-items:center;background:#f2e9df;border-radius:8px;color:#8b7867;display:flex;font-size:8px;height:52px;justify-content:center;text-align:center;width:66px}
+.private-route-timeline>div.preview-focused-stop{background:#fff5e8;border-radius:10px;box-shadow:0 0 0 2px rgba(180,118,60,.25);margin:0 -8px 8px;padding:8px}
 @media(hover:none){.private-car-managed-modal .private-car-visual .gallery-arrow{opacity:1}}
 @media(max-width:950px){.private-car-managed-modal>div{grid-template-columns:1fr;max-width:720px;overflow-y:auto}.private-car-managed-modal .private-car-visual{height:300px;min-height:0}.private-car-managed-modal section{overflow:visible}.private-route-detail-modal .modal-gallery{min-height:330px}}
 @media(max-width:700px){.private-car-managed-modal{padding:0;align-items:end}.private-car-managed-modal>div{display:block;width:100%;max-height:94vh;border-radius:22px 22px 0 0}.private-car-managed-modal .private-car-visual{height:255px}.private-car-managed-modal section{padding:26px 21px 24px}.private-route-grid article{grid-template-columns:96px 1fr}.private-route-grid img{height:84px}.private-route-grid h4{font-size:16px}.private-route-detail-modal .modal-gallery{min-height:250px}.private-route-timeline>div{grid-template-columns:44px 9px 1fr 54px}.private-route-timeline img{width:54px;height:43px}}

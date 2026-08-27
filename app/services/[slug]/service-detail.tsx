@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { InquiryModal } from "../../components/inquiry-modal";
 import type { ServiceCategory } from "../../../db/services";
 import { ServiceMenu } from "../../service-menu";
 type Lang = "zh" | "en";
@@ -245,6 +246,7 @@ export function ServiceDetail({
 }) {
   const [lang, setLang] = useState<Lang>("zh"),
     [selected, setSelected] = useState<Route | null>(null),
+    [inquiryTitle, setInquiryTitle] = useState<string | null>(null),
     [stopIndex, setStopIndex] = useState(0),
     [stopPhotoIndex, setStopPhotoIndex] = useState(0),
     [menu, setMenu] = useState(false);
@@ -971,9 +973,9 @@ export function ServiceDetail({
                 : "Share your dates, group size and interests, and we will reply soon."}
             </p>
           </div>
-          <a className="button" href="/#contact">
+          <button className="button" type="button" onClick={() => setInquiryTitle(cityInfo.hero[0])}>
             {zh ? "提交咨询" : "Submit inquiry"} →
-          </a>
+          </button>
         </section>
       </main>
       {selected && (
@@ -1078,13 +1080,14 @@ export function ServiceDetail({
                       : "Families / Flexible plans / Seeing several highlights comfortably")}
                 </span>
               </p>
-              <a className="button" href="/#contact">
+              <button className="button" type="button" onClick={() => setInquiryTitle(selected.title[0])}>
                 {zh ? "咨询这条路线" : "Ask about this route"}
-              </a>
+              </button>
             </div>
           </div>
         </div>
       )}
+      {inquiryTitle && <InquiryModal kind="private-charter" title={inquiryTitle} onClose={() => setInquiryTitle(null)} />}
     </>
   );
 }

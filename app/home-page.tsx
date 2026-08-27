@@ -4,6 +4,7 @@ import { services, type Lang, type Room } from "./data";
 import type { DestinationRecord } from "../db/destinations";
 import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
 import { ServiceMenu } from "./service-menu";
+import { InquiryModal } from "./components/inquiry-modal";
 
 const fallbackDestinations: DestinationRecord[] = [
   { id: 1, slug: "kuala-lumpur", nameZh: "吉隆坡", nameEn: "Kuala Lumpur", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 1, serviceSort: 1, onlyShowWithContent: true, status: "visible", updatedAt: "" },
@@ -283,6 +284,7 @@ export function RoomDetailModal({
 }) {
   const [photo, setPhoto] = useState(0);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
   const [photoZoomed, setPhotoZoomed] = useState(false);
   const [tab, setTab] = useState<RoomModalTab>(initialTab);
   const touchStartX = useRef<number | null>(null);
@@ -452,9 +454,10 @@ export function RoomDetailModal({
               </>
             )}
           </div>
-          <a className="button room-modal-cta" href="#contact" onClick={onClose}>{lang === "zh" ? "咨询入住" : "Ask about this stay"} →</a>
+          <button className="button room-modal-cta" type="button" onClick={() => setInquiryOpen(true)}>{lang === "zh" ? "咨询入住" : "Ask about this stay"} →</button>
         </section>
       </div>
+      {inquiryOpen && <InquiryModal kind="accommodation" title={room.name[lang]} maxGuests={room.guests} onClose={() => setInquiryOpen(false)} />}
       {galleryOpen && (
         <div className={`room-photo-viewer${photoZoomed ? " zoomed" : ""}`} role="dialog" aria-modal="true" onMouseDown={closeGallery}>
           <div onMouseDown={(event) => event.stopPropagation()}>

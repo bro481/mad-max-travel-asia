@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { GalleryCarousel } from "../components/gallery-carousel";
+import { InquiryModal } from "../components/inquiry-modal";
 import "./airport-transfer-modal.css";
 
 export type AirportTransferPreview = {
@@ -41,6 +42,7 @@ export function AirportTransferModal({
 }) {
   const images = data.images.filter(Boolean);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [sharedRequestOpen, setSharedRequestOpen] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
   const [wechatCopied, setWechatCopied] = useState(false);
@@ -170,7 +172,7 @@ export function AirportTransferModal({
             className="button airport-open-request"
             type="button"
             onClick={() => {
-              setRequestOpen(true);
+              setSharedRequestOpen(true);
               setGenerated(false);
               setCopied(false);
               setWechatCopied(false);
@@ -179,6 +181,9 @@ export function AirportTransferModal({
             咨询这项服务
           </button>
         </section>
+        {sharedRequestOpen && (
+          <InquiryModal kind="airport-transfer" title={data.title} maxGuests={data.maxGuests} onClose={() => setSharedRequestOpen(false)} />
+        )}
         {requestOpen && (
           <div
             className="airport-request-layer"

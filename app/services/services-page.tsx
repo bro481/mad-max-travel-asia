@@ -8,6 +8,12 @@ import type {
   ServiceRoutePlan,
 } from "../../db/service-items";
 import { GalleryCarousel } from "../components/gallery-carousel";
+import { InquiryModal, type InquiryKind } from "../components/inquiry-modal";
+import {
+  PrivateRouteDetailModal,
+  type PrivateRouteDetailData,
+  type PrivateRouteDetailStop,
+} from "../components/private-route-detail-modal";
 import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
 type Lang = "zh" | "en";
@@ -53,20 +59,6 @@ type ExperienceDetail = {
   includes: [string, string][];
   cta: [string, string];
   stops: ExperienceStop[];
-};
-type PrivateRouteStop = {
-  title: [string, string];
-  note: [string, string];
-  image: string;
-  time?: string;
-};
-type PrivateRoute = {
-  title: [string, string];
-  desc: [string, string];
-  duration: [string, string];
-  tags: Array<[string, string]>;
-  image: string;
-  stops: PrivateRouteStop[];
 };
 type Group = { name: [string, string]; icon: string; items: Offer[] };
 type Destination = {
@@ -286,9 +278,7 @@ const routePlanTags = (route: ServiceRoutePlan) => {
 };
 const routePlanNodes = (
   route: ServiceRoutePlan,
-  service: ServiceItem,
-  fallbackImage: string,
-): PrivateRouteStop[] => {
+): PrivateRouteDetailStop[] => {
   const nodes = route.nodes?.length
     ? route.nodes
     : (route.stops || "")
@@ -304,19 +294,14 @@ const routePlanNodes = (
       index === 0 ? "从酒店或约定地点出发" : "可根据当天时间灵活调整停留",
     ),
     time: node.stayTime || node.time || "",
-    image:
-      node.image ||
-      route.image ||
-      service.images[index % Math.max(service.images.length, 1)] ||
-      fallbackImage,
+    image: node.image || "",
   }));
 };
 const routePlanToPrivateRoute = (
   route: ServiceRoutePlan,
   service: ServiceItem,
-  fallbackImage: string,
   index: number,
-): PrivateRoute => {
+): PrivateRouteDetailData => {
   const titleZh = routePlanTitle(route, `${service.city}推荐路线 ${index + 1}`);
   const descZh = routePlanDescription(route, "路线仅作参考，可根据您的时间与兴趣灵活调整。");
   return {
@@ -324,8 +309,8 @@ const routePlanToPrivateRoute = (
     desc: textPair(descZh, route.descriptionEn, descZh),
     duration: textPair(route.duration || "时间灵活", route.duration || "Flexible duration"),
     tags: routePlanTags(route),
-    image: route.image || service.images[0] || fallbackImage,
-    stops: routePlanNodes(route, service, fallbackImage),
+    image: route.image || "",
+    stops: routePlanNodes(route),
   };
 };
 const airportVehicles: AirportVehicle[] = [
@@ -800,7 +785,8 @@ export function ServicesPage({
     [destination, setDestination] = useState("all"),
     [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedPrivateRoute, setSelectedPrivateRoute] =
-    useState<PrivateRoute | null>(null);
+    useState<PrivateRouteDetailData | null>(null);
+  const [inquiry, setInquiry] = useState<{ kind: InquiryKind; title?: string } | null>(null);
   const [experienceIndex, setExperienceIndex] = useState(0);
   const [intercityRequestOpen, setIntercityRequestOpen] = useState(false);
   const [intercityGenerated, setIntercityGenerated] = useState(false);
@@ -926,7 +912,6 @@ export function ServicesPage({
           routePlanToPrivateRoute(
             route,
             selectedPrivateCar,
-            selectedOffer?.image || img("photo-1550355291-bbee04a92027"),
             index,
           ),
         )
@@ -1352,9 +1337,9 @@ export function ServicesPage({
                 ))}
               </div>
               <p className="modal-flex-note">{experienceDetail.note[l]}</p>
-              <a className="button" href="/#contact">
+              <button className="button" type="button" onClick={() => setInquiry({ kind: "experience", title: selectedOffer.title[0] })}>
                 {experienceDetail.cta[l]}
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -1481,81 +1466,20 @@ export function ServicesPage({
                   ? "路线只是参考，我们会先确认当天时间、车型和价格。"
                   : "Routes are references; we will confirm timing, vehicle and price first."}
               </p>
-              <a className="button" href="/#contact">
+              <button className="button" type="button" onClick={() => setInquiry({ kind: "private-charter", title: selectedOffer.title[0] })}>
                 {lang === "zh" ? "咨询这项服务" : "Ask about this service"}
-              </a>
+              </button>
             </section>
           </div>
         </div>
       )}
       {selectedPrivateRoute && (
-        <div
-          className="route-modal private-route-detail-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedPrivateRoute.title[l]}
-          onClick={() => setSelectedPrivateRoute(null)}
-        >
-          <div onClick={(event) => event.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setSelectedPrivateRoute(null)}
-              aria-label={lang === "zh" ? "关闭" : "Close"}
-            >
-              ×
-            </button>
-            <div className="modal-gallery experience-gallery">
-              <GalleryCarousel
-                images={[
-                  selectedPrivateRoute.image,
-                  ...selectedPrivateRoute.stops.map((stop) => stop.image),
-                ]}
-                alt={selectedPrivateRoute.title[l]}
-                compact
-              />
-            </div>
-            <div className="modal-route experience-modal-route">
-              <p className="eyebrow">MAD MAX · ROUTE PLAN</p>
-              <h2>{selectedPrivateRoute.title[l]}</h2>
-              <p className="quick-modal-desc experience-route-lead">
-                {selectedPrivateRoute.desc[l]}
-              </p>
-              <div className="modal-tags">
-                <span>{selectedPrivateRoute.duration[l]}</span>
-                {selectedPrivateRoute.tags.map((tag) => (
-                  <span key={tag[0]}>{tag[l]}</span>
-                ))}
-              </div>
-              <p className="modal-itinerary-title">
-                {lang === "zh" ? "路线节点" : "Route stops"}
-              </p>
-              <div className="timeline experience-timeline private-route-timeline">
-                {selectedPrivateRoute.stops.map((stop, i) => (
-                  <div key={`${stop.title[0]}-${i}`}>
-                    <time>{String(i + 1).padStart(2, "0")}</time>
-                    <i />
-                    <p>
-                      <b>{stop.title[l]}</b>
-                      <small>
-                        {stop.note[l]}
-                        {stop.time ? ` · ${stop.time}` : ""}
-                      </small>
-                    </p>
-                    <img src={stop.image} alt="" />
-                  </div>
-                ))}
-              </div>
-              <p className="modal-flex-note">
-                {lang === "zh"
-                  ? "这条路线可作为参考，也可以根据兴趣、天气和时间现场调整。"
-                  : "This route is a reference and can be adjusted around your interests, weather and time."}
-              </p>
-              <a className="button" href="/#contact">
-                {lang === "zh" ? "咨询这条路线" : "Ask about this route"}
-              </a>
-            </div>
-          </div>
-        </div>
+        <PrivateRouteDetailModal
+          route={selectedPrivateRoute}
+          lang={lang}
+          onClose={() => setSelectedPrivateRoute(null)}
+          onInquire={() => setInquiry({ kind: "private-charter", title: selectedPrivateRoute.title[0] })}
+        />
       )}
       {selectedOffer && !isAirportTransfer && !experienceDetail && !selectedPrivateCar && (
         <div
@@ -1681,9 +1605,9 @@ export function ServicesPage({
                   告诉我你的行程 →
                 </button>
               ) : (
-                <a className="button" href="/#contact">
+                <button className="button" type="button" onClick={() => setInquiry({ kind: isExperienceOffer ? "experience" : "private-charter", title: selectedOffer.title[0] })}>
                   {lang === "zh" ? "咨询这项服务" : "Ask about this service"}
-                </a>
+                </button>
               )}
             </section>
             {isIntercityTransfer && intercityRequestOpen && (
@@ -1802,6 +1726,7 @@ export function ServicesPage({
           </div>
         </div>
       )}
+      {inquiry && <InquiryModal kind={inquiry.kind} title={inquiry.title} onClose={() => setInquiry(null)} />}
       <footer>
         <Logo />
         <p>MAD MAX Malaysia Stay · Local travel services</p>

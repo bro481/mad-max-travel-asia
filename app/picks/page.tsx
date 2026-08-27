@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ServiceMenu } from "../service-menu";
+import { InquiryModal } from "../components/inquiry-modal";
 import { bundles, products, type PickBundle, type PickProduct, type PriceType } from "./data";
 
 type Lang = "zh" | "en";
@@ -56,6 +57,7 @@ export default function PicksPage() {
   const [category, setCategory] = useState("all");
   const [selected, setSelected] = useState<PickProduct | null>(null);
   const [selectedBundle, setSelectedBundle] = useState<PickBundle | null>(null);
+  const [inquiryTitle, setInquiryTitle] = useState<string | null>(null);
   const [photo, setPhoto] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const lastWheelAt = useRef(0);
@@ -131,7 +133,7 @@ export default function PicksPage() {
         <div className="picks-modal-info"><span>{selected[`tag${l}`]}</span><h2>{selected[`name${l}`]}</h2><p>{selected[`description${l}`]}</p><div className="picks-modal-price"><Price price={selected.price} type="starting" lang={lang} /><small>{selected.stockStatus === "preorder" ? t.preorder : t.available}</small></div>
           <dl className="picks-modal-summary"><div><dt>{t.specs}</dt><dd>{selected[`quantity${l}`]}</dd></div><div><dt>{t.audience}</dt><dd>{audience}</dd></div><div><dt>{t.delivery}</dt><dd>{lang === "zh" ? "旅途中可结合住宿、接送或行程交付；已经回国也可以咨询寄送。" : "Collect during your stay, transfer or itinerary; shipping can also be discussed after you return home."}</dd></div></dl>
           <p className="picks-modal-gift"><b>🎁 {lang === "zh" ? "需要送人？" : "Giving it as a gift?"}</b>{lang === "zh" ? " 可以提前告诉我们是否需要礼袋。" : " Tell us in advance if you would like a gift bag."}</p>
-          <a className="button" href="/#contact">{t.buy} →</a>
+          <button className="button" type="button" onClick={() => setInquiryTitle(selected[`name${l}`])}>{t.buy} →</button>
           <small className="picks-modal-confirm">{lang === "zh" ? "人工确认库存、实际价格与领取 / 寄送方式" : "Stock, final price, collection and shipping are confirmed personally"}</small>
         </div>
       </div>
@@ -147,11 +149,12 @@ export default function PicksPage() {
           <section className="picks-bundle-contents"><h3>{lang === "zh" ? "这套有什么" : "What is included"}</h3><ul>{selectedBundle[`includedProducts${l}`].map((item) => <li key={item}><span>{item}</span><b>× 1</b></li>)}</ul></section>
           <dl className="picks-modal-summary"><div><dt>{t.audience}</dt><dd>{selectedBundle[`scenario${l}`]} · {lang === "zh" ? "带回家分享" : "Sharing at home"}</dd></div><div><dt>{t.delivery}</dt><dd>{lang === "zh" ? "马来西亚旅途中可结合住宿、接送或行程领取；回国后可咨询寄送。" : "Collect during your Malaysia trip with a stay, transfer or itinerary; shipping can be discussed after returning home."}</dd></div></dl>
           <p className="picks-bundle-note">{lang === "zh" ? "具体品牌、规格和库存以实际确认为准。" : "Brands, specifications and stock are subject to confirmation."}</p>
-          <a className="button" href="/#contact">{lang === "zh" ? "咨询这套" : "Ask about this set"} →</a>
+          <button className="button" type="button" onClick={() => setInquiryTitle(selectedBundle[`bundleName${l}`])}>{lang === "zh" ? "咨询这套" : "Ask about this set"} →</button>
           <small className="picks-modal-confirm">{lang === "zh" ? "人工确认库存、实际价格与领取 / 寄送方式" : "Stock, final price, collection and shipping are confirmed personally"}</small>
         </div>
       </div>
     </div>}
+    {inquiryTitle && <InquiryModal kind="gift" title={inquiryTitle} onClose={() => setInquiryTitle(null)} />}
 
     <footer><a className="logo" href="/"><span className="logo-mark">⌂</span><span><b>MAD MAX</b><small>MALAYSIA STAY</small></span></a><div><a href="/#stays">{t.rooms}</a><a href="/services">{lang === "zh" ? "当地服务" : "Local Services"}</a><a href="/#contact">{t.contact}</a></div><small>© 2026 MAD MAX Malaysia Stay</small></footer>
   </>;

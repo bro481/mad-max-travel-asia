@@ -2,8 +2,11 @@
 import { FormEvent, useState } from "react";
 import type { ServiceItem } from "../../../../db/service-items";
 import { ServiceMenu } from "../../../service-menu";
+import { InquiryModal, type InquiryKind } from "../../../components/inquiry-modal";
 export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
   const [sent, setSent] = useState(false);
+  const [inquiryOpen, setInquiryOpen] = useState(false);
+  const inquiryKind: InquiryKind = s.type === "交通接送" ? "airport-transfer" : s.type === "私人包车" ? "private-charter" : "experience";
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = e.currentTarget,
@@ -129,7 +132,9 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
           </article>
           <aside>
             <h2>咨询这项服务</h2>
-            <p>请告诉我们以下信息，我们会尽快联系确认。</p>
+            <p>告诉我们日期和人数，系统会整理成一段可直接发送的微信需求。</p>
+            <button className="button" type="button" onClick={() => setInquiryOpen(true)}>生成需求并咨询 →</button>
+            <div hidden>
             {sent ? (
               <div className="inquiry-success">
                 <b>✓ 已收到咨询</b>
@@ -157,10 +162,11 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
                 </label>
                 <button className="button">提交咨询</button>
               </form>
-            )}
+            )}</div>
           </aside>
         </div>
       </main>
+      {inquiryOpen && <InquiryModal kind={inquiryKind} title={s.nameZh} maxGuests={s.maxGuests || 14} onClose={() => setInquiryOpen(false)} />}
     </>
   );
 }

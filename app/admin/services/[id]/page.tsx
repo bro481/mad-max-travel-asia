@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
+import {
+  PrivateRouteDetailModal,
+  type PrivateRouteDetailData,
+} from "../../../components/private-route-detail-modal";
 import type { DestinationRecord } from "../../../../db/destinations";
 import type { ServiceCategory } from "../../../../db/services";
 import type {
@@ -26,6 +30,7 @@ export default function ServiceEditor() {
   const [tab, setTab] = useState(0);
   const [loadError, setLoadError] = useState("");
   const [notice, setNotice] = useState("");
+  const [dragServiceImageIndex, setDragServiceImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -286,19 +291,25 @@ export default function ServiceEditor() {
               </label>
               <div className="service-image-list">
                 {d.images.map((x, i) => (
-                  <div key={`${x}-${i}`}>
+                  <div
+                    className={dragServiceImageIndex === i ? "dragging" : ""}
+                    draggable
+                    key={`${x}-${i}`}
+                    onDragStart={() => setDragServiceImageIndex(i)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      if (dragServiceImageIndex === null || dragServiceImageIndex === i) return;
+                      const next = [...d.images];
+                      const [moving] = next.splice(dragServiceImageIndex, 1);
+                      next.splice(i, 0, moving);
+                      set("images", next);
+                      setDragServiceImageIndex(null);
+                    }}
+                    onDragEnd={() => setDragServiceImageIndex(null)}
+                  >
+                    <span className="route-drag-handle" aria-hidden="true">≡</span>
                     <img src={x} alt="" />
                     <b>{i === 0 ? "★ 封面" : `图片 ${i + 1}`}</b>
-                    <button
-                      disabled={i === 0}
-                      onClick={() => {
-                        const a = [...d.images];
-                        [a[i - 1], a[i]] = [a[i], a[i - 1]];
-                        set("images", a);
-                      }}
-                    >
-                      ↑
-                    </button>
                     <button onClick={() => set("images", d.images.filter((_, n) => n !== i))}>删除</button>
                   </div>
                 ))}
@@ -462,8 +473,8 @@ function ServiceHighlights({
         { title: "酒店接送", description: "减少交通衔接麻烦" },
       ];
   return (
-    <div className="service-repeat compact">
-      <h3>服务亮点</h3>
+    <details className="service-repeat compact service-highlights-collapsed">
+      <summary>服务亮点（不常修改）</summary>
       {highlights.map((item, index) => (
         <div key={`${item.title}-${index}`}>
           <Field n="亮点">
@@ -486,7 +497,7 @@ function ServiceHighlights({
         </div>
       ))}
       <button onClick={() => onChange([...highlights, { title: "新亮点", description: "" }])}>＋ 添加亮点</button>
-    </div>
+    </details>
   );
 }
 
@@ -823,7 +834,7 @@ function routePlanNodes(route: ServiceRoutePlan): ServiceRouteNode[] {
     .map((name) => ({ nameZh: name, descriptionZh: "", image: "", stayTime: "", type: guessNodeType(name) }));
 }
 
-function emptyRoutePlan(index: number, image = ""): ServiceRoutePlan {
+function emptyRoutePlan(index: number): ServiceRoutePlan {
   return {
     name: `新路线 ${index + 1}`,
     nameZh: `新路线 ${index + 1}`,
@@ -831,7 +842,7 @@ function emptyRoutePlan(index: number, image = ""): ServiceRoutePlan {
     description: "",
     descriptionZh: "",
     descriptionEn: "",
-    image,
+    image: "",
     duration: "约 8 小时",
     tag: "推荐路线",
     tags: ["推荐路线"],
@@ -845,7 +856,7 @@ function emptyRoutePlan(index: number, image = ""): ServiceRoutePlan {
         nameEn: "Hotel pickup",
         descriptionZh: "从酒店出发",
         descriptionEn: "Depart from your hotel",
-        image,
+        image: "",
         stayTime: "",
         type: "接送",
       },
@@ -853,14 +864,14 @@ function emptyRoutePlan(index: number, image = ""): ServiceRoutePlan {
   };
 }
 
-function normalizeRoutePlan(route: ServiceRoutePlan, index: number, fallbackImage = ""): ServiceRoutePlan {
+function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRoutePlan {
   const tags = routePlanTags(route);
   const nodes = routePlanNodes(route).map((node) => ({ ...node, type: node.type || guessNodeType(node.nameZh || node.title || "") }));
   return {
     ...route,
     name: route.name || route.nameZh || `路线 ${index + 1}`,
     nameZh: route.nameZh || route.name || `路线 ${index + 1}`,
-    image: route.image || fallbackImage,
+    image: route.image || "",
     duration: route.duration || "约 8 小时",
     tag: tags[0] || "",
     tags,
@@ -883,19 +894,77 @@ function RoutePlansEditor({
   onUpload: (files: FileList | null, done: (urls: string[]) => void) => void;
   onChange: (x: ServiceRoutePlan[]) => void;
 }) {
-  const [editing, setEditing] = useState(0);
-  const fallbackImage = serviceImages[0] || "";
+  const [editingRouteIndex, setEditingRouteIndex] = useState<number | null>(null);
+  const [routeTab, setRouteTab] = useState<"basic" | "nodes">("basic");
+  const [tagDraft, setTagDraft] = useState("");
+  const [editingNodeIndex, setEditingNodeIndex] = useState<number | null>(null);
+  const [dragRouteIndex, setDragRouteIndex] = useState<number | null>(null);
+  const [dragNodeIndex, setDragNodeIndex] = useState<number | null>(null);
+  const [routePreview, setRoutePreview] = useState<{ focusStopIndex: number | null } | null>(null);
   const routes = useMemo(
     () =>
-      (items.length ? items : [emptyRoutePlan(0, fallbackImage)]).map((route, index) =>
-        normalizeRoutePlan(route, index, fallbackImage),
+      (items.length ? items : [emptyRoutePlan(0)]).map((route, index) =>
+        normalizeRoutePlan(route, index),
       ),
-    [items, fallbackImage],
+    [items],
   );
   const sync = (next: ServiceRoutePlan[]) =>
     onChange(next.map((route, index) => ({ ...route, sortOrder: index + 1 })));
   const update = (index: number, patch: Partial<ServiceRoutePlan>) =>
     sync(routes.map((route, i) => (i === index ? { ...route, ...patch } : route)));
+  const activeRoute = editingRouteIndex === null ? null : routes[editingRouteIndex] || null;
+  const activeNodes = activeRoute ? routePlanNodes(activeRoute) : [];
+  const activeNode =
+    editingNodeIndex === null ? null : activeNodes[Math.min(editingNodeIndex, Math.max(activeNodes.length - 1, 0))] || null;
+  const closeRouteEditor = () => {
+    setRoutePreview(null);
+    setEditingRouteIndex(null);
+    setEditingNodeIndex(null);
+    setRouteTab("basic");
+  };
+  const openRouteEditor = (index: number, tab: "basic" | "nodes" = "basic", nodeIndex: number | null = null) => {
+    setEditingRouteIndex(index);
+    setRouteTab(tab);
+    setEditingNodeIndex(nodeIndex);
+    setTagDraft("");
+  };
+  const cleanRouteTags = (route: ServiceRoutePlan) =>
+    routePlanTags(route).filter((tag) => !/^约?\s*\d+(?:[–—-]\d+)?\s*(?:小时|分钟|天)$/.test(tag));
+  const previewRoute: PrivateRouteDetailData | null = activeRoute
+    ? {
+        title: [routePlanName(activeRoute), activeRoute.nameEn || routePlanName(activeRoute)],
+        desc: [
+          routePlanDescription(activeRoute) || "路线仅作参考，可根据您的时间与兴趣灵活调整。",
+          activeRoute.descriptionEn || routePlanDescription(activeRoute) || "Route details can be adjusted around your plans.",
+        ],
+        duration: [activeRoute.duration || "时间灵活", activeRoute.duration || "Flexible duration"],
+        tags: cleanRouteTags(activeRoute).map((tag) => [tag, tag]),
+        image: activeRoute.image || "",
+        stops: activeNodes.map((node, index) => ({
+          title: [
+            node.nameZh || node.title || `路线节点 ${index + 1}`,
+            node.nameEn || node.nameZh || node.title || `Route stop ${index + 1}`,
+          ],
+          note: [
+            node.descriptionZh || node.description || "可根据当天时间灵活调整停留。",
+            node.descriptionEn || node.descriptionZh || node.description || "Timing can be adjusted on the day.",
+          ],
+          image: node.image || "",
+          time: node.stayTime || node.time || "",
+          type: node.type || guessNodeType(node.nameZh || node.title || ""),
+        })),
+      }
+    : null;
+  const setRouteTags = (tags: string[]) =>
+    update(editingRouteIndex!, { tags, tag: tags[0] || "" });
+  const addRouteTag = () => {
+    if (editingRouteIndex === null) return;
+    const value = tagDraft.trim();
+    const current = cleanRouteTags(routes[editingRouteIndex]);
+    if (!value || current.includes(value)) return setTagDraft("");
+    setRouteTags([...current, value]);
+    setTagDraft("");
+  };
   const updateNode = (routeIndex: number, nodeIndex: number, patch: Partial<ServiceRouteNode>) => {
     const route = routes[routeIndex];
     const nodes = routePlanNodes(route).map((node, i) => (i === nodeIndex ? { ...node, ...patch } : node));
@@ -904,35 +973,156 @@ function RoutePlansEditor({
       stops: nodes.map((node) => node.nameZh || node.title || "").filter(Boolean).join(" · "),
     });
   };
-  const moveRoute = (from: number, to: number) => {
+  const reorderRoute = (from: number, to: number) => {
     if (to < 0 || to >= routes.length) return;
     const next = [...routes];
-    [next[from], next[to]] = [next[to], next[from]];
-    setEditing(to);
+    const [moving] = next.splice(from, 1);
+    next.splice(to, 0, moving);
+    setEditingRouteIndex((current) => {
+      if (current === null) return current;
+      if (current === from) return to;
+      if (from < current && to >= current) return current - 1;
+      if (from > current && to <= current) return current + 1;
+      return current;
+    });
     sync(next);
   };
-  const moveNode = (routeIndex: number, from: number, to: number) => {
+  const reorderNode = (routeIndex: number, from: number, to: number) => {
     const route = routes[routeIndex];
     const nodes = routePlanNodes(route);
     if (to < 0 || to >= nodes.length) return;
     const next = [...nodes];
-    [next[from], next[to]] = [next[to], next[from]];
+    const [moving] = next.splice(from, 1);
+    next.splice(to, 0, moving);
+    setEditingNodeIndex((current) => {
+      if (current === null) return current;
+      if (current === from) return to;
+      if (from < current && to >= current) return current - 1;
+      if (from > current && to <= current) return current + 1;
+      return current;
+    });
     update(routeIndex, {
       nodes: next,
       stops: next.map((node) => node.nameZh || node.title || "").filter(Boolean).join(" · "),
     });
   };
+  const copyRoute = (index: number) => {
+    const route = routes[index];
+    sync([
+      ...routes.slice(0, index + 1),
+      {
+        ...route,
+        nameZh: `${routePlanName(route)} - 副本`,
+        name: `${routePlanName(route)} - 副本`,
+        recommended: false,
+      },
+      ...routes.slice(index + 1),
+    ]);
+    openRouteEditor(index + 1);
+  };
+  const removeRoute = (index: number) => {
+    sync(routes.filter((_, i) => i !== index));
+    if (editingRouteIndex === index) closeRouteEditor();
+  };
+  const addNode = (routeIndex: number) => {
+    const route = routes[routeIndex];
+    const nodes = routePlanNodes(route);
+    update(routeIndex, {
+      nodes: [
+        ...nodes,
+        {
+          nameZh: "新节点",
+          nameEn: "",
+          descriptionZh: "",
+          descriptionEn: "",
+          image: "",
+          stayTime: "",
+          type: "景点",
+        },
+      ],
+    });
+    setRouteTab("nodes");
+    setEditingNodeIndex(nodes.length);
+  };
+  const copyNode = (routeIndex: number, nodeIndex: number) => {
+    const route = routes[routeIndex];
+    const nodes = routePlanNodes(route);
+    const node = nodes[nodeIndex];
+    const next = [
+      ...nodes.slice(0, nodeIndex + 1),
+      { ...node, nameZh: `${node.nameZh || node.title || "节点"} - 副本`, title: `${node.nameZh || node.title || "节点"} - 副本` },
+      ...nodes.slice(nodeIndex + 1),
+    ];
+    update(routeIndex, {
+      nodes: next,
+      stops: next.map((item) => item.nameZh || item.title || "").filter(Boolean).join(" · "),
+    });
+    setEditingNodeIndex(nodeIndex + 1);
+  };
+  const removeNode = (routeIndex: number, nodeIndex: number) => {
+    const route = routes[routeIndex];
+    const nodes = routePlanNodes(route);
+    const next = nodes.filter((_, i) => i !== nodeIndex);
+    update(routeIndex, {
+      nodes: next,
+      stops: next.map((item) => item.nameZh || item.title || "").filter(Boolean).join(" · "),
+    });
+    setEditingNodeIndex((current) => {
+      if (current === null) return current;
+      if (next.length === 0) return null;
+      if (current >= next.length) return next.length - 1;
+      return current;
+    });
+  };
+
   return (
     <div className="route-plan-editor">
+      <details className="route-section-copy route-section-collapsed">
+        <summary>板块设置</summary>
+        <div className="field-row">
+          <label className="route-inline-check">
+            <input
+              type="checkbox"
+              checked={items.some((route) => route.sectionTitleZh || route.sectionDescriptionZh)}
+              onChange={(event) =>
+                sync(
+                  routes.map((route) => ({
+                    ...route,
+                    sectionTitleZh: event.target.checked ? route.sectionTitleZh || "热门包车方案" : "",
+                    sectionDescriptionZh: event.target.checked
+                      ? route.sectionDescriptionZh || "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"
+                      : "",
+                  })),
+                )
+              }
+            />
+            <span>使用自定义板块文案</span>
+          </label>
+        </div>
+        <div className="field-row">
+          <Field n="板块标题">
+            <input
+              value={routes[0]?.sectionTitleZh || "热门包车方案"}
+              onChange={(e) => sync(routes.map((route) => ({ ...route, sectionTitleZh: e.target.value })))}
+            />
+          </Field>
+          <Field n="板块说明">
+            <input
+              value={routes[0]?.sectionDescriptionZh || "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"}
+              onChange={(e) => sync(routes.map((route) => ({ ...route, sectionDescriptionZh: e.target.value })))}
+            />
+          </Field>
+        </div>
+      </details>
       <div className="route-plan-head">
         <div>
           <h3>路线方案</h3>
-          <p>这些是“私人包车”服务内部的推荐路线，不会被创建成独立服务。</p>
+          <p>管理“私人包车”下的推荐路线。路线不是独立服务，点编辑后再维护单条路线和节点。</p>
         </div>
         <button
           onClick={() => {
-            sync([...routes, emptyRoutePlan(routes.length, fallbackImage)]);
-            setEditing(routes.length);
+            sync([...routes, emptyRoutePlan(routes.length)]);
+            openRouteEditor(routes.length);
           }}
         >
           ＋ 添加路线
@@ -943,214 +1133,370 @@ function RoutePlansEditor({
           const nodes = routePlanNodes(route);
           return (
             <article
-              className={editing === index ? "route-plan-card editing" : "route-plan-card"}
+              className={dragRouteIndex === index ? "route-plan-card compact dragging" : "route-plan-card compact"}
               key={`${routePlanName(route)}-${index}`}
+              draggable
+              onDragStart={() => setDragRouteIndex(index)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => {
+                if (dragRouteIndex !== null && dragRouteIndex !== index) reorderRoute(dragRouteIndex, index);
+                setDragRouteIndex(null);
+              }}
+              onDragEnd={() => setDragRouteIndex(null)}
             >
               <div className="route-plan-summary">
+                <span className="route-drag-handle" aria-hidden="true">
+                  ≡
+                </span>
                 <div className="route-plan-thumb">
                   {route.image ? <img src={route.image} alt="" /> : <span>路线图</span>}
                 </div>
-                <div>
+                <div className="route-plan-main">
                   <h4>
-                    {route.recommended ? <i>热门</i> : null}
                     {routePlanName(route)}
+                    {route.recommended ? <i>★ 推荐</i> : null}
                   </h4>
-                  <small>{route.nameEn || "英文名称未填写"}</small>
+                  <small>
+                    {route.duration || "时长未填"} · {nodes.length} 个节点 · {route.visible === false ? "已隐藏" : "已显示"}
+                  </small>
                   <p>
-                    {route.duration || "时长未填"} · {routePlanTags(route).join(" / ") || "暂无标签"} · {nodes.length} 个节点
+                    {nodes
+                      .filter((node) => !["接送", "返程"].includes(node.type || guessNodeType(node.nameZh || node.title || "")))
+                      .map((node) => node.nameZh || node.title || "")
+                      .filter(Boolean)
+                      .slice(0, 4)
+                      .join(" · ") || "暂无景点节点"}
+                    {nodes.length > 4 ? "…" : ""}
                   </p>
-                  <b>{route.visible === false ? "已隐藏" : "已显示"}</b>
                 </div>
                 <nav>
-                  <button onClick={() => moveRoute(index, index - 1)}>上移</button>
-                  <button onClick={() => moveRoute(index, index + 1)}>下移</button>
-                  <button onClick={() => setEditing(editing === index ? -1 : index)}>编辑</button>
-                  <button
-                    onClick={() => {
-                      sync([
-                        ...routes.slice(0, index + 1),
-                        {
-                          ...route,
-                          nameZh: `${routePlanName(route)} - 副本`,
-                          name: `${routePlanName(route)} - 副本`,
-                        },
-                        ...routes.slice(index + 1),
-                      ]);
-                      setEditing(index + 1);
-                    }}
-                  >
-                    复制
-                  </button>
-                  <button onClick={() => update(index, { visible: route.visible === false })}>
-                    {route.visible === false ? "显示" : "隐藏"}
-                  </button>
-                  <button
-                    className="danger"
-                    onClick={() => {
-                      const next = routes.filter((_, i) => i !== index);
-                      setEditing(Math.max(0, index - 1));
-                      sync(next);
-                    }}
-                  >
-                    删除
-                  </button>
+                  <button onClick={() => openRouteEditor(index)}>编辑</button>
+                  <details className="route-actions-menu">
+                    <summary aria-label="更多路线操作">•••</summary>
+                    <div>
+                      <button onClick={() => copyRoute(index)}>复制</button>
+                      <button onClick={() => update(index, { visible: route.visible === false })}>
+                        {route.visible === false ? "显示" : "隐藏"}
+                      </button>
+                      <button className="danger" onClick={() => removeRoute(index)}>删除</button>
+                    </div>
+                  </details>
                 </nav>
               </div>
-              {editing === index && (
-                <div className="route-plan-form">
+            </article>
+          );
+        })}
+      </div>
+      {activeRoute && editingRouteIndex !== null && (
+        <div className="route-editor-backdrop" role="dialog" aria-modal="true">
+          <div className="route-editor-modal">
+            <header className="route-editor-header">
+              <div>
+                <small>路线编辑器</small>
+                <h3>{routePlanName(activeRoute)}</h3>
+                <p>
+                  {activeRoute.duration || "时长未填"} · {activeNodes.length} 个节点 ·{" "}
+                  {activeRoute.visible === false ? "已隐藏" : "前台显示"}
+                </p>
+              </div>
+              <button onClick={closeRouteEditor} aria-label="关闭路线编辑器">
+                ×
+              </button>
+            </header>
+            <div className="route-editor-tabs">
+              {[
+                ["basic", "基本信息"],
+                ["nodes", "路线节点"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  className={routeTab === key ? "active" : ""}
+                  onClick={() => setRouteTab(key as "basic" | "nodes")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {routeTab === "basic" && (
+              <div className="route-editor-body route-editor-grid">
+                <div className="route-panel-form">
                   <div className="field-row">
                     <Field n="路线名称">
                       <input
-                        value={route.nameZh || ""}
-                        onChange={(e) => update(index, { nameZh: e.target.value, name: e.target.value })}
+                        value={activeRoute.nameZh || ""}
+                        onChange={(e) =>
+                          update(editingRouteIndex, {
+                            nameZh: e.target.value,
+                            name: e.target.value,
+                          })
+                        }
                       />
                     </Field>
                     <Field n="英文名称">
-                      <input value={route.nameEn || ""} onChange={(e) => update(index, { nameEn: e.target.value })} />
+                      <input
+                        value={activeRoute.nameEn || ""}
+                        onChange={(e) => update(editingRouteIndex, { nameEn: e.target.value })}
+                      />
                     </Field>
                   </div>
                   <Field n="路线副标题 / 简介">
                     <input
-                      value={routePlanDescription(route)}
-                      onChange={(e) => update(index, { descriptionZh: e.target.value, description: e.target.value })}
+                      value={routePlanDescription(activeRoute)}
+                      onChange={(e) =>
+                        update(editingRouteIndex, {
+                          descriptionZh: e.target.value,
+                          description: e.target.value,
+                        })
+                      }
                     />
                   </Field>
                   <div className="field-row">
                     <Field n="建议时长">
-                      <input value={route.duration || ""} onChange={(e) => update(index, { duration: e.target.value })} />
-                    </Field>
-                    <Field n="路线标签（用顿号分隔）">
                       <input
-                        value={routePlanTags(route).join("、")}
-                        onChange={(e) => {
-                          const tags = e.target.value
-                            .split(/[、,，]/)
-                            .map((tag) => tag.trim())
-                            .filter(Boolean);
-                          update(index, { tags, tag: tags[0] || "" });
-                        }}
+                        value={activeRoute.duration || ""}
+                        onChange={(e) => update(editingRouteIndex, { duration: e.target.value })}
                       />
                     </Field>
+                    <Field n="路线标签">
+                      <div className="route-tag-editor">
+                        {cleanRouteTags(activeRoute).map((tag) => (
+                          <span key={tag}>
+                            {tag}
+                            <button
+                              type="button"
+                              aria-label={`删除标签 ${tag}`}
+                              onClick={() => setRouteTags(cleanRouteTags(activeRoute).filter((item) => item !== tag))}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          value={tagDraft}
+                          placeholder="输入标签后回车"
+                          onChange={(e) => setTagDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addRouteTag();
+                            }
+                          }}
+                        />
+                        <button type="button" onClick={addRouteTag}>＋ 添加</button>
+                      </div>
+                    </Field>
                   </div>
-                  <label className="route-inline-check">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(route.recommended)}
-                      onChange={(e) => update(index, { recommended: e.target.checked })}
-                    />
-                    <span>热门推荐</span>
-                  </label>
-                  <Field n="封面图片">
-                    <ImageChooser
-                      value={route.image || ""}
-                      images={serviceImages}
-                      onUpload={(files) => onUpload(files, (urls) => update(index, { image: urls[0] || route.image }))}
-                      onChange={(url) => update(index, { image: url })}
-                    />
+                  <div className="route-switch-row">
+                    <label className="route-inline-check">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(activeRoute.recommended)}
+                        onChange={(e) => update(editingRouteIndex, { recommended: e.target.checked })}
+                      />
+                      <span>前台重点推荐</span>
+                    </label>
+                    <label className="route-inline-check">
+                      <input
+                        type="checkbox"
+                        checked={activeRoute.visible !== false}
+                        onChange={(e) => update(editingRouteIndex, { visible: e.target.checked })}
+                      />
+                      <span>前台显示</span>
+                    </label>
+                  </div>
+                  <Field n="路线封面图">
+                    <div className="route-cover-compact">
+                      <ImageChooser
+                        value={activeRoute.image || ""}
+                        images={serviceImages}
+                        onUpload={(files) =>
+                          onUpload(files, (urls) => update(editingRouteIndex, { image: urls[0] || activeRoute.image }))
+                        }
+                        onChange={(url) => update(editingRouteIndex, { image: url })}
+                      />
+                      <button type="button" className="route-cover-remove" onClick={() => update(editingRouteIndex, { image: "" })}>
+                        删除封面
+                      </button>
+                      <small>建议比例 16:9，右侧可实时查看前台卡片效果。</small>
+                    </div>
                   </Field>
-                  <h4>路线节点</h4>
-                  <div className="route-node-list">
-                    {nodes.map((node, nodeIndex) => (
-                      <article className="route-node-card" key={`${node.nameZh || node.title}-${nodeIndex}`}>
+                </div>
+                <aside className="route-card-preview">
+                  <small>前台路线卡预览</small>
+                  <div className="route-preview-card">
+                    <div className="route-preview-image">
+                      {activeRoute.image ? <img src={activeRoute.image} alt="" /> : <span>封面图</span>}
+                    </div>
+                    <h4>{routePlanName(activeRoute)}</h4>
+                    <p>
+                      {activeRoute.duration || "约 8 小时"}　
+                      {cleanRouteTags(activeRoute).slice(0, 1).join("") || "推荐路线"}
+                    </p>
+                    <b>{routePlanDescription(activeRoute) || "路线简介会显示在这里"}</b>
+                    <em>查看路线 →</em>
+                  </div>
+                </aside>
+              </div>
+            )}
+            {routeTab === "nodes" && (
+              <div className="route-editor-body route-node-workspace">
+                <div>
+                  <div className="route-node-toolbar">
+                    <div>
+                      <h4>路线节点</h4>
+                      <p>每个节点对应前端路线弹窗里的一个行程点；拖拽整行调整顺序。</p>
+                    </div>
+                    <div className="route-node-toolbar-actions">
+                      <button className="secondary" onClick={() => setRoutePreview({ focusStopIndex: null })}>预览路线</button>
+                      <button onClick={() => addNode(editingRouteIndex)}>＋ 添加节点</button>
+                    </div>
+                  </div>
+                  <div className="route-node-list compact">
+                    {activeNodes.map((node, nodeIndex) => (
+                      <article
+                        className={editingNodeIndex === nodeIndex ? "route-node-row active" : "route-node-row"}
+                        key={`${node.nameZh || node.title}-${nodeIndex}`}
+                        draggable
+                        onDragStart={() => setDragNodeIndex(nodeIndex)}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={() => {
+                          if (dragNodeIndex !== null && dragNodeIndex !== nodeIndex) {
+                            reorderNode(editingRouteIndex, dragNodeIndex, nodeIndex);
+                          }
+                          setDragNodeIndex(null);
+                        }}
+                        onDragEnd={() => setDragNodeIndex(null)}
+                        onClick={() => setEditingNodeIndex(nodeIndex)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") setEditingNodeIndex(nodeIndex);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <span className="route-drag-handle" aria-hidden="true">
+                          ≡
+                        </span>
                         <strong>{String(nodeIndex + 1).padStart(2, "0")}</strong>
+                        <div className="route-node-mini-thumb">
+                          {node.image ? <img src={node.image} alt="" /> : <span>图</span>}
+                        </div>
                         <div>
-                          <div className="field-row">
-                            <Field n="节点名称">
-                              <input
-                                value={node.nameZh || node.title || ""}
-                                onChange={(e) =>
-                                  updateNode(index, nodeIndex, {
-                                    nameZh: e.target.value,
-                                    title: e.target.value,
-                                    type: node.type || guessNodeType(e.target.value),
-                                  })
-                                }
-                              />
-                            </Field>
-                            <Field n="节点类型">
-                              <select
-                                value={node.type || guessNodeType(node.nameZh || node.title || "")}
-                                onChange={(e) => updateNode(index, nodeIndex, { type: e.target.value })}
-                              >
-                                <option>接送</option>
-                                <option>景点</option>
-                                <option>用餐</option>
-                                <option>自由活动</option>
-                                <option>返程</option>
-                              </select>
-                            </Field>
-                          </div>
-                          <div className="field-row">
-                            <Field n="停留时间（可选）">
-                              <input
-                                value={node.stayTime || node.time || ""}
-                                onChange={(e) => updateNode(index, nodeIndex, { stayTime: e.target.value, time: e.target.value })}
-                              />
-                            </Field>
-                            <Field n="简短说明">
-                              <input
-                                value={node.descriptionZh || node.description || ""}
-                                onChange={(e) =>
-                                  updateNode(index, nodeIndex, { descriptionZh: e.target.value, description: e.target.value })
-                                }
-                              />
-                            </Field>
-                          </div>
-                          <Field n="节点图片">
-                            <ImageChooser
-                              value={node.image || ""}
-                              images={serviceImages}
-                              onUpload={(files) =>
-                                onUpload(files, (urls) => updateNode(index, nodeIndex, { image: urls[0] || node.image }))
-                              }
-                              onChange={(url) => updateNode(index, nodeIndex, { image: url })}
-                            />
-                          </Field>
+                          <h5>{node.nameZh || node.title || "未命名节点"}</h5>
+                          <p>
+                            {node.type || guessNodeType(node.nameZh || node.title || "")}
+                            {node.stayTime || node.time ? ` · ${node.stayTime || node.time}` : ""} ·{" "}
+                            {node.descriptionZh || node.description || "暂无说明"}
+                          </p>
                         </div>
                         <nav>
-                          <button onClick={() => moveNode(index, nodeIndex, nodeIndex - 1)}>↑</button>
-                          <button onClick={() => moveNode(index, nodeIndex, nodeIndex + 1)}>↓</button>
-                          <button
-                            className="danger"
-                            onClick={() => {
-                              const next = nodes.filter((_, i) => i !== nodeIndex);
-                              update(index, {
-                                nodes: next,
-                                stops: next.map((item) => item.nameZh || item.title || "").filter(Boolean).join(" · "),
-                              });
-                            }}
-                          >
+                          <button onClick={(event) => { event.stopPropagation(); copyNode(editingRouteIndex, nodeIndex); }}>复制</button>
+                          <button className="danger" onClick={(event) => { event.stopPropagation(); removeNode(editingRouteIndex, nodeIndex); }}>
                             删除
                           </button>
                         </nav>
                       </article>
                     ))}
                   </div>
-                  <button
-                    className="route-node-add"
-                    onClick={() =>
-                      update(index, {
-                        nodes: [
-                          ...nodes,
-                          {
-                            nameZh: "新节点",
-                            descriptionZh: "",
-                            image: route.image || fallbackImage,
-                            stayTime: "",
-                            type: "景点",
-                          },
-                        ],
-                      })
-                    }
-                  >
-                    ＋ 添加节点
-                  </button>
                 </div>
-              )}
-            </article>
-          );
-        })}
-      </div>
+                <aside className="route-node-side-panel">
+                  {activeNode && editingNodeIndex !== null ? (
+                    <>
+                      <h4 className="route-node-editor-title">
+                        <small>节点 {String(editingNodeIndex + 1).padStart(2, "0")}</small>
+                        <span>·</span>
+                        {activeNode.nameZh || activeNode.title || "未命名节点"}
+                      </h4>
+                      <button
+                        type="button"
+                        className="route-current-node-preview"
+                        onClick={() => setRoutePreview({ focusStopIndex: editingNodeIndex })}
+                      >
+                        查看当前节点效果 ↗
+                      </button>
+                      <Field n="节点名称">
+                        <input
+                          value={activeNode.nameZh || activeNode.title || ""}
+                          onChange={(e) =>
+                            updateNode(editingRouteIndex, editingNodeIndex, {
+                              nameZh: e.target.value,
+                              title: e.target.value,
+                              type: activeNode.type || guessNodeType(e.target.value),
+                            })
+                          }
+                        />
+                      </Field>
+                      <div className="field-row">
+                        <Field n="节点类型">
+                          <select
+                            value={activeNode.type || guessNodeType(activeNode.nameZh || activeNode.title || "")}
+                            onChange={(e) => updateNode(editingRouteIndex, editingNodeIndex, { type: e.target.value })}
+                          >
+                            <option>接送</option>
+                            <option>景点</option>
+                            <option>用餐</option>
+                            <option>自由活动</option>
+                            <option>返程</option>
+                          </select>
+                        </Field>
+                        <Field n="停留时间">
+                          <input
+                            value={activeNode.stayTime || activeNode.time || ""}
+                            onChange={(e) =>
+                              updateNode(editingRouteIndex, editingNodeIndex, {
+                                stayTime: e.target.value,
+                                time: e.target.value,
+                              })
+                            }
+                          />
+                        </Field>
+                      </div>
+                      <Field n="简短说明">
+                        <textarea
+                          value={activeNode.descriptionZh || activeNode.description || ""}
+                          onChange={(e) =>
+                            updateNode(editingRouteIndex, editingNodeIndex, {
+                              descriptionZh: e.target.value,
+                              description: e.target.value,
+                            })
+                          }
+                        />
+                      </Field>
+                      <Field n="节点图片">
+                        <ImageChooser
+                          value={activeNode.image || ""}
+                          images={serviceImages}
+                          onUpload={(files) =>
+                            onUpload(files, (urls) =>
+                              updateNode(editingRouteIndex, editingNodeIndex, { image: urls[0] || activeNode.image }),
+                            )
+                          }
+                          onChange={(url) => updateNode(editingRouteIndex, editingNodeIndex, { image: url })}
+                        />
+                      </Field>
+                    </>
+                  ) : (
+                    <div className="route-node-placeholder">
+                      <b>选择一个节点</b>
+                      <p>点击左侧任意节点，这里只显示该节点的图片和字段。</p>
+                    </div>
+                  )}
+                </aside>
+              </div>
+            )}
+            <footer className="route-editor-footer">
+              <span>保存后将更新当前路线；发布到前台仍需点击「发布服务」。</span>
+              <button onClick={closeRouteEditor}>保存路线</button>
+            </footer>
+            {routePreview && previewRoute ? (
+              <PrivateRouteDetailModal
+                route={previewRoute}
+                focusStopIndex={routePreview.focusStopIndex}
+                onClose={() => setRoutePreview(null)}
+              />
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
