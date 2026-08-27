@@ -15,7 +15,7 @@ export default function ServiceList() {
     fetch("/api/admin/service-items")
       .then(async (r) => {
         if (r.status === 401) {
-          location.href = "/signin-with-chatgpt?return_to=%2Fadmin%2Fservices";
+          location.href = "/admin/login?return_to=%2Fadmin%2Fservices";
           return [];
         }
         if (!r.ok) {

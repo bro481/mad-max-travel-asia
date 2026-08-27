@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export type ChatGPTUser = {
@@ -14,11 +14,21 @@ const USER_FULL_NAME_HEADER = "oai-authenticated-user-full-name";
 const USER_FULL_NAME_ENCODING_HEADER =
   "oai-authenticated-user-full-name-encoding";
 const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
-const SIGN_IN_PATH = "/signin-with-chatgpt";
-const SIGN_OUT_PATH = "/signout-with-chatgpt";
+export const ADMIN_SESSION_COOKIE = "madmax_admin_session";
+const SIGN_IN_PATH = "/admin/login";
+const SIGN_OUT_PATH = "/api/admin/logout";
 const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
+  if (await hasAdminSession()) {
+    return {
+      userId: "admin",
+      displayName: "管理员",
+      email: "admin@madmaxtravel.asia",
+      fullName: "管理员",
+    };
+  }
+
   const requestHeaders = await headers();
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
@@ -68,6 +78,45 @@ export function chatGPTSignOutPath(returnTo = "/"): string {
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
+export async function createAdminSessionToken(now = Date.now()): Promise<string> {
+  const signature = await signAdminSession(String(now));
+  return `${now}.${signature}`;
+}
+
+export async function isValidAdminPassword(password: string): Promise<boolean> {
+  const expected = process.env.ADMIN_PASSWORD;
+  if (!expected) return false;
+  return password === expected;
+}
+
+async function hasAdminSession(): Promise<boolean> {
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password) return false;
+  const token = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
+  if (!token) return false;
+  const [issuedAt, signature] = token.split(".");
+  const timestamp = Number(issuedAt);
+  if (!issuedAt || !signature || !Number.isFinite(timestamp)) return false;
+  if (Date.now() - timestamp > 1000 * 60 * 60 * 24 * 7) return false;
+  return signature === (await signAdminSession(issuedAt));
+}
+
+async function signAdminSession(value: string): Promise<string> {
+  const secret = process.env.ADMIN_PASSWORD || "";
+  const data = new TextEncoder().encode(value);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const digest = await crypto.subtle.sign("HMAC", key, data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 function safeRelativeReturnPath(value: string): string {
   if (!value.startsWith("/") || value.startsWith("//")) return "/";
 
@@ -86,7 +135,9 @@ function safeRelativeReturnPath(value: string): string {
 function isReservedAuthPath(pathname: string): boolean {
   return (
     pathname === SIGN_IN_PATH ||
+    pathname === "/signin-with-chatgpt" ||
     pathname === SIGN_OUT_PATH ||
+    pathname === "/signout-with-chatgpt" ||
     pathname === CALLBACK_PATH
   );
 }

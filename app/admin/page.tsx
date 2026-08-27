@@ -12,7 +12,7 @@ export default function AdminHome() {
   useEffect(() => {
     const readJson = async (response: Response) => {
       if (response.status === 401) {
-        location.href = "/signin-with-chatgpt?return_to=%2Fadmin";
+        location.href = "/admin/login?return_to=%2Fadmin";
         return [];
       }
       if (!response.ok) return [];

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { NextResponse } from "next/server";
 import { listDestinations, staticDestinations, type DestinationRecord } from "../../../db/destinations";
 import { listProperties } from "../../../db/properties";
@@ -21,7 +22,7 @@ function filterDestinations(items: DestinationRecord[], surface: Surface, proper
 
 export async function GET(request: Request) {
   const surface = new URL(request.url).searchParams.get("surface") === "services" ? "services" : "properties";
-  if (process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.VERCEL === "1") {
+  if (process.env.LOCAL_BROWSER_PREVIEW === "1") {
     return NextResponse.json(filterDestinations(staticDestinations, surface, ["吉隆坡", "亚庇", "仙本那"], ["吉隆坡", "亚庇", "仙本那", "马六甲", "新加坡"]));
   }
   const destinations = useLocalDestinations() ? listLocalDestinations() : await listDestinations(true);

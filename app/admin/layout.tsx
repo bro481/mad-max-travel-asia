@@ -37,6 +37,7 @@ export default function AdminLayout({
         <div className="admin-user">
           <b>管理员后台</b>
           <Link href="/">返回前台</Link>
+          <Link href="/api/admin/logout?return_to=/">退出登录</Link>
         </div>
       </aside>
       <main className="admin-main">{children}</main>

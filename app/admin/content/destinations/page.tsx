@@ -33,7 +33,7 @@ export default function DestinationsAdmin() {
     fetch("/api/admin/destinations")
       .then(async (response) => {
         if (response.status === 401) {
-          location.href = "/signin-with-chatgpt?return_to=%2Fadmin%2Fcontent%2Fdestinations";
+          location.href = "/admin/login?return_to=%2Fadmin%2Fcontent%2Fdestinations";
           return [];
         }
         const text = await response.text();

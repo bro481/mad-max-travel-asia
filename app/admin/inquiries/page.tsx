@@ -26,7 +26,7 @@ export default function InquiriesPage() {
     fetch("/api/admin/inquiries")
       .then((r) => {
         if (r.status === 401) {
-          location.href = "/signin-with-chatgpt?return_to=%2Fadmin%2Finquiries";
+          location.href = "/admin/login?return_to=%2Fadmin%2Finquiries";
           return [];
         }
         if (!r.ok) return [];

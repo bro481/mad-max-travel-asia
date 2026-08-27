@@ -1,5 +1,6 @@
 import { ServiceProductDetail } from "./service-product-detail";
 import type { ServiceItem } from "../../../../db/service-items";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 const image = (id: string) =>
@@ -140,16 +141,16 @@ export default async function Page({
 }) {
   const { slug } = await params;
   const x =
-    process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.VERCEL === "1"
+    process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.NODE_ENV === "development"
       ? staticItems.find((item) => item.slug === slug)
       : await import("../../../../db/service-items").then(
           ({ getServiceItemBySlug }) => getServiceItemBySlug(slug),
-        );
+        ).catch(() => staticItems.find((item) => item.slug === slug));
   if (!x)
     return (
       <main className="not-found">
         <h1>Service not found</h1>
-        <a href="/services">返回当地服务</a>
+        <Link href="/services">返回当地服务</Link>
       </main>
     );
   if (x.type === "交通接送") redirect("/services");

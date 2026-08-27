@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ServiceDetail } from "./service-detail";
 import type { ServiceCategory } from "../../../db/services";
 
@@ -119,19 +120,18 @@ export default async function Page({
   const { city } = await searchParams;
   const service =
     process.env.NODE_ENV === "development" ||
-    process.env.LOCAL_BROWSER_PREVIEW === "1" ||
-    process.env.VERCEL === "1"
+    process.env.LOCAL_BROWSER_PREVIEW === "1"
       ? staticServices.find((item) => item.slug === slug)
-      : await import("../../../db/services").then(({ getService }) =>
-          getService(slug),
-        );
+      : await import("../../../db/services")
+          .then(({ getService }) => getService(slug))
+          .catch(() => staticServices.find((item) => item.slug === slug));
   if (!service)
     return (
       <main className="not-found">
         <h1>Service not found</h1>
-        <a className="button" href="/services">
+        <Link className="button" href="/services">
           返回当地服务
-        </a>
+        </Link>
       </main>
     );
   return <ServiceDetail service={service} city={city || "kk"} />;
