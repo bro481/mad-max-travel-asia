@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ServiceDetail } from "./service-detail";
 import type { ServiceCategory } from "../../../db/services";
 
+export const dynamic = "force-dynamic";
+
 const staticServices: ServiceCategory[] = [
   {
     id: 1,

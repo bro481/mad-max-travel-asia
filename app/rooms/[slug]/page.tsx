@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { RoomDetail } from "./room-detail";
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
   const { rooms } = await import("../../data");
   return rooms.map((room) => ({ slug: room.id }));

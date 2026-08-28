@@ -2,6 +2,8 @@ import { ServicesPage } from "./services-page";
 import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   if (process.env.NODE_ENV === "development") {
     const { listLocalDestinations } = await import("../api/admin/destinations/local-dev-store");

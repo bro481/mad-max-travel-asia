@@ -3,6 +3,8 @@ import type { ServiceItem } from "../../../../db/service-items";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 const image = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`;
 

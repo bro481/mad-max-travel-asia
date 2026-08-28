@@ -15,6 +15,7 @@ function getClient() {
   client ??= postgres(process.env.DATABASE_URL, {
     max: 1,
     prepare: false,
+    connect_timeout: 8,
     idle_timeout: 20,
   });
   return client;
