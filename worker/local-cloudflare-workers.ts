@@ -30,7 +30,20 @@ function requireSupabaseEnv() {
       "SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_BUCKET are required.",
     );
   }
-  return { url: url.replace(/\/$/, ""), key, bucket };
+  let cleanUrl: string;
+  try {
+    const parsed = new URL(url.trim());
+    cleanUrl = parsed.origin;
+  } catch {
+    throw new Error("SUPABASE_URL must be a valid https://xxx.supabase.co URL.");
+  }
+  const cleanBucket = bucket.trim().replace(/^\/+|\/+$/g, "");
+  if (!cleanBucket || cleanBucket.includes("/") || /^https?:\/\//i.test(cleanBucket)) {
+    throw new Error(
+      "SUPABASE_BUCKET must be only the bucket name, for example madmax-images.",
+    );
+  }
+  return { url: cleanUrl, key: key.trim(), bucket: cleanBucket };
 }
 
 function translatePlaceholders(sql: string) {
