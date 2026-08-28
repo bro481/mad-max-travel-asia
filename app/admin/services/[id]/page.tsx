@@ -126,18 +126,22 @@ export default function ServiceEditor() {
     const form = new FormData();
     [...files].slice(0, 50).forEach((x) => form.append("files", x));
     setNotice("图片上传中…");
-    const r = await fetch("/api/admin/uploads", { method: "POST", body: form });
-    const text = await r.text();
-    const x = text ? JSON.parse(text) : { urls: [] };
-    if (r.ok) {
-      if (onUrls) {
-        onUrls(x.urls);
+    try {
+      const r = await fetch("/api/admin/uploads", { method: "POST", body: form });
+      const text = await r.text();
+      const x = text ? JSON.parse(text) : { urls: [] };
+      if (r.ok) {
+        if (onUrls) {
+          onUrls(x.urls);
+        } else {
+          set("images", [...d.images, ...x.urls]);
+        }
+        setNotice(`已上传 ${x.urls.length} 张图片`);
       } else {
-        set("images", [...d.images, ...x.urls]);
+        setNotice(x?.error || "图片上传失败");
       }
-      setNotice(`已上传 ${x.urls.length} 张图片`);
-    } else {
-      setNotice(x?.error || "图片上传失败");
+    } catch (error) {
+      setNotice(`图片上传失败：${error instanceof Error ? error.message : "请求没有返回"}`);
     }
   };
 

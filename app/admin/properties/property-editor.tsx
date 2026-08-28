@@ -302,23 +302,27 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
     }
     setUploading(true);
     setImageMessage(`正在上传 ${list.length} 张图片…`);
-    const form = new FormData();
-    list.forEach((f) => form.append("files", f));
-    const response = await fetch("/api/admin/uploads", { method: "POST", body: form });
-    if (response.status === 401) {
-      location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
-      return;
-    }
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setImageMessage(result.error || "上传失败");
+    try {
+      const form = new FormData();
+      list.forEach((f) => form.append("files", f));
+      const response = await fetch("/api/admin/uploads", { method: "POST", body: form });
+      if (response.status === 401) {
+        location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
+        return;
+      }
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setImageMessage(result.error || "上传失败");
+        return;
+      }
+      const urls = result.urls as string[];
+      set("images", replaceAt !== undefined ? data.images.map((src, i) => (i === replaceAt ? urls[0] : src)) : [...data.images, ...urls]);
+      setImageMessage(`已上传 ${urls.length} 张图片`);
+    } catch (error) {
+      setImageMessage(`上传失败：${error instanceof Error ? error.message : "请求没有返回"}`);
+    } finally {
       setUploading(false);
-      return;
     }
-    const urls = result.urls as string[];
-    set("images", replaceAt !== undefined ? data.images.map((src, i) => (i === replaceAt ? urls[0] : src)) : [...data.images, ...urls]);
-    setImageMessage(`已上传 ${urls.length} 张图片`);
-    setUploading(false);
   };
 
   const createImportCode = async () => {

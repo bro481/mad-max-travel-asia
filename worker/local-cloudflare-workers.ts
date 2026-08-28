@@ -100,20 +100,32 @@ function makeStatement(sqlText: string, values: BoundValue[] = []) {
 
 async function storageFetch(path: string, init?: RequestInit) {
   const { url, key, bucket } = requireSupabaseEnv();
-  return fetch(
-    `${url}/storage/v1/object/${bucket}/${path
-      .split("/")
-      .map(encodeURIComponent)
-      .join("/")}`,
-    {
-      ...init,
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        ...(init?.headers || {}),
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  try {
+    return await fetch(
+      `${url}/storage/v1/object/${bucket}/${path
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/")}`,
+      {
+        ...init,
+        signal: controller.signal,
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          ...(init?.headers || {}),
+        },
       },
-    },
-  );
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Supabase Storage request timed out after 12 seconds");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function readStorageError(response: Response) {
