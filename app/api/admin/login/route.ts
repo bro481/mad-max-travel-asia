@@ -25,14 +25,15 @@ function serializedCookie(
   value: string,
   request: Request,
   maxAge: number,
+  httpOnly = true,
 ) {
   const parts = [
     `${name}=${encodeURIComponent(value)}`,
     "Path=/",
     `Max-Age=${maxAge}`,
-    "HttpOnly",
     "SameSite=Lax",
   ];
+  if (httpOnly) parts.push("HttpOnly");
   if (process.env.NODE_ENV === "production") parts.push("Secure");
   const domain = sharedCookieDomain(request);
   if (domain) parts.push(`Domain=${domain}`);
@@ -48,9 +49,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "密码不正确" }, { status: 401 });
   }
 
-  const returnTo = safeReturnPath(body.returnTo);
-  const response = NextResponse.json({ ok: true, returnTo });
   const token = await createAdminSessionToken();
+  const returnTo = safeReturnPath(body.returnTo);
+  const response = NextResponse.json({
+    ok: true,
+    returnTo,
+    cookieName: ADMIN_SESSION_COOKIE,
+    sessionToken: token,
+    cookieMaxAge: 60 * 60 * 24 * 7,
+  });
   response.cookies.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -61,6 +68,16 @@ export async function POST(request: Request) {
   response.headers.append(
     "Set-Cookie",
     serializedCookie(ADMIN_SESSION_COOKIE, token, request, 60 * 60 * 24 * 7),
+  );
+  response.headers.append(
+    "Set-Cookie",
+    serializedCookie(
+      ADMIN_SESSION_COOKIE,
+      token,
+      request,
+      60 * 60 * 24 * 7,
+      false,
+    ),
   );
   response.cookies.set(LEGACY_ADMIN_SESSION_COOKIE, "", {
     httpOnly: true,

@@ -24,6 +24,13 @@ export default function AdminLoginPage() {
       setError(payload.error || "密码不正确");
       return;
     }
+    if (payload.cookieName && payload.sessionToken) {
+      setClientCookie(
+        payload.cookieName,
+        payload.sessionToken,
+        Number(payload.cookieMaxAge || 60 * 60 * 24 * 7),
+      );
+    }
     location.href = payload.returnTo || "/admin";
   }
 
@@ -49,4 +56,16 @@ export default function AdminLoginPage() {
       </form>
     </div>
   );
+}
+
+function setClientCookie(name: string, value: string, maxAge: number) {
+  const base = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${base}${secure}`;
+  if (
+    location.hostname === "madmaxtravel.asia" ||
+    location.hostname === "www.madmaxtravel.asia"
+  ) {
+    document.cookie = `${base}; Domain=.madmaxtravel.asia${secure}`;
+  }
 }
