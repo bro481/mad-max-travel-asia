@@ -116,6 +116,11 @@ async function storageFetch(path: string, init?: RequestInit) {
   );
 }
 
+async function readStorageError(response: Response) {
+  const text = await response.text().catch(() => "");
+  return text.replace(/\s+/g, " ").slice(0, 220);
+}
+
 export const env = {
   DB: {
     prepare: (sqlText: string) => makeStatement(sqlText),
@@ -142,7 +147,12 @@ export const env = {
         },
       });
       if (!response.ok) {
-        throw new Error(`Supabase Storage upload failed: ${response.status}`);
+        const detail = await readStorageError(response);
+        throw new Error(
+          `Supabase Storage upload failed: ${response.status}${
+            detail ? ` ${detail}` : ""
+          }`,
+        );
       }
       return response;
     },
