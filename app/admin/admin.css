@@ -282,6 +282,12 @@
   grid-template-columns: 238px 1fr;
   font-family: var(--font-sans), sans-serif;
 }
+.admin-login-page {
+  min-height: 100vh;
+  background: var(--a-bg);
+  color: var(--a-ink);
+  font-family: var(--font-sans), sans-serif;
+}
 .admin-side {
   background: #18242c;
   color: #d9e0e3;
