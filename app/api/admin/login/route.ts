@@ -12,6 +12,13 @@ function safeReturnPath(value: unknown) {
   return path;
 }
 
+function sharedCookieDomain(request: Request) {
+  const hostname = new URL(request.url).hostname;
+  return hostname === "madmaxtravel.asia" || hostname === "www.madmaxtravel.asia"
+    ? ".madmaxtravel.asia"
+    : undefined;
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     password?: string;
@@ -24,6 +31,7 @@ export async function POST(request: Request) {
   const returnTo = safeReturnPath(body.returnTo);
   const response = NextResponse.json({ ok: true, returnTo });
   response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSessionToken(), {
+    domain: sharedCookieDomain(request),
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
