@@ -155,7 +155,7 @@ const privateCarRoutes: ServiceRoutePlan[] = [
     ],
   },
 ];
-const richSeeds = seeds.map((s, index) => {
+export const richSeeds = seeds.map((s, index) => {
   const [slug, type, city, category, nameZh, nameEn, subtitleZh, subtitleEn] = s;
   const isCar = type === "私人包车";
   const isJourney = type.includes("体验") || type === "城市体验";
@@ -201,6 +201,51 @@ const richSeeds = seeds.map((s, index) => {
       : ["计划日期", "人数", "出发地点", "特殊需求"],
   };
 });
+export function staticServiceItemRecords(): ServiceItem[] {
+  return richSeeds.map((item, index) => ({
+    id: index + 1,
+    slug: item.slug,
+    type: item.type,
+    destinationId: item.destinationId,
+    city: item.city,
+    category: item.category,
+    categoryId: item.categoryId,
+    templateType: item.templateType as ServiceItem["templateType"],
+    displayOrder: item.displayOrder,
+    nameZh: item.nameZh,
+    nameEn: item.nameEn,
+    subtitleZh: item.subtitleZh,
+    subtitleEn: item.subtitleEn,
+    introZh: item.introZh,
+    introEn: item.introEn,
+    images: item.images,
+    tags: item.tags,
+    steps: item.steps,
+    routeSectionTitleZh: item.routeSectionTitleZh,
+    routeSectionTitleEn: item.routeSectionTitleEn,
+    routeSectionIntroZh: item.routeSectionIntroZh,
+    routeSectionIntroEn: item.routeSectionIntroEn,
+    routes: item.routes,
+    timeline: item.timeline,
+    inquiryFields: item.inquiryFields,
+    inquiryRequired: ["计划日期", "人数"],
+    inquiryPromptFields: item.inquiryFields,
+    maxGuests: 14,
+    guestNote: "根据同行人数及行李数量匹配合适车型",
+    airports: [],
+    directions: [],
+    serviceAreas: [],
+    otherAreaNote: "其他区域可咨询",
+    vehicleDisplayMode: "车型类别",
+    vehicles: [],
+    priceMode: "咨询报价",
+    price: 0,
+    priceUnit: "每次",
+    priceNote: "",
+    status: "published",
+    updatedAt: "",
+  }));
+}
 function defaultTemplate(type: string) {
   if (type === "交通接送") return "transfer";
   if (type === "私人包车") return "route";

@@ -5,6 +5,7 @@ import { getChatGPTUser } from "../../../chatgpt-auth";
 import {
   ensureServiceItems,
   listServiceItems,
+  staticServiceItemRecords,
 } from "../../../../db/service-items";
 import {
   createLocalServiceItem,
@@ -19,15 +20,9 @@ export async function GET() {
     return NextResponse.json(await listServiceItems(true));
   } catch (error) {
     console.error("Failed to load service items", error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? `服务数据读取失败：${error.message}`
-            : "服务数据读取失败",
-      },
-      { status: 500 },
-    );
+    return NextResponse.json(staticServiceItemRecords(), {
+      headers: { "x-admin-data-source": "static-fallback" },
+    });
   }
 }
 export async function POST(r: Request) {

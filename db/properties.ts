@@ -55,6 +55,50 @@ export async function listProperties(){await ensureProperties();const result=awa
 export async function getProperty(id:number){await ensureProperties();const row=await env.DB.prepare("SELECT * FROM properties WHERE id=?").bind(id).first();return row?mapProperty(row as Record<string,unknown>):null;}
 export async function getPublishedPropertyBySlug(slug:string){await ensureProperties();const row=await env.DB.prepare("SELECT * FROM properties WHERE slug=? AND status='published'").bind(slug).first();return row?mapProperty(row as Record<string,unknown>):null;}
 
+export function staticPropertyRecords(): PropertyRecord[] {
+  return rooms.map((room, index) => ({
+    id: index + 1,
+    slug: room.id,
+    nameZh: room.name.zh,
+    nameEn: room.name.en,
+    city: room.location.zh,
+    areaZh: room.area.zh,
+    areaEn: room.area.en,
+    tags: [],
+    images: room.images,
+    imageCategories: {},
+    imageOriginals: {},
+    guests: room.guests,
+    bedrooms: room.bedrooms,
+    beds: room.beds,
+    bathrooms: room.bathrooms,
+    descriptionZh: room.description.zh,
+    descriptionEn: room.description.en,
+    amenities: room.amenities.map((item) => item.name.zh),
+    highlights: room.highlights.map((item) => ({ title: item.name.zh, description: "" })),
+    suitableFor: room.suitableFor || [],
+    guestQuote: room.guestQuote?.zh || "",
+    guestQuoteAuthor: room.guestQuoteAuthor?.zh || "",
+    spaceConfig: {
+      layout: `${room.bedrooms}室${room.bedrooms > 1 ? 2 : 1}厅${room.bathrooms}卫`,
+      ...(room.spaceConfig || {}),
+    },
+    sleepingArrangements: room.sleepingArrangements || [],
+    nearby: room.nearbyPlaces.map((place) => ({
+      name: place.name.zh,
+      nameEn: place.name.en,
+      type: place.category.zh,
+      distance: place.distance.zh,
+      icon: place.icon,
+      visible: true,
+    })),
+    priceFrom: room.priceFrom,
+    priceNote: "价格随入住日期调整",
+    status: "published",
+    updatedAt: "",
+  }));
+}
+
 const cityNamesFromDestinations=(destinations:DestinationRecord[]):Record<string,Localized>=>Object.fromEntries(destinations.map((item)=>[item.nameZh,{zh:item.nameZh,en:item.nameEn||item.nameZh}]));
 const amenityEn:Record<string,string>={"高速 WiFi":"High-speed WiFi","空调":"Air Conditioning","热水":"Hot Water","电梯":"Elevator","厨房":"Kitchen","设备齐全的厨房":"Fully Equipped Kitchen","冰箱":"Fridge","微波炉":"Microwave","洗衣机":"Washer","吹风机":"Hair Dryer","智能电视":"Smart TV","免费停车":"Free Parking","收费停车":"Paid Parking","亲子友好":"Family Friendly","适合长住":"Long-stay Ready","情侣友好":"Couple Friendly"};
 const amenityIcons:Record<string,string>={"高速 WiFi":"⌁","空调":"❄","热水":"♨","电梯":"⇅","厨房":"⌂","设备齐全的厨房":"⌂","冰箱":"▤","微波炉":"◌","洗衣机":"◉","吹风机":"≈","智能电视":"▣","免费停车":"P","收费停车":"P","亲子友好":"♙","适合长住":"◷","情侣友好":"♡"};

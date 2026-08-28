@@ -10,7 +10,8 @@ export default async function Page() {
   }
   if (process.env.LOCAL_BROWSER_PREVIEW === "1") {
     const { staticDestinations } = await import("../../db/destinations");
-    return <ServicesPage services={[]} managed={[]} destinationSettings={staticDestinations} />;
+    const { staticServiceCategories } = await import("../../db/services");
+    return <ServicesPage services={staticServiceCategories()} managed={[]} destinationSettings={staticDestinations} />;
   }
 
   let services: ServiceCategory[] = [];
@@ -22,6 +23,8 @@ export default async function Page() {
     destinationSettings = await listDestinations(true);
   } catch {
     const { staticDestinations } = await import("../../db/destinations");
+    const { staticServiceCategories } = await import("../../db/services");
+    services = staticServiceCategories();
     destinationSettings = staticDestinations;
   }
   return <ServicesPage services={services} managed={[]} destinationSettings={destinationSettings} />;

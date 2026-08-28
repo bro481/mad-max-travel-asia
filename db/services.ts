@@ -15,6 +15,26 @@ export const serviceCategorySeeds=[
  ["city","城市体验","City Experience","城市文化、美食与轻路线","Culture, food and easy city routes","适合半日或一日的城市文化、美食与轻松探索。","Half-day or full-day culture, food and city discoveries.","https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1400&q=88",["城市漫游","文化体验","美食路线"],["City walk","Culture experience","Food route"],"⌖",4]
 ] as const;
 
+export function staticServiceCategories(): ServiceCategory[] {
+  return serviceCategorySeeds.map((seed, index) => ({
+    id: index + 1,
+    slug: seed[0],
+    nameZh: seed[1],
+    nameEn: seed[2],
+    introZh: seed[3],
+    introEn: seed[4],
+    descriptionZh: seed[5],
+    descriptionEn: seed[6],
+    image: seed[7],
+    itemsZh: [...seed[8]],
+    itemsEn: [...seed[9]],
+    icon: seed[10],
+    sortOrder: seed[11],
+    visible: true,
+    updatedAt: "",
+  }));
+}
+
 export async function ensureServices(){await env.DB.prepare(createSql).run();const row=await env.DB.prepare("SELECT COUNT(*) total FROM service_categories").first<{total:number}>();if((row?.total||0)>0)return;for(const s of serviceCategorySeeds)await env.DB.prepare(`INSERT INTO service_categories (slug,name_zh,name_en,intro_zh,intro_en,description_zh,description_en,image,items_zh,items_en,icon,sort_order,visible) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)`).bind(s[0],s[1],s[2],s[3],s[4],s[5],s[6],s[7],JSON.stringify(s[8]),JSON.stringify(s[9]),s[10],s[11]).run()}
 const parse=(value:unknown)=>{try{return JSON.parse(String(value||"[]"))}catch{return []}};
 export function mapService(row:Record<string,unknown>):ServiceCategory{return {id:Number(row.id),slug:String(row.slug),nameZh:String(row.name_zh),nameEn:String(row.name_en),introZh:String(row.intro_zh),introEn:String(row.intro_en),descriptionZh:String(row.description_zh),descriptionEn:String(row.description_en),image:String(row.image),itemsZh:parse(row.items_zh),itemsEn:parse(row.items_en),icon:String(row.icon),sortOrder:Number(row.sort_order),visible:Boolean(row.visible),updatedAt:String(row.updated_at)}}

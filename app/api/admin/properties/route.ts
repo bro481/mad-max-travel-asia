@@ -1,7 +1,12 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../chatgpt-auth";
-import { ensureProperties, listProperties } from "../../../../db/properties";
+import {
+  ensureProperties,
+  listProperties,
+  staticPropertyRecords,
+} from "../../../../db/properties";
 import {
   createLocalProperty,
   listLocalProperties,
@@ -12,7 +17,14 @@ export async function GET() {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (useLocalProperties()) return NextResponse.json(listLocalProperties());
-  return NextResponse.json(await listProperties());
+  try {
+    return NextResponse.json(await listProperties());
+  } catch (error) {
+    console.error("Failed to load properties from database", error);
+    return NextResponse.json(staticPropertyRecords(), {
+      headers: { "x-admin-data-source": "static-fallback" },
+    });
+  }
 }
 export async function POST(request: Request) {
   if (!(await getChatGPTUser()))

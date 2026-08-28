@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../chatgpt-auth";
@@ -5,10 +6,11 @@ import {
   createDestination,
   ensureDestinations,
   listDestinations,
+  staticDestinations,
   type DestinationRecord,
 } from "../../../../db/destinations";
-import { ensureProperties } from "../../../../db/properties";
-import { ensureServiceItems } from "../../../../db/service-items";
+import { ensureProperties, staticPropertyRecords } from "../../../../db/properties";
+import { ensureServiceItems, staticServiceItemRecords } from "../../../../db/service-items";
 import { listLocalProperties, useLocalProperties } from "../properties/local-dev-store";
 import { listLocalServiceItems, useLocalServiceItems } from "../service-items/local-dev-store";
 import {
@@ -27,6 +29,18 @@ export type DestinationWithCounts = DestinationRecord & {
 function withLocalCounts(items: DestinationRecord[]): DestinationWithCounts[] {
   const properties = useLocalProperties() ? listLocalProperties() : [];
   const services = useLocalServiceItems() ? listLocalServiceItems() : [];
+  return items.map((item) => ({
+    ...item,
+    propertyCount: properties.filter((x) => x.city === item.nameZh).length,
+    publishedPropertyCount: properties.filter((x) => x.city === item.nameZh && x.status === "published").length,
+    serviceCount: services.filter((x) => x.city === item.nameZh).length,
+    publishedServiceCount: services.filter((x) => x.city === item.nameZh && x.status === "published").length,
+  }));
+}
+
+function withStaticCounts(items: DestinationRecord[]): DestinationWithCounts[] {
+  const properties = staticPropertyRecords();
+  const services = staticServiceItemRecords();
   return items.map((item) => ({
     ...item,
     propertyCount: properties.filter((x) => x.city === item.nameZh).length,
@@ -61,8 +75,15 @@ async function withDbCounts(items: DestinationRecord[]): Promise<DestinationWith
 export async function GET() {
   if (!(await getChatGPTUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (useLocalDestinations()) return NextResponse.json(withLocalCounts(listLocalDestinations()));
-  await ensureDestinations();
-  return NextResponse.json(await withDbCounts(await listDestinations(true)));
+  try {
+    await ensureDestinations();
+    return NextResponse.json(await withDbCounts(await listDestinations(true)));
+  } catch (error) {
+    console.error("Failed to load destinations from database", error);
+    return NextResponse.json(withStaticCounts(staticDestinations), {
+      headers: { "x-admin-data-source": "static-fallback" },
+    });
+  }
 }
 
 export async function POST(request: Request) {
