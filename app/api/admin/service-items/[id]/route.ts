@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../../chatgpt-auth";
@@ -5,6 +6,7 @@ import {
   ensureServiceItems,
   getAdminServiceItemBySlug,
   getServiceItem,
+  staticServiceItemRecords,
 } from "../../../../../db/service-items";
 import {
   getLocalServiceItem,
@@ -29,12 +31,24 @@ export async function GET(
       ? NextResponse.json(item)
       : NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  const x = isNumericId
-    ? await getServiceItem(numericId)
-    : await getAdminServiceItemBySlug(id);
-  return x
-    ? NextResponse.json(x)
-    : NextResponse.json({ error: "Not found" }, { status: 404 });
+  try {
+    const x = isNumericId
+      ? await getServiceItem(numericId)
+      : await getAdminServiceItemBySlug(id);
+    return x
+      ? NextResponse.json(x)
+      : NextResponse.json({ error: "Not found" }, { status: 404 });
+  } catch (error) {
+    console.error("Failed to load service item from database", error);
+    const x = staticServiceItemRecords().find((item) =>
+      isNumericId ? item.id === numericId : item.slug === id,
+    );
+    return x
+      ? NextResponse.json(x, {
+          headers: { "x-admin-data-source": "static-fallback" },
+        })
+      : NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 }
 export async function PUT(
   r: Request,
