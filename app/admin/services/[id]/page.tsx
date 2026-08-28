@@ -106,18 +106,25 @@ export default function ServiceEditor() {
   const save = async (status?: ServiceItem["status"]) => {
     const next = { ...d, status: status || d.status };
     setNotice(status === "published" ? "发布中…" : "保存中…");
-    const r = await fetch(`/api/admin/service-items/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
-    });
-    if (r.ok) {
-      const text = await r.text();
-      setD(text ? JSON.parse(text) : next);
-      setNotice(status === "published" ? "✓ 发布成功，前台已经更新" : "✓ 草稿已保存");
-    } else {
-      const text = await r.text();
-      setNotice(text || "保存失败，请重试");
+    try {
+      const r = await fetch(`/api/admin/service-items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      if (r.ok) {
+        setD(next);
+        setNotice(status === "published" ? "✓ 发布成功，前台已经更新" : "✓ 草稿已保存");
+      } else {
+        const text = await r.text();
+        let message = text;
+        try {
+          message = JSON.parse(text)?.error || text;
+        } catch {}
+        setNotice(message || "保存失败，请重试");
+      }
+    } catch (error) {
+      setNotice(`${status === "published" ? "发布" : "保存"}失败：${error instanceof Error ? error.message : "请求没有返回"}`);
     }
   };
 
