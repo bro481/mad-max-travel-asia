@@ -14,7 +14,8 @@ const USER_FULL_NAME_HEADER = "oai-authenticated-user-full-name";
 const USER_FULL_NAME_ENCODING_HEADER =
   "oai-authenticated-user-full-name-encoding";
 const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
-export const ADMIN_SESSION_COOKIE = "madmax_admin_session";
+export const ADMIN_SESSION_COOKIE = "madmax_admin_session_v2";
+export const LEGACY_ADMIN_SESSION_COOKIE = "madmax_admin_session";
 const SIGN_IN_PATH = "/admin/login";
 const SIGN_OUT_PATH = "/api/admin/logout";
 const CALLBACK_PATH = "/callback";
@@ -91,12 +92,32 @@ export async function isValidAdminPassword(password: string): Promise<boolean> {
 async function hasAdminSession(): Promise<boolean> {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) return false;
-  const token = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
+  const token = await readAdminSessionToken();
   if (!token) return false;
   const timestamp = Number(token.split(".")[0]);
   if (!Number.isFinite(timestamp)) return true;
   if (Date.now() - timestamp > 1000 * 60 * 60 * 24 * 7) return false;
   return true;
+}
+
+async function readAdminSessionToken() {
+  const cookieStore = await cookies();
+  const direct =
+    cookieStore.get(ADMIN_SESSION_COOKIE)?.value ||
+    cookieStore.get(LEGACY_ADMIN_SESSION_COOKIE)?.value;
+  if (direct) return direct;
+
+  const raw = (await headers()).get("cookie") || "";
+  for (const part of raw.split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (
+      (name === ADMIN_SESSION_COOKIE || name === LEGACY_ADMIN_SESSION_COOKIE) &&
+      rest.join("=")
+    ) {
+      return decodeURIComponent(rest.join("="));
+    }
+  }
+  return "";
 }
 
 function safeRelativeReturnPath(value: string): string {

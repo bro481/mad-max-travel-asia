@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   ADMIN_SESSION_COOKIE,
+  LEGACY_ADMIN_SESSION_COOKIE,
   createAdminSessionToken,
   isValidAdminPassword,
 } from "../../../chatgpt-auth";
@@ -19,6 +20,25 @@ function sharedCookieDomain(request: Request) {
     : undefined;
 }
 
+function serializedCookie(
+  name: string,
+  value: string,
+  request: Request,
+  maxAge: number,
+) {
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    "Path=/",
+    `Max-Age=${maxAge}`,
+    "HttpOnly",
+    "SameSite=Lax",
+  ];
+  if (process.env.NODE_ENV === "production") parts.push("Secure");
+  const domain = sharedCookieDomain(request);
+  if (domain) parts.push(`Domain=${domain}`);
+  return parts.join("; ");
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     password?: string;
@@ -30,13 +50,28 @@ export async function POST(request: Request) {
 
   const returnTo = safeReturnPath(body.returnTo);
   const response = NextResponse.json({ ok: true, returnTo });
-  response.cookies.set(ADMIN_SESSION_COOKIE, await createAdminSessionToken(), {
-    domain: sharedCookieDomain(request),
+  const token = await createAdminSessionToken();
+  response.cookies.set(ADMIN_SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
   });
+  response.headers.append(
+    "Set-Cookie",
+    serializedCookie(ADMIN_SESSION_COOKIE, token, request, 60 * 60 * 24 * 7),
+  );
+  response.cookies.set(LEGACY_ADMIN_SESSION_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
+    path: "/",
+  });
+  response.headers.append(
+    "Set-Cookie",
+    serializedCookie(LEGACY_ADMIN_SESSION_COOKIE, "", request, 0),
+  );
   return response;
 }
