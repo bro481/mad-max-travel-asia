@@ -143,11 +143,14 @@ export default async function Page({
 }) {
   const { slug } = await params;
   const x =
-    process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.NODE_ENV === "development"
+    process.env.LOCAL_BROWSER_PREVIEW === "1" ||
+    process.env.NODE_ENV === "development" ||
+    process.env.VERCEL === "1"
       ? staticItems.find((item) => item.slug === slug)
       : await import("../../../../db/service-items").then(
           ({ getServiceItemBySlug }) => getServiceItemBySlug(slug),
-        ).catch(() => staticItems.find((item) => item.slug === slug));
+        ).catch(() => null)
+        .then((item) => item || staticItems.find((fallback) => fallback.slug === slug));
   if (!x)
     return (
       <main className="not-found">

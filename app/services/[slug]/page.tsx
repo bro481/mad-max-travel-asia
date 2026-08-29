@@ -122,11 +122,13 @@ export default async function Page({
   const { city } = await searchParams;
   const service =
     process.env.NODE_ENV === "development" ||
-    process.env.LOCAL_BROWSER_PREVIEW === "1"
+    process.env.LOCAL_BROWSER_PREVIEW === "1" ||
+    process.env.VERCEL === "1"
       ? staticServices.find((item) => item.slug === slug)
       : await import("../../../db/services")
           .then(({ getService }) => getService(slug))
-          .catch(() => staticServices.find((item) => item.slug === slug));
+          .catch(() => null)
+          .then((item) => item || staticServices.find((fallback) => fallback.slug === slug));
   if (!service)
     return (
       <main className="not-found">
