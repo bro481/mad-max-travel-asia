@@ -318,7 +318,6 @@ const routePlanToPrivateRoute = (
     image:
       route.image ||
       route.nodes?.find((node) => node.image)?.image ||
-      service.images[0] ||
       "",
     stops: routePlanNodes(route),
   };

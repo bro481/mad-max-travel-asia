@@ -786,6 +786,9 @@ export function ServiceDetail({
   };
   const cityName = city === "kl" ? "吉隆坡" : city === "melaka" ? "马六甲" : "亚庇";
   const managedForCity = managedServices.filter((item) => item.city === cityName);
+  const activeManagedService = managedForCity.find(
+    (item) => item.slug === previewService || String(item.id) === previewService,
+  ) || managedForCity[0];
   const planToRoute = (item: ServiceItem, plan?: ServiceRoutePlan): Route => {
     const nodes = plan?.nodes?.length
       ? plan.nodes
@@ -795,16 +798,15 @@ export function ServiceDetail({
           .filter(Boolean)
           .map((name) => ({ nameZh: name } as ServiceRouteNode));
     const cover =
-      item.images[0] ||
       plan?.image ||
       nodes.find((node) => node.image)?.image ||
       photo("photo-1596422846543-75c6fc197f07");
-    const tags = (item.tags.length ? item.tags : plan?.tags || []).slice(0, 2);
+    const tags = (plan?.tags?.length ? plan.tags : [plan?.tag].filter(Boolean) as string[]).slice(0, 2);
     while (tags.length < 2) tags.push(tags.length ? "行程可调整" : "时间灵活");
     return {
-      title: [item.nameZh, item.nameEn || item.nameZh],
+      title: [plan?.nameZh || plan?.name || item.nameZh, plan?.nameEn || plan?.nameZh || plan?.name || item.nameEn || item.nameZh],
       duration: [plan?.duration || "时间灵活", plan?.duration || "Flexible duration"],
-      summary: [item.subtitleZh || plan?.descriptionZh || "路线可根据当天情况调整", item.subtitleEn || plan?.descriptionEn || item.subtitleZh || "Flexible private route"],
+      summary: [plan?.descriptionZh || plan?.description || "路线可根据当天情况调整", plan?.descriptionEn || plan?.descriptionZh || plan?.description || "Flexible private route"],
       tags: [[tags[0], tags[0]], [tags[1], tags[1]]],
       image: cover,
       bestFor: [item.introZh || "家庭出行 / 自由安排", item.introEn || item.introZh || "Families / Flexible plans"],
@@ -817,14 +819,26 @@ export function ServiceDetail({
       })),
     };
   };
-  const managedCards = managedForCity.map((item) =>
-    planToRoute(
-      item,
-      item.routes
+  const managedCards = activeManagedService
+    ? activeManagedService.routes
         .filter((route) => route.visible !== false)
-        .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99))[0],
-    ),
-  );
+        .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99))
+        .map((route) => planToRoute(activeManagedService, route))
+    : [];
+  const managedVehicles = activeManagedService
+    ? (activeManagedService.vehicles || [])
+        .filter((vehicle) => vehicle.visible !== false)
+        .map((vehicle) => ({
+          name: vehicle.nameZh || vehicle.nameEn || "可安排车型",
+          people: vehicle.people || "人数请咨询",
+          image: vehicle.image || activeManagedService.images[0] || photo("photo-1549317661-bd32c8ce0db2", 600),
+          note: vehicle.description || "具体车型以当天安排为准",
+          price: vehicle.priceMode === "咨询报价"
+            ? "价格咨询"
+            : [vehicle.halfDayPrice ? `半日 ¥${vehicle.halfDayPrice} 起` : "", vehicle.fullDayPrice ? `全天 ¥${vehicle.fullDayPrice} 起` : ""].filter(Boolean).join(" · "),
+        }))
+    : [];
+  const displayVehicles = activeManagedService ? managedVehicles : vehicles.map((vehicle) => ({ ...vehicle, note: "具体车型以当天安排为准", price: "" }));
   const staticDisplayRoutes = routeVariants[city]
     ? routes.map((route, index) => {
         const routeOverride = routeVariants[city][index] ?? {};
@@ -990,13 +1004,13 @@ export function ServiceDetail({
             ))}
           </div>
         </section>
-        <section className="vehicle-section">
+        {displayVehicles.length ? <section className="vehicle-section">
           <div className="detail-heading left">
             <p className="eyebrow">{zh ? "舒适出行" : "TRAVEL IN COMFORT"}</p>
             <h2>{zh ? "车型选择" : "Vehicle Options"}</h2>
           </div>
           <div className="vehicle-grid">
-            {vehicles.map((v) => (
+            {displayVehicles.map((v) => (
               <article key={v.name}>
                 <img src={v.image} alt={v.name} />
                 <div>
@@ -1005,15 +1019,14 @@ export function ServiceDetail({
                     {v.people} {zh ? "位乘客" : "passengers"}
                   </p>
                   <small>
-                    {zh
-                      ? "具体车型以当天安排为准"
-                      : "Vehicle subject to availability"}
+                    {zh ? v.note : "Vehicle subject to availability"}
                   </small>
+                  {v.price ? <b>{v.price}</b> : null}
                 </div>
               </article>
             ))}
           </div>
-        </section>
+        </section> : null}
         <section className="footage-section">
           <div className="detail-heading">
             <p className="eyebrow">FOOTAGE</p>

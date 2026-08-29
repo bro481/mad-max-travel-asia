@@ -18,9 +18,8 @@ import type {
 import { TransferEditor } from "./transfer-editor";
 
 const defaultTabs = ["基础信息", "图片", "内容", "行程／路线", "咨询", "发布"];
-const routeTabs = ["基础信息", "图片", "车型与价格", "路线方案", "咨询设置", "发布"];
-const inquiryRequiredDefaults = ["日期", "人数", "出发地点", "想去的路线 / 景点"];
-const inquiryOptionalDefaults = ["接送地点", "儿童人数", "行李数量", "特殊需求"];
+const routeTabs = ["基础信息", "服务图片", "车型与价格", "热门路线", "咨询与发布"];
+const inquiryFieldOptions = ["日期", "人数", "出发地点", "接送地点", "想去的地方", "儿童人数", "行李数量", "特殊需求"];
 
 export default function ServiceEditor() {
   const { id } = useParams<{ id: string }>();
@@ -105,7 +104,12 @@ export default function ServiceEditor() {
     setD((x) => (x ? { ...x, ...patch } : x));
 
   const save = async (status?: ServiceItem["status"]) => {
-    const next = { ...d, status: status || d.status };
+    const inquiry = isCar ? normalizeInquiryConfig(d.inquiryFields, d.inquiryRequired) : null;
+    const next = {
+      ...d,
+      ...(inquiry ? { inquiryFields: inquiry.fields, inquiryRequired: inquiry.required } : {}),
+      status: status || d.status,
+    };
     setNotice(status === "published" ? "发布中…" : "保存中…");
     try {
       const r = await fetch(`/api/admin/service-items/${id}`, {
@@ -258,22 +262,22 @@ export default function ServiceEditor() {
                 </small>
               </Field>
               <div className="field-row">
-                <Field n="中文标题">
+                <Field n={isCar ? "中文服务名称" : "中文标题"}>
                   <input value={d.nameZh} onChange={(e) => set("nameZh", e.target.value)} />
                 </Field>
-                <Field n="英文标题">
+                <Field n={isCar ? "英文服务名称" : "英文标题"}>
                   <input value={d.nameEn} onChange={(e) => set("nameEn", e.target.value)} />
                 </Field>
               </div>
               <div className="field-row">
-                <Field n="中文副标题">
+                <Field n={isCar ? "中文服务短介绍" : "中文副标题"}>
                   <input value={d.subtitleZh} onChange={(e) => set("subtitleZh", e.target.value)} />
                 </Field>
-                <Field n="英文副标题">
+                <Field n={isCar ? "英文服务短介绍" : "英文副标题"}>
                   <input value={d.subtitleEn} onChange={(e) => set("subtitleEn", e.target.value)} />
                 </Field>
               </div>
-              <Field n={isCar ? "卡片标签（最多 3 个）" : "标签（用顿号分隔）"}>
+              <Field n={isCar ? "服务标签（最多 3 个）" : "标签（用顿号分隔）"}>
                 <input
                   value={d.tags.join("、")}
                   onChange={(e) =>
@@ -291,7 +295,7 @@ export default function ServiceEditor() {
                 {isCar && <small className="field-help">这里就是前台服务卡片下面的小胶囊卖点。</small>}
               </Field>
               <div className="field-row">
-                <Field n="中文简短介绍">
+                <Field n={isCar ? "中文服务详细介绍" : "中文简短介绍"}>
                   <textarea
                     rows={3}
                     value={d.introZh}
@@ -299,7 +303,7 @@ export default function ServiceEditor() {
                     placeholder="半日 / 全天包车，可根据时间和兴趣自由安排路线。"
                   />
                 </Field>
-                <Field n="英文简短介绍">
+                <Field n={isCar ? "英文服务详细介绍" : "英文简短介绍"}>
                   <textarea rows={3} value={d.introEn} onChange={(e) => set("introEn", e.target.value)} />
                 </Field>
               </div>
@@ -308,7 +312,7 @@ export default function ServiceEditor() {
           )}
           {tab === 1 && (
             <>
-              <Head title="图片" text="第一张图片作为服务封面，可批量上传并调整顺序。" />
+              <Head title={isCar ? "服务图片" : "图片"} text={isCar ? `这里管理${d.nameZh}服务本身的图片，不管理具体路线或景点图片。第一张用于服务卡和详情主图。` : "第一张图片作为服务封面，可批量上传并调整顺序。"} />
               <label className="service-upload">
                 拖拽或选择多张服务图片
                 <input type="file" multiple accept="image/*" onChange={(e) => upload(e.target.files)} />
@@ -363,7 +367,7 @@ export default function ServiceEditor() {
             <>
               {isCar ? (
                 <>
-                  <Head title="路线方案" text="管理私人包车下方的“热门包车方案”，路线不是独立服务。" />
+                  <Head title="热门路线" text="管理私人包车详情页中的“热门包车方案”。Route 属于当前 Service，不是独立服务。" />
                   <RouteSectionCopy
                     title={d.routeSectionTitleZh}
                     intro={d.routeSectionIntroZh}
@@ -371,7 +375,6 @@ export default function ServiceEditor() {
                   />
                   <RoutePlansEditor
                     items={d.routes}
-                    serviceImages={d.images}
                     frontendHref={frontendHref}
                     onUpload={(files, done) => upload(files, done)}
                     onChange={(x) => set("routes", x)}
@@ -404,17 +407,14 @@ export default function ServiceEditor() {
           )}
           {tab === 4 && (
             <>
-              <Head title="咨询设置" text="这里只维护客户需要提供的信息；价格统一在“车型与价格”里维护。" />
+              <Head title="咨询与发布" text="统一设置咨询字段、检查发布条件，并从这里保存或发布。" />
+              <h3 className="editor-section-title">咨询字段</h3>
               <InquiryPicker
                 fields={d.inquiryFields}
                 required={d.inquiryRequired}
                 onChange={(fields, required) => setMany({ inquiryFields: fields, inquiryRequired: required })}
               />
-            </>
-          )}
-          {tab === 5 && (
-            <>
-              <Head title="发布" text="确认内容后发布到前台。" />
+              <h3 className="editor-section-title">发布检查</h3>
               <div className="publish-check">
                 <ul>
                   {checks.map((check) => (
@@ -423,19 +423,20 @@ export default function ServiceEditor() {
                     </li>
                   ))}
                 </ul>
-                <button className="admin-primary" onClick={() => save("published")}>
-                  发布服务
-                </button>
-                <a className="admin-secondary publish-front-link" href={frontendHref} target="_blank" rel="noreferrer">
-                  查看前台页面
-                </a>
+                <div className="publish-actions">
+                  <button className="admin-secondary" onClick={() => save()}>保存草稿</button>
+                  <button className="admin-primary" onClick={() => save("published") }>发布服务</button>
+                  <a className="admin-secondary publish-front-link" href={frontendHref} target="_blank" rel="noreferrer">查看前台页面</a>
+                </div>
               </div>
             </>
           )}
         </main>
         <aside className="service-live-preview">
-          <small>{previewTitle(activeTabs[tab])}</small>
-          <PreviewCard data={d} category={currentCategory} tabName={activeTabs[tab]} />
+          {tab === 0 || tab === 1 ? <ServiceCardPreview data={d} category={currentCategory} /> : null}
+          {tab === 2 ? <VehicleCardPreview data={d} /> : null}
+          {tab === 3 ? <RouteCardPreview data={d} /> : null}
+          {tab === 4 ? <InquiryPublishPreview data={d} /> : null}
         </aside>
       </div>
     </>
@@ -509,8 +510,8 @@ function ServiceHighlights({
         { title: "酒店接送", description: "减少交通衔接麻烦" },
       ];
   return (
-    <details className="service-repeat compact service-highlights-collapsed">
-      <summary>服务亮点（不常修改）</summary>
+    <div className="service-repeat compact">
+      <h3>服务亮点</h3>
       {highlights.map((item, index) => (
         <div key={`${item.title}-${index}`}>
           <Field n="亮点">
@@ -533,7 +534,7 @@ function ServiceHighlights({
         </div>
       ))}
       <button onClick={() => onChange([...highlights, { title: "新亮点", description: "" }])}>＋ 添加亮点</button>
-    </details>
+    </div>
   );
 }
 
@@ -550,7 +551,8 @@ function RouteSectionCopy({
   const defaultTitle = "热门包车方案";
   const defaultIntro = "以下路线仅作参考，可根据您的时间与兴趣灵活调整。";
   return (
-    <div className="route-section-copy">
+    <details className="route-section-copy route-section-collapsed">
+      <summary>板块设置</summary>
       <label className="route-inline-check">
         <input type="checkbox" checked={custom} onChange={(e) => setCustom(e.target.checked)} />
         <span>使用自定义板块文案</span>
@@ -579,7 +581,7 @@ function RouteSectionCopy({
           </Field>
         </>
       )}
-    </div>
+    </details>
   );
 }
 
@@ -680,7 +682,7 @@ function VehiclePricingEditor({
                 <Field n="车辆图片">
                   <ImageChooser
                     value={vehicle.image}
-                    images={serviceImages}
+                    images={[]}
                     onUpload={(files) => onUpload(files, (urls) => update(index, { image: urls[0] || vehicle.image }))}
                     onChange={(url) => update(index, { image: url })}
                   />
@@ -734,78 +736,35 @@ function InquiryPicker({
   required: string[];
   onChange: (fields: string[], required: string[]) => void;
 }) {
-  const allRequired = Array.from(new Set([...inquiryRequiredDefaults, ...required]));
-  const allOptional = Array.from(
-    new Set([...inquiryOptionalDefaults, ...fields.filter((field) => !allRequired.includes(field))]),
-  );
+  const aliases: Record<string, string> = {
+    "计划日期": "日期",
+    "同行人数": "人数",
+    "想去的路线 / 景点": "想去的地方",
+    "想去的路线/景点": "想去的地方",
+  };
+  const normalizedFields = Array.from(new Set(fields.map((field) => aliases[field] || field))).filter((field) => inquiryFieldOptions.includes(field));
+  const normalizedRequired = Array.from(new Set(required.map((field) => aliases[field] || field))).filter((field) => inquiryFieldOptions.includes(field));
   const toggleField = (field: string, next: boolean) => {
-    const nextFields = next ? Array.from(new Set([...fields, field])) : fields.filter((item) => item !== field);
-    const nextRequired = next ? required : required.filter((item) => item !== field);
+    const nextFields = next ? Array.from(new Set([...normalizedFields, field])) : normalizedFields.filter((item) => item !== field);
+    const nextRequired = next ? normalizedRequired : normalizedRequired.filter((item) => item !== field);
     onChange(nextFields, nextRequired);
   };
   const toggleRequired = (field: string, next: boolean) => {
-    const nextFields = Array.from(new Set([...fields, field]));
-    const nextRequired = next ? Array.from(new Set([...required, field])) : required.filter((item) => item !== field);
+    const nextFields = Array.from(new Set([...normalizedFields, field]));
+    const nextRequired = next ? Array.from(new Set([...normalizedRequired, field])) : normalizedRequired.filter((item) => item !== field);
     onChange(nextFields, nextRequired);
   };
   return (
-    <div className="inquiry-groups">
-      <InquiryGroup
-        title="必填"
-        items={allRequired}
-        fields={fields}
-        required={required}
-        onToggleField={toggleField}
-        onToggleRequired={toggleRequired}
-      />
-      <InquiryGroup
-        title="可选"
-        items={allOptional}
-        fields={fields}
-        required={required}
-        onToggleField={toggleField}
-        onToggleRequired={toggleRequired}
-      />
-    </div>
-  );
-}
-
-function InquiryGroup({
-  title,
-  items,
-  fields,
-  required,
-  onToggleField,
-  onToggleRequired,
-}: {
-  title: string;
-  items: string[];
-  fields: string[];
-  required: string[];
-  onToggleField: (field: string, next: boolean) => void;
-  onToggleRequired: (field: string, next: boolean) => void;
-}) {
-  return (
-    <section className="inquiry-group">
-      <h3>{title}</h3>
-      {items.map((item) => (
-        <div key={item}>
-          <label>
-            <input type="checkbox" checked={fields.includes(item)} onChange={(e) => onToggleField(item, e.target.checked)} />
-            <span>{item}</span>
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={required.includes(item)}
-              disabled={!fields.includes(item)}
-              onChange={(e) => onToggleRequired(item, e.target.checked)}
-            />
-            <span>必填</span>
-          </label>
+    <div className="inquiry-unified-list">
+      <div className="inquiry-unified-head"><b>字段</b><span>是否显示</span><span>是否必填</span></div>
+      {inquiryFieldOptions.map((field) => (
+        <div key={field}>
+          <b>{field}</b>
+          <label><input type="checkbox" checked={normalizedFields.includes(field)} onChange={(event) => toggleField(field, event.target.checked)} /><span>显示</span></label>
+          <label><input type="checkbox" checked={normalizedRequired.includes(field)} disabled={!normalizedFields.includes(field)} onChange={(event) => toggleRequired(field, event.target.checked)} /><span>必填</span></label>
         </div>
       ))}
-    </section>
+    </div>
   );
 }
 
@@ -921,13 +880,11 @@ function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRout
 
 function RoutePlansEditor({
   items,
-  serviceImages,
   frontendHref,
   onUpload,
   onChange,
 }: {
   items: ServiceRoutePlan[];
-  serviceImages: string[];
   frontendHref: string;
   onUpload: (files: FileList | null, done: (urls: string[]) => void) => void;
   onChange: (x: ServiceRoutePlan[]) => void;
@@ -1115,46 +1072,9 @@ function RoutePlansEditor({
 
   return (
     <div className="route-plan-editor">
-      <details className="route-section-copy route-section-collapsed">
-        <summary>板块设置</summary>
-        <div className="field-row">
-          <label className="route-inline-check">
-            <input
-              type="checkbox"
-              checked={items.some((route) => route.sectionTitleZh || route.sectionDescriptionZh)}
-              onChange={(event) =>
-                sync(
-                  routes.map((route) => ({
-                    ...route,
-                    sectionTitleZh: event.target.checked ? route.sectionTitleZh || "热门包车方案" : "",
-                    sectionDescriptionZh: event.target.checked
-                      ? route.sectionDescriptionZh || "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"
-                      : "",
-                  })),
-                )
-              }
-            />
-            <span>使用自定义板块文案</span>
-          </label>
-        </div>
-        <div className="field-row">
-          <Field n="板块标题">
-            <input
-              value={routes[0]?.sectionTitleZh || "热门包车方案"}
-              onChange={(e) => sync(routes.map((route) => ({ ...route, sectionTitleZh: e.target.value })))}
-            />
-          </Field>
-          <Field n="板块说明">
-            <input
-              value={routes[0]?.sectionDescriptionZh || "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"}
-              onChange={(e) => sync(routes.map((route) => ({ ...route, sectionDescriptionZh: e.target.value })))}
-            />
-          </Field>
-        </div>
-      </details>
       <div className="route-plan-head">
         <div>
-          <h3>路线方案</h3>
+          <h3>热门路线</h3>
           <p>管理“私人包车”下的推荐路线。路线不是独立服务，点编辑后再维护单条路线和节点。</p>
         </div>
         <button
@@ -1197,15 +1117,7 @@ function RoutePlansEditor({
                   <small>
                     {route.duration || "时长未填"} · {nodes.length} 个节点 · {route.visible === false ? "已隐藏" : "已显示"}
                   </small>
-                  <p>
-                    {nodes
-                      .filter((node) => !["接送", "返程"].includes(node.type || guessNodeType(node.nameZh || node.title || "")))
-                      .map((node) => node.nameZh || node.title || "")
-                      .filter(Boolean)
-                      .slice(0, 4)
-                      .join(" · ") || "暂无景点节点"}
-                    {nodes.length > 4 ? "…" : ""}
-                  </p>
+                  <p>{routePlanDescription(route) || "路线简介未填写"}</p>
                 </div>
                 <nav>
                   <button onClick={() => openRouteEditor(index)}>编辑</button>
@@ -1259,7 +1171,7 @@ function RoutePlansEditor({
               <div className="route-editor-body route-editor-grid">
                 <div className="route-panel-form">
                   <div className="field-row">
-                    <Field n="路线名称">
+                    <Field n="中文路线名称">
                       <input
                         value={activeRoute.nameZh || ""}
                         onChange={(e) =>
@@ -1270,7 +1182,7 @@ function RoutePlansEditor({
                         }
                       />
                     </Field>
-                    <Field n="英文名称">
+                    <Field n="英文路线名称">
                       <input
                         value={activeRoute.nameEn || ""}
                         onChange={(e) => update(editingRouteIndex, { nameEn: e.target.value })}
@@ -1342,11 +1254,11 @@ function RoutePlansEditor({
                       <span>前台显示</span>
                     </label>
                   </div>
-                  <Field n="路线封面图">
+                  <Field n="路线封面">
                     <div className="route-cover-compact">
                       <ImageChooser
                         value={activeRoute.image || ""}
-                        images={serviceImages}
+                        images={[]}
                         onUpload={(files) =>
                           onUpload(files, (urls) => update(editingRouteIndex, { image: urls[0] || activeRoute.image }))
                         }
@@ -1472,9 +1384,10 @@ function RoutePlansEditor({
                           >
                             <option>接送</option>
                             <option>景点</option>
-                            <option>用餐</option>
+                            <option>餐饮</option>
+                            <option>购物</option>
                             <option>自由活动</option>
-                            <option>返程</option>
+                            <option>其他</option>
                           </select>
                         </Field>
                         <Field n="停留时间">
@@ -1503,7 +1416,7 @@ function RoutePlansEditor({
                       <Field n="节点图片">
                         <ImageChooser
                           value={activeNode.image || ""}
-                          images={serviceImages}
+                          images={[]}
                           onUpload={(files) =>
                             onUpload(files, (urls) =>
                               updateNode(editingRouteIndex, editingNodeIndex, { image: urls[0] || activeNode.image }),
@@ -1527,11 +1440,7 @@ function RoutePlansEditor({
               <button onClick={closeRouteEditor}>保存路线</button>
             </footer>
             {routePreview && previewRoute ? (
-              <PrivateRouteDetailModal
-                route={previewRoute}
-                focusStopIndex={routePreview.focusStopIndex}
-                onClose={() => setRoutePreview(null)}
-              />
+              <RouteDetailPreview route={previewRoute} focusStopIndex={routePreview.focusStopIndex} onClose={() => setRoutePreview(null)} />
             ) : null}
           </div>
         </div>
@@ -1577,9 +1486,10 @@ function ImageChooser({
 
 function guessNodeType(name: string) {
   if (/接|酒店|出发|送/.test(name)) return "接送";
-  if (/餐|午|晚|吃|美食/.test(name)) return "用餐";
-  if (/自由|购物|逛/.test(name)) return "自由活动";
-  if (/返|回/.test(name)) return "返程";
+  if (/餐|午|晚|吃|美食/.test(name)) return "餐饮";
+  if (/购物|商场|买/.test(name)) return "购物";
+  if (/自由|逛/.test(name)) return "自由活动";
+  if (/返|回/.test(name)) return "接送";
   return "景点";
 }
 
@@ -1589,41 +1499,25 @@ function publishChecks(d: ServiceItem, isCar: boolean) {
   return [
     { label: "服务名称", ok: Boolean(d.nameZh) },
     { label: "目的地与分类", ok: Boolean(d.city && d.categoryId) },
-    { label: "封面图片", ok: Boolean(d.images[0]) },
+    { label: "服务封面", ok: Boolean(d.images[0]) },
     ...(isCar
       ? [
           { label: "至少 1 个车型", ok: visibleVehicles.length > 0 },
-          { label: "至少 1 条路线", ok: visibleRoutes.length > 0 },
-          {
-            label: "价格设置",
-            ok: visibleVehicles.some((vehicle) => vehicle.priceMode === "咨询报价" || vehicle.halfDayPrice || vehicle.fullDayPrice || vehicle.price),
-          },
+          { label: "至少 1 条前台显示路线", ok: visibleRoutes.length > 0 },
         ]
       : []),
     { label: "咨询字段", ok: Boolean(d.inquiryFields.length) },
   ];
 }
 
-function previewTitle(tabName: string) {
-  if (tabName === "车型与价格") return "车型卡预览";
-  if (tabName === "路线方案") return "热门包车方案预览";
-  if (tabName === "咨询设置") return "咨询字段预览";
-  return "服务卡片预览";
+function ServiceCardPreview({ data, category }: { data: ServiceItem; category?: ServiceCategory }) {
+  return <div className="typed-preview"><small>服务卡片预览</small><div className="typed-preview-card">{data.images[0] ? <img src={data.images[0]} alt="" /> : <span>添加服务封面图</span>}<p>{data.city} · {category?.nameZh || data.category}</p><h2>{data.nameZh}</h2><b>{data.subtitleZh}</b><div>{data.tags.slice(0, 2).map((tag) => <i key={tag}>{tag}</i>)}</div></div></div>;
 }
 
-function PreviewCard({
-  data,
-  category,
-  tabName,
-}: {
-  data: ServiceItem;
-  category?: ServiceCategory;
-  tabName: string;
-}) {
-  if (tabName === "车型与价格") {
+function VehicleCardPreview({ data }: { data: ServiceItem }) {
     const vehicles = (data.vehicles || []).filter((vehicle) => vehicle.visible !== false);
     return (
-      <div>
+      <div className="typed-preview"><small>车型卡片预览</small><div className="typed-preview-card">
         <h2>可安排车型</h2>
         {vehicles.slice(0, 3).map((vehicle, index) => (
           <p key={`${vehicle.nameZh}-${index}`}>
@@ -1632,12 +1526,13 @@ function PreviewCard({
             {vehicle.people} · {vehicle.priceMode === "咨询报价" ? "价格咨询" : `半日 ¥${vehicle.halfDayPrice || vehicle.price || 0} 起`}
           </p>
         ))}
-      </div>
+      </div></div>
     );
-  }
-  if (tabName === "路线方案") {
+}
+
+function RouteCardPreview({ data }: { data: ServiceItem }) {
     return (
-      <div>
+      <div className="typed-preview"><small>路线卡片预览</small><div className="typed-preview-card">
         <h2>{data.routeSectionTitleZh || "热门包车方案"}</h2>
         {(data.routes || [])
           .filter((route) => route.visible !== false)
@@ -1646,35 +1541,32 @@ function PreviewCard({
             <p key={`${routePlanName(route)}-${index}`}>
               <b>{route.recommended ? "热门 · " : ""}{routePlanName(route)}</b>
               <br />
-              {route.duration} · {routePlanNodes(route).length} 个节点
+              {route.duration} · {routePlanTags(route).slice(0, 1).join("") || `${routePlanNodes(route).length} 个节点`}
+              <br />{routePlanDescription(route) || "路线简介未填写"}<br />查看路线 →
             </p>
           ))}
-      </div>
+      </div></div>
     );
-  }
-  if (tabName === "咨询设置") {
+}
+
+function InquiryPublishPreview({ data }: { data: ServiceItem }) {
     return (
-      <div>
+      <div className="typed-preview"><small>咨询字段预览</small><div className="typed-preview-card">
         <h2>咨询时需要提供</h2>
         {data.inquiryFields.slice(0, 8).map((field) => (
           <i key={field}>{field}</i>
         ))}
-      </div>
+      </div></div>
     );
-  }
-  return (
-    <div>
-      {data.images[0] ? <img src={data.images[0]} alt="" /> : <span>添加封面图片</span>}
-      <p>
-        {data.city} · {category?.nameZh || data.category}
-      </p>
-      <h2>{data.nameZh}</h2>
-      <b>{data.subtitleZh}</b>
-      <div>
-        {data.tags.map((x) => (
-          <i key={x}>{x}</i>
-        ))}
-      </div>
-    </div>
-  );
+}
+
+function RouteDetailPreview({ route, focusStopIndex, onClose }: { route: PrivateRouteDetailData; focusStopIndex: number | null; onClose: () => void }) {
+  return <PrivateRouteDetailModal route={route} focusStopIndex={focusStopIndex} onClose={onClose} />;
+}
+
+function normalizeInquiryConfig(fields: string[], required: string[]) {
+  const aliases: Record<string, string> = { "计划日期": "日期", "同行人数": "人数", "想去的路线 / 景点": "想去的地方", "想去的路线/景点": "想去的地方" };
+  const normalize = (items: string[]) => Array.from(new Set(items.map((item) => aliases[item] || item))).filter((item) => inquiryFieldOptions.includes(item));
+  const nextFields = normalize(fields);
+  return { fields: nextFields, required: normalize(required).filter((item) => nextFields.includes(item)) };
 }

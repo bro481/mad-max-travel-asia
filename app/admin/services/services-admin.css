@@ -463,6 +463,14 @@
   margin-right: 5px;
   padding: 4px 7px;
 }
+.service-live-preview > .typed-preview{background:transparent;border:0;border-radius:0;overflow:visible}
+.typed-preview>small{color:var(--a-muted);display:block;font-weight:900;margin:0 0 10px!important}
+.typed-preview-card{background:#fff;border:1px solid var(--a-line);border-radius:12px;overflow:hidden}
+.typed-preview-card>*:not(img){margin:10px 14px}
+.inquiry-unified-list{border:1px solid var(--a-line);border-radius:14px;display:grid;margin-bottom:28px;overflow:hidden}
+.inquiry-unified-list>div{align-items:center;border-bottom:1px solid var(--a-line);display:grid;gap:16px;grid-template-columns:1fr 120px 120px;padding:13px 16px}
+.inquiry-unified-list>div:last-child{border-bottom:0}.inquiry-unified-list label{align-items:center;display:flex;gap:8px}.inquiry-unified-head{background:#f5f8f7;color:var(--a-muted)}
+.editor-section-title{font-size:20px;margin:26px 0 12px}.publish-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.publish-front-link{text-decoration:none}
 .category-manage {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
