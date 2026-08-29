@@ -98,6 +98,7 @@ export default function ServiceEditor() {
   const currentDestination = destinations.find(
     (destination) => destination.id === d.destinationId || destination.nameZh === d.city,
   );
+  const frontendHref = serviceFrontendHref(d);
   const set = (k: keyof ServiceItem, v: unknown) =>
     setD((x) => (x ? { ...x, [k]: v } : x));
   const setMany = (patch: Partial<ServiceItem>) =>
@@ -165,6 +166,9 @@ export default function ServiceEditor() {
           </span>
         </div>
         <div>
+          <a className="admin-secondary" href={frontendHref} target="_blank" rel="noreferrer">
+            查看前台
+          </a>
           <button className="admin-secondary" onClick={() => save()}>
             保存草稿
           </button>
@@ -173,7 +177,16 @@ export default function ServiceEditor() {
           </button>
         </div>
       </div>
-      {notice && <p className="lead-notice">{notice}</p>}
+      {notice && (
+        <p className="lead-notice">
+          {notice}
+          {notice.startsWith("✓") && d.status === "published" && (
+            <a href={frontendHref} target="_blank" rel="noreferrer">
+              查看前台 →
+            </a>
+          )}
+        </p>
+      )}
       <div className="service-editor-layout">
         <aside>
           {activeTabs.map((x, i) => (
@@ -359,6 +372,7 @@ export default function ServiceEditor() {
                   <RoutePlansEditor
                     items={d.routes}
                     serviceImages={d.images}
+                    frontendHref={frontendHref}
                     onUpload={(files, done) => upload(files, done)}
                     onChange={(x) => set("routes", x)}
                   />
@@ -412,6 +426,9 @@ export default function ServiceEditor() {
                 <button className="admin-primary" onClick={() => save("published")}>
                   发布服务
                 </button>
+                <a className="admin-secondary publish-front-link" href={frontendHref} target="_blank" rel="noreferrer">
+                  查看前台页面
+                </a>
               </div>
             </>
           )}
@@ -429,6 +446,11 @@ function templateLabel(type: ServiceItem["templateType"]) {
   if (type === "transfer") return "接送型";
   if (type === "route") return "路线型";
   return "体验型";
+}
+
+function serviceFrontendHref(item: ServiceItem) {
+  if (item.templateType === "transfer" || item.type === "交通接送") return "/services";
+  return `/services/item/${item.slug}`;
 }
 
 function destinationOptions(items: DestinationRecord[], current: string) {
@@ -897,11 +919,13 @@ function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRout
 function RoutePlansEditor({
   items,
   serviceImages,
+  frontendHref,
   onUpload,
   onChange,
 }: {
   items: ServiceRoutePlan[];
   serviceImages: string[];
+  frontendHref: string;
   onUpload: (files: FileList | null, done: (urls: string[]) => void) => void;
   onChange: (x: ServiceRoutePlan[]) => void;
 }) {
@@ -1358,7 +1382,8 @@ function RoutePlansEditor({
                       <p>每个节点对应前端路线弹窗里的一个行程点；拖拽整行调整顺序。</p>
                     </div>
                     <div className="route-node-toolbar-actions">
-                      <button className="secondary" onClick={() => setRoutePreview({ focusStopIndex: null })}>预览路线</button>
+                      <a className="secondary" href={frontendHref} target="_blank" rel="noreferrer">查看前台</a>
+                      <button className="secondary" onClick={() => setRoutePreview({ focusStopIndex: null })}>草稿预览</button>
                       <button onClick={() => addNode(editingRouteIndex)}>＋ 添加节点</button>
                     </div>
                   </div>

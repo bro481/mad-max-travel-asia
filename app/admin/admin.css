@@ -928,6 +928,15 @@
   font-size: 12px;
   color: var(--a-muted);
 }
+.editor-top a.admin-secondary,
+.lead-notice a {
+  color: var(--a-green);
+  text-decoration: none;
+}
+.lead-notice a {
+  font-weight: 800;
+  margin-left: 12px;
+}
 .editor-top h1 {
   font: 600 32px var(--font-serif);
   margin: 8px 0 2px;
@@ -1756,6 +1765,10 @@
 }
 .publish-check li.ok:before {
   content: "✓";
+}
+.publish-front-link {
+  margin-top: 10px;
+  text-decoration: none;
 }
 .save-notice {
   align-items: center;

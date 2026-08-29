@@ -560,7 +560,7 @@
 .route-node-toolbar h4{font-size:20px;margin:0 0 4px}.route-node-toolbar p{color:var(--a-muted);margin:0}
 .route-node-toolbar button{background:var(--a-green);border:0;border-radius:10px;color:#fff;cursor:pointer;font-weight:900;padding:10px 14px}
 .route-node-toolbar-actions{display:flex;gap:9px}
-.route-node-toolbar-actions button.secondary{background:#fff;border:1px solid var(--a-line);color:var(--a-green)}
+.route-node-toolbar-actions button.secondary,.route-node-toolbar-actions a.secondary{background:#fff;border:1px solid var(--a-line);border-radius:9px;color:var(--a-green);cursor:pointer;font-size:12px;font-weight:700;padding:10px 14px;text-decoration:none}
 .route-node-list.compact{display:grid;gap:9px;overflow-y:auto;padding:2px 6px 8px 2px}
 .route-node-row{align-items:center;background:#fff;border:1px solid var(--a-line);border-radius:12px;cursor:pointer;display:grid;gap:11px;grid-template-columns:22px 34px 70px minmax(0,1fr) auto;padding:10px}
 .route-node-row.active{border-color:#7da99a;box-shadow:0 8px 25px rgba(38,126,98,.09)}
@@ -733,7 +733,7 @@
   .route-editor-backdrop{padding:0}.route-editor-modal{border-radius:0;height:100vh;width:100vw}.route-editor-header,.route-editor-body,.route-editor-footer{padding-left:16px;padding-right:16px}.route-editor-tabs{overflow:auto;padding:0 10px}
   .route-plan-card.compact .route-plan-summary{grid-template-columns:20px 76px minmax(0,1fr);padding:10px}.route-plan-card.compact .route-plan-thumb{height:66px;width:76px}.route-plan-main p{display:none}
   .route-node-row{grid-template-columns:20px 28px 54px minmax(0,1fr)}.route-node-mini-thumb{height:46px;width:54px}.route-node-row nav{grid-column:2/-1}.route-node-toolbar{align-items:flex-start;gap:12px}.route-image-node-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .route-node-toolbar-actions{flex-direction:column}.route-node-toolbar-actions button{white-space:nowrap}
+  .route-node-toolbar-actions{flex-direction:column}.route-node-toolbar-actions button,.route-node-toolbar-actions a{white-space:nowrap}
   .route-cover-compact .route-image-chooser{display:grid;grid-template-columns:1fr}.route-cover-compact .route-image-preview{height:auto;aspect-ratio:16/9;width:100%}.route-cover-compact{max-width:none}
   .service-product-grid,
   .service-type-picker,

@@ -95,6 +95,10 @@ export default function ServiceList() {
     x.templateType === "transfer" || x.type === "交通接送" ? "接送机" : x.templateType === "route" || x.type === "私人包车" ? "包车" : "当地体验";
   const categoryName = (x: ServiceItem) =>
     categories.find((category) => category.id === x.categoryId)?.nameZh || x.category || "未分类";
+  const frontHref = (x: ServiceItem) =>
+    x.templateType === "transfer" || x.type === "交通接送"
+      ? "/services"
+      : `/services/item/${x.slug}`;
   const cityItems = activeCity === "全部" ? items : items.filter((item) => item.city === activeCity);
   const visibleItems = (activeType === "全部" ? cityItems : cityItems.filter((item) => kind(item) === activeType))
     .sort((a, b) => (a.categoryId || 0) - (b.categoryId || 0) || (a.displayOrder || 99) - (b.displayOrder || 99) || a.id - b.id);
@@ -149,8 +153,8 @@ export default function ServiceList() {
         <b className="service-card-price">{x.priceMode === "咨询报价" ? "价格咨询" : `RM ${x.price} ${x.priceMode === "起价" ? "起" : ""}`}</b>
         <nav>
           <Link href={`/admin/services/${x.id}`}>编辑</Link>
-          <a href={`/services/item/${x.slug}`} target="_blank">
-            预览
+          <a href={frontHref(x)} target="_blank" rel="noreferrer">
+            查看前台
           </a>
           <button onClick={() => copy(x)}>复制</button>
           <button
