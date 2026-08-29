@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InquiryModal } from "../../components/inquiry-modal";
 import type { ServiceCategory } from "../../../db/services";
+import type { ServiceItem, ServiceRouteNode, ServiceRoutePlan } from "../../../db/service-items";
 import { ServiceMenu } from "../../service-menu";
 type Lang = "zh" | "en";
 type Route = {
@@ -240,9 +241,15 @@ function Logo() {
 export function ServiceDetail({
   service,
   city,
+  managedServices = [],
+  previewService,
+  previewRoute,
 }: {
   service: ServiceCategory;
   city: string;
+  managedServices?: ServiceItem[];
+  previewService?: string;
+  previewRoute?: string;
 }) {
   const [lang, setLang] = useState<Lang>("zh"),
     [selected, setSelected] = useState<Route | null>(null),
@@ -777,7 +784,48 @@ export function ServiceDetail({
     });
     return [cover, ...relatedImages.slice(0, 3)].filter(Boolean);
   };
-  const displayRoutes = routeVariants[city]
+  const cityName = city === "kl" ? "吉隆坡" : city === "melaka" ? "马六甲" : "亚庇";
+  const managedForCity = managedServices.filter((item) => item.city === cityName);
+  const planToRoute = (item: ServiceItem, plan?: ServiceRoutePlan): Route => {
+    const nodes = plan?.nodes?.length
+      ? plan.nodes
+      : (plan?.stops || "")
+          .split(/[·、,，]/)
+          .map((name) => name.trim())
+          .filter(Boolean)
+          .map((name) => ({ nameZh: name } as ServiceRouteNode));
+    const cover =
+      item.images[0] ||
+      plan?.image ||
+      nodes.find((node) => node.image)?.image ||
+      photo("photo-1596422846543-75c6fc197f07");
+    const tags = (item.tags.length ? item.tags : plan?.tags || []).slice(0, 2);
+    while (tags.length < 2) tags.push(tags.length ? "行程可调整" : "时间灵活");
+    return {
+      title: [item.nameZh, item.nameEn || item.nameZh],
+      duration: [plan?.duration || "时间灵活", plan?.duration || "Flexible duration"],
+      summary: [item.subtitleZh || plan?.descriptionZh || "路线可根据当天情况调整", item.subtitleEn || plan?.descriptionEn || item.subtitleZh || "Flexible private route"],
+      tags: [[tags[0], tags[0]], [tags[1], tags[1]]],
+      image: cover,
+      bestFor: [item.introZh || "家庭出行 / 自由安排", item.introEn || item.introZh || "Families / Flexible plans"],
+      stops: nodes.map((node, index) => ({
+        time: node.stayTime || node.time || "",
+        title: [node.nameZh || node.title || `路线节点 ${index + 1}`, node.nameEn || node.nameZh || node.title || `Route stop ${index + 1}`],
+        note: [node.descriptionZh || node.description || "可根据当天时间灵活调整", node.descriptionEn || node.descriptionZh || node.description || "Flexible timing"],
+        image: node.image || plan?.image || cover,
+        images: [node.image || plan?.image || cover].filter(Boolean),
+      })),
+    };
+  };
+  const managedCards = managedForCity.map((item) =>
+    planToRoute(
+      item,
+      item.routes
+        .filter((route) => route.visible !== false)
+        .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99))[0],
+    ),
+  );
+  const staticDisplayRoutes = routeVariants[city]
     ? routes.map((route, index) => {
         const routeOverride = routeVariants[city][index] ?? {};
         const stopImages = routeImageSets[city]?.[index] ?? [];
@@ -803,6 +851,30 @@ export function ServiceDetail({
         };
       })
     : routes;
+  const displayRoutes = managedCards.length ? managedCards : staticDisplayRoutes;
+  useEffect(() => {
+    if (!previewService) return;
+    const item = managedForCity.find(
+      (candidate) =>
+        candidate.slug === previewService || String(candidate.id) === previewService,
+    );
+    if (!item) return;
+    const plans = item.routes
+      .filter((route) => route.visible !== false)
+      .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+    const routeNumber = Number(previewRoute);
+    const index = previewRoute && Number.isFinite(routeNumber)
+      ? Math.max(0, Math.min(plans.length - 1, routeNumber))
+      : 0;
+    const route = planToRoute(item, plans[index]);
+    if (previewRoute && plans[index]) {
+      route.title = [plans[index].nameZh || plans[index].name || item.nameZh, plans[index].nameEn || plans[index].nameZh || plans[index].name || item.nameEn || item.nameZh];
+      route.summary = [plans[index].descriptionZh || plans[index].description || item.subtitleZh, plans[index].descriptionEn || plans[index].descriptionZh || plans[index].description || item.subtitleEn || item.subtitleZh];
+    }
+    setStopIndex(0);
+    setStopPhotoIndex(0);
+    setSelected(route);
+  }, [previewService, previewRoute]);
   const modalStops = selected
     ? selected.stops.map((stop) => ({
         ...stop,

@@ -315,7 +315,11 @@ const routePlanToPrivateRoute = (
     desc: textPair(descZh, route.descriptionEn, descZh),
     duration: textPair(route.duration || "时间灵活", route.duration || "Flexible duration"),
     tags: routePlanTags(route),
-    image: route.image || "",
+    image:
+      route.image ||
+      route.nodes?.find((node) => node.image)?.image ||
+      service.images[0] ||
+      "",
     stops: routePlanNodes(route),
   };
 };
@@ -1033,20 +1037,24 @@ export function ServicesPage({
     );
     if (!offer) return;
 
-    setSelectedOffer((current) => {
-      if (
-        current &&
-        (current.serviceSlug === offer.serviceSlug ||
-          (current.serviceId && current.serviceId === offer.serviceId))
-      ) {
-        return current;
-      }
-      return offer;
-    });
     if (!routeParam) {
+      setSelectedOffer((current) => {
+        if (
+          current &&
+          (current.serviceSlug === offer.serviceSlug ||
+            (current.serviceId && current.serviceId === offer.serviceId))
+        ) {
+          return current;
+        }
+        return offer;
+      });
       setSelectedPrivateRoute(null);
       return;
     }
+
+    // A route preview opens the existing route modal directly. Keeping the
+    // service overview open behind it creates two competing preview layers.
+    setSelectedOffer(null);
 
     const managedService = offer.serviceId
       ? managed.find((item) => item.id === offer.serviceId)
@@ -1519,7 +1527,10 @@ export function ServicesPage({
                           <p>{route.desc[l]}</p>
                           <button
                             type="button"
-                            onClick={() => setSelectedPrivateRoute(route)}
+                            onClick={() => {
+                              setSelectedOffer(null);
+                              setSelectedPrivateRoute(route);
+                            }}
                           >
                             {lang === "zh" ? "查看路线 →" : "View route →"}
                           </button>

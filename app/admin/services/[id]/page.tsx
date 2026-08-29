@@ -449,6 +449,10 @@ function templateLabel(type: ServiceItem["templateType"]) {
 }
 
 function serviceFrontendHref(item: ServiceItem) {
+  if (item.templateType === "route" || item.type === "私人包车") {
+    const city = item.city === "吉隆坡" ? "kl" : item.city === "马六甲" ? "melaka" : "kk";
+    return `/services/private-car?city=${city}&service=${encodeURIComponent(item.slug)}`;
+  }
   return `/services?service=${encodeURIComponent(item.slug)}`;
 }
 

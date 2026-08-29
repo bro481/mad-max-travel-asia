@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ServiceDetail } from "./service-detail";
 import type { ServiceCategory } from "../../../db/services";
+import type { ServiceItem } from "../../../db/service-items";
 
 export const dynamic = "force-dynamic";
 
@@ -116,10 +117,10 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ city?: string }>;
+  searchParams: Promise<{ city?: string; service?: string; route?: string }>;
 }) {
   const { slug } = await params;
-  const { city } = await searchParams;
+  const { city, service: previewService, route: previewRoute } = await searchParams;
   const service =
     process.env.NODE_ENV === "development" ||
     process.env.LOCAL_BROWSER_PREVIEW === "1"
@@ -137,5 +138,26 @@ export default async function Page({
         </Link>
       </main>
     );
-  return <ServiceDetail service={service} city={city || "kk"} />;
+  let managedServices: ServiceItem[] = [];
+  if (slug === "private-car" && process.env.NODE_ENV !== "development") {
+    managedServices = await import("../../../db/service-items")
+      .then(({ listServiceItems }) => listServiceItems())
+      .then((items) =>
+        items.filter(
+          (item) =>
+            item.status === "published" &&
+            (item.templateType === "route" || item.type === "私人包车"),
+        ),
+      )
+      .catch(() => []);
+  }
+  return (
+    <ServiceDetail
+      service={service}
+      city={city || "kk"}
+      managedServices={managedServices}
+      previewService={previewService}
+      previewRoute={previewRoute}
+    />
+  );
 }

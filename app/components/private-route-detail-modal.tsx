@@ -58,7 +58,7 @@ export function PrivateRouteDetailModal({
         </button>
         <div className="modal-gallery experience-gallery">
           {images.length ? (
-            <GalleryCarousel images={images} alt={route.title[languageIndex]} compact />
+            <GalleryCarousel images={images} alt={route.title[languageIndex]} />
           ) : (
             <div className="private-route-no-image">{lang === "zh" ? "暂未设置路线图片" : "No route images yet"}</div>
           )}

@@ -95,8 +95,13 @@ export default function ServiceList() {
     x.templateType === "transfer" || x.type === "交通接送" ? "接送机" : x.templateType === "route" || x.type === "私人包车" ? "包车" : "当地体验";
   const categoryName = (x: ServiceItem) =>
     categories.find((category) => category.id === x.categoryId)?.nameZh || x.category || "未分类";
-  const frontHref = (x: ServiceItem) =>
-    `/services?service=${encodeURIComponent(x.slug)}`;
+  const frontHref = (x: ServiceItem) => {
+    if (x.templateType === "route" || x.type === "私人包车") {
+      const city = x.city === "吉隆坡" ? "kl" : x.city === "马六甲" ? "melaka" : "kk";
+      return `/services/private-car?city=${city}&service=${encodeURIComponent(x.slug)}`;
+    }
+    return `/services?service=${encodeURIComponent(x.slug)}`;
+  };
   const cityItems = activeCity === "全部" ? items : items.filter((item) => item.city === activeCity);
   const visibleItems = (activeType === "全部" ? cityItems : cityItems.filter((item) => kind(item) === activeType))
     .sort((a, b) => (a.categoryId || 0) - (b.categoryId || 0) || (a.displayOrder || 99) - (b.displayOrder || 99) || a.id - b.id);
