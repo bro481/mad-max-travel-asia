@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
 import type {
@@ -69,6 +69,12 @@ type Destination = {
 };
 const img = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=84`;
+const slugLike = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 const airportTransferGalleryImages = [
   img("photo-1549317661-bd32c8ce0db2"),
   img("photo-1550355291-bbee04a92027"),
@@ -992,8 +998,90 @@ export function ServicesPage({
             vehicle.descriptionEn || vehicle.description || vehicle.descriptionZh || vehicle.tag || "Matched to your group and luggage",
           ],
           image: vehicle.image || airportTransferGalleryImages[0],
-        }))
+      }))
       : airportVehicles;
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const serviceParam = params.get("service") || params.get("previewService");
+    const destinationParam = params.get("destination") || params.get("city");
+    const routeParam = params.get("route");
+
+    if (destinationParam) {
+      const nextDestination = visibleDestinations.find(
+        (item) =>
+          item.key === destinationParam ||
+          slugLike(item.name[0]) === slugLike(destinationParam) ||
+          slugLike(item.name[1]) === slugLike(destinationParam),
+      );
+      if (nextDestination && destination !== nextDestination.key) {
+        setDestination(nextDestination.key);
+      }
+    }
+
+    if (!serviceParam) return;
+    const normalizedService = slugLike(serviceParam);
+    const offers = visibleDestinations.flatMap((item) =>
+      item.groups.flatMap((group) => group.items),
+    );
+    const offer = offers.find(
+      (item) =>
+        item.serviceSlug === serviceParam ||
+        String(item.serviceId || "") === serviceParam ||
+        slugLike(item.serviceSlug || "") === normalizedService ||
+        slugLike(item.title[0]) === normalizedService ||
+        slugLike(item.title[1]) === normalizedService,
+    );
+    if (!offer) return;
+
+    setSelectedOffer((current) => {
+      if (
+        current &&
+        (current.serviceSlug === offer.serviceSlug ||
+          (current.serviceId && current.serviceId === offer.serviceId))
+      ) {
+        return current;
+      }
+      return offer;
+    });
+    if (!routeParam) {
+      setSelectedPrivateRoute(null);
+      return;
+    }
+
+    const managedService = offer.serviceId
+      ? managed.find((item) => item.id === offer.serviceId)
+      : managed.find((item) => item.slug === offer.serviceSlug);
+    if (!managedService) return;
+
+    const routes = managedService.routes
+      .filter((route) => route.visible !== false)
+      .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+    const routeNumber = Number(routeParam);
+    const routeIndex = Number.isFinite(routeNumber)
+      ? routes.findIndex((_, index) => index === routeNumber || index + 1 === routeNumber)
+      : -1;
+    const normalizedRoute = slugLike(routeParam);
+    const matchedIndex =
+      routeIndex >= 0
+        ? routeIndex
+        : routes.findIndex(
+            (route) =>
+              slugLike(route.name || "") === normalizedRoute ||
+              slugLike(route.nameZh || "") === normalizedRoute ||
+              slugLike(route.nameEn || "") === normalizedRoute,
+          );
+    if (matchedIndex >= 0 && routes[matchedIndex]) {
+      const nextRoute = routePlanToPrivateRoute(
+        routes[matchedIndex],
+        managedService,
+        matchedIndex,
+      );
+      setSelectedPrivateRoute((current) =>
+        current?.title[0] === nextRoute.title[0] ? current : nextRoute,
+      );
+    }
+  }, [managed, visibleDestinations, destination]);
+
   return (
     <>
       <header id="top">
@@ -1147,7 +1235,7 @@ export function ServicesPage({
             </div>
             <div className="managed-service-grid">
               {managed.map((x) => (
-                <a href={`/services/item/${x.slug}`} key={x.id}>
+                <a href={`/services?service=${encodeURIComponent(x.slug)}`} key={x.id}>
                   {x.images[0] ? (
                     <img src={x.images[0]} alt="" />
                   ) : (

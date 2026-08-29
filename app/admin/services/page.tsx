@@ -96,9 +96,7 @@ export default function ServiceList() {
   const categoryName = (x: ServiceItem) =>
     categories.find((category) => category.id === x.categoryId)?.nameZh || x.category || "未分类";
   const frontHref = (x: ServiceItem) =>
-    x.templateType === "transfer" || x.type === "交通接送"
-      ? "/services"
-      : `/services/item/${x.slug}`;
+    `/services?service=${encodeURIComponent(x.slug)}`;
   const cityItems = activeCity === "全部" ? items : items.filter((item) => item.city === activeCity);
   const visibleItems = (activeType === "全部" ? cityItems : cityItems.filter((item) => kind(item) === activeType))
     .sort((a, b) => (a.categoryId || 0) - (b.categoryId || 0) || (a.displayOrder || 99) - (b.displayOrder || 99) || a.id - b.id);

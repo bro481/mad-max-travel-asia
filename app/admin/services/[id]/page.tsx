@@ -449,8 +449,7 @@ function templateLabel(type: ServiceItem["templateType"]) {
 }
 
 function serviceFrontendHref(item: ServiceItem) {
-  if (item.templateType === "transfer" || item.type === "交通接送") return "/services";
-  return `/services/item/${item.slug}`;
+  return `/services?service=${encodeURIComponent(item.slug)}`;
 }
 
 function destinationOptions(items: DestinationRecord[], current: string) {
@@ -1382,7 +1381,7 @@ function RoutePlansEditor({
                       <p>每个节点对应前端路线弹窗里的一个行程点；拖拽整行调整顺序。</p>
                     </div>
                     <div className="route-node-toolbar-actions">
-                      <a className="secondary" href={frontendHref} target="_blank" rel="noreferrer">查看前台</a>
+                      <a className="secondary" href={`${frontendHref}&route=${editingRouteIndex}`} target="_blank" rel="noreferrer">查看前台</a>
                       <button className="secondary" onClick={() => setRoutePreview({ focusStopIndex: null })}>草稿预览</button>
                       <button onClick={() => addNode(editingRouteIndex)}>＋ 添加节点</button>
                     </div>
