@@ -144,8 +144,7 @@ export default async function Page({
   const { slug } = await params;
   const x =
     process.env.LOCAL_BROWSER_PREVIEW === "1" ||
-    process.env.NODE_ENV === "development" ||
-    process.env.VERCEL === "1"
+    process.env.NODE_ENV === "development"
       ? staticItems.find((item) => item.slug === slug)
       : await import("../../../../db/service-items").then(
           ({ getServiceItemBySlug }) => getServiceItemBySlug(slug),
