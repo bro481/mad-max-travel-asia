@@ -3,7 +3,6 @@ import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../../chatgpt-auth";
 import {
-  ensureServiceItems,
   getAdminServiceItemBySlug,
   getServiceItem,
   staticServiceItemRecords,
@@ -82,7 +81,6 @@ export async function PUT(
     return NextResponse.json({ ok: true });
   }
   try {
-    await ensureServiceItems();
     const current = isNumericId
       ? await getServiceItem(numericId)
       : await getAdminServiceItemBySlug(id);

@@ -3,7 +3,6 @@ import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../chatgpt-auth";
 import {
-  ensureServiceItems,
   listServiceItems,
   staticServiceItemRecords,
 } from "../../../../db/service-items";
@@ -46,7 +45,6 @@ export async function POST(r: Request) {
     return NextResponse.json({ id: item.id, slug: item.slug }, { status: 201 });
   }
   try {
-    await ensureServiceItems();
     const base =
       String(b.slug || b.nameEn || "new-service")
         .toLowerCase()

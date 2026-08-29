@@ -170,7 +170,6 @@ function mapDestination(row: Record<string, unknown>): DestinationRecord {
 }
 
 export async function listDestinations(all = false) {
-  await ensureDestinations();
   const result = await env.DB.prepare(
     `SELECT * FROM destinations ${all ? "" : "WHERE status='visible'"} ORDER BY property_sort, service_sort, id`,
   ).all();

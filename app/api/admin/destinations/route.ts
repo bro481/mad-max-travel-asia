@@ -9,8 +9,8 @@ import {
   staticDestinations,
   type DestinationRecord,
 } from "../../../../db/destinations";
-import { ensureProperties, staticPropertyRecords } from "../../../../db/properties";
-import { ensureServiceItems, staticServiceItemRecords } from "../../../../db/service-items";
+import { staticPropertyRecords } from "../../../../db/properties";
+import { staticServiceItemRecords } from "../../../../db/service-items";
 import { listLocalProperties, useLocalProperties } from "../properties/local-dev-store";
 import { listLocalServiceItems, useLocalServiceItems } from "../service-items/local-dev-store";
 import {
@@ -51,8 +51,6 @@ function withStaticCounts(items: DestinationRecord[]): DestinationWithCounts[] {
 }
 
 async function withDbCounts(items: DestinationRecord[]): Promise<DestinationWithCounts[]> {
-  await ensureProperties();
-  await ensureServiceItems();
   return Promise.all(
     items.map(async (item) => {
       const [properties, publishedProperties, services, publishedServices] = await Promise.all([

@@ -387,21 +387,18 @@ export function mapServiceItem(r: Record<string, unknown>): ServiceItem {
   };
 }
 export async function listServiceItems(all = false) {
-  await ensureServiceItems();
   const x = await env.DB.prepare(
     `SELECT * FROM service_items ${all ? "" : "WHERE status='published'"} ORDER BY destination_id,city,category_id,display_order,id`,
   ).all();
   return x.results.map((r) => mapServiceItem(r as Record<string, unknown>));
 }
 export async function getServiceItem(id: number) {
-  await ensureServiceItems();
   const r = await env.DB.prepare("SELECT * FROM service_items WHERE id=?")
     .bind(id)
     .first();
   return r ? mapServiceItem(r as Record<string, unknown>) : null;
 }
 export async function getServiceItemBySlug(slug: string) {
-  await ensureServiceItems();
   const r = await env.DB.prepare(
     "SELECT * FROM service_items WHERE slug=? AND status='published'",
   )
@@ -410,7 +407,6 @@ export async function getServiceItemBySlug(slug: string) {
   return r ? mapServiceItem(r as Record<string, unknown>) : null;
 }
 export async function getAdminServiceItemBySlug(slug: string) {
-  await ensureServiceItems();
   const r = await env.DB.prepare("SELECT * FROM service_items WHERE slug=?")
     .bind(slug)
     .first();

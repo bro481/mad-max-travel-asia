@@ -62,9 +62,12 @@ export default function NewService() {
     const nameZh = draft.nameZh.trim() || defaultServiceName(city, draft.structure.templateType);
     setBusy(true);
     setNotice("正在创建草稿…");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12_000);
     try {
       const r = await fetch("/api/admin/service-items", {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: draft.structure.type,
@@ -80,10 +83,14 @@ export default function NewService() {
       const text = await r.text();
       const x = text ? JSON.parse(text) : null;
       if (!r.ok || !x?.id) throw new Error(x?.error || `创建失败：${r.status}`);
+      window.clearTimeout(timeout);
       location.href = `/admin/services/${x.id}`;
     } catch (error) {
+      window.clearTimeout(timeout);
       setBusy(false);
-      setNotice(error instanceof Error ? error.message : "创建失败，请刷新后重试");
+      setNotice(error instanceof DOMException && error.name === "AbortError"
+        ? "创建超时：数据库连接超过 12 秒没有返回，请检查 DATABASE_URL；按钮已恢复，可以重试。"
+        : error instanceof Error ? error.message : "创建失败，请刷新后重试");
     }
   };
 
