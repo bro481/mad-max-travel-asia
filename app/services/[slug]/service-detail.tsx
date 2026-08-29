@@ -801,7 +801,10 @@ export function ServiceDetail({
       plan?.image ||
       nodes.find((node) => node.image)?.image ||
       photo("photo-1596422846543-75c6fc197f07");
-    const tags = (plan?.tags?.length ? plan.tags : [plan?.tag].filter(Boolean) as string[]).slice(0, 2);
+    const durationKey = String(plan?.duration || "").replace(/\s+/g, "");
+    const tags = (plan?.tags?.length ? plan.tags : [plan?.tag].filter(Boolean) as string[])
+      .filter((tag) => String(tag).replace(/\s+/g, "") !== durationKey)
+      .slice(0, 2);
     while (tags.length < 2) tags.push(tags.length ? "行程可调整" : "时间灵活");
     return {
       title: [plan?.nameZh || plan?.name || item.nameZh, plan?.nameEn || plan?.nameZh || plan?.name || item.nameEn || item.nameZh],
@@ -967,7 +970,9 @@ export function ServiceDetail({
         </section>
         <section className="route-section">
           <div className="detail-heading">
-            <p className="eyebrow">{zh ? "轻松选择" : "EASY TO CHOOSE"}</p>
+            <p className="eyebrow">{zh
+              ? activeManagedService?.routes?.[0]?.sectionEyebrowZh || "轻松选择"
+              : activeManagedService?.routes?.[0]?.sectionEyebrowEn || "EASY TO CHOOSE"}</p>
             <h2>{zh ? "热门包车方案" : "Popular Private Car Routes"}</h2>
             <p>
               {zh

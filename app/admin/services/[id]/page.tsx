@@ -369,8 +369,18 @@ export default function ServiceEditor() {
                 <>
                   <Head title="热门路线" text="管理私人包车详情页中的“热门包车方案”。Route 属于当前 Service，不是独立服务。" />
                   <RouteSectionCopy
+                    eyebrow={d.routes[0]?.sectionEyebrowZh || ""}
+                    eyebrowEn={d.routes[0]?.sectionEyebrowEn || ""}
                     title={d.routeSectionTitleZh}
                     intro={d.routeSectionIntroZh}
+                    onEyebrowChange={(value) => {
+                      const routes = d.routes.length ? d.routes : [emptyRoutePlan(0)];
+                      set("routes", routes.map((route, index) => index === 0 ? { ...route, sectionEyebrowZh: value } : route));
+                    }}
+                    onEyebrowEnChange={(value) => {
+                      const routes = d.routes.length ? d.routes : [emptyRoutePlan(0)];
+                      set("routes", routes.map((route, index) => index === 0 ? { ...route, sectionEyebrowEn: value } : route));
+                    }}
                     onChange={(patch) => setMany(patch)}
                   />
                   <RoutePlansEditor
@@ -539,12 +549,20 @@ function ServiceHighlights({
 }
 
 function RouteSectionCopy({
+  eyebrow,
+  eyebrowEn,
   title,
   intro,
+  onEyebrowChange,
+  onEyebrowEnChange,
   onChange,
 }: {
+  eyebrow: string;
+  eyebrowEn: string;
   title: string;
   intro: string;
+  onEyebrowChange: (value: string) => void;
+  onEyebrowEnChange: (value: string) => void;
   onChange: (patch: Partial<ServiceItem>) => void;
 }) {
   const [custom, setCustom] = useState(Boolean(title || intro));
@@ -564,6 +582,14 @@ function RouteSectionCopy({
         </div>
       ) : (
         <>
+          <div className="field-row">
+            <Field n="中文板块小标题 / 眉题">
+              <input value={eyebrow || "轻松选择"} onChange={(e) => onEyebrowChange(e.target.value)} placeholder="轻松选择" />
+            </Field>
+            <Field n="英文板块小标题 / 眉题">
+              <input value={eyebrowEn || "EASY TO CHOOSE"} onChange={(e) => onEyebrowEnChange(e.target.value)} placeholder="EASY TO CHOOSE" />
+            </Field>
+          </div>
           <Field n="板块标题">
             <input
               value={title || defaultTitle}

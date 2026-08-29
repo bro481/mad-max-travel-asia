@@ -56,6 +56,8 @@ export type ServiceRouteNode = {
   time?: string;
 };
 export type ServiceRoutePlan = {
+  sectionEyebrowZh?: string;
+  sectionEyebrowEn?: string;
   sectionTitleZh?: string;
   sectionDescriptionZh?: string;
   name?: string;
