@@ -786,7 +786,12 @@ export function ServiceDetail({
     return [cover, ...relatedImages.slice(0, 3)].filter(Boolean);
   };
   const cityName = city === "kl" ? "吉隆坡" : city === "melaka" ? "马六甲" : "亚庇";
-  const managedForCity = managedServices.filter((item) => item.city === cityName);
+  const managedForCity = managedServices
+    .filter((item) => item.city === cityName)
+    .sort((a, b) => {
+      const updated = new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      return updated || b.id - a.id;
+    });
   const activeManagedService = managedForCity.find(
     (item) => item.slug === previewService || String(item.id) === previewService,
   ) || managedForCity[0];
@@ -832,7 +837,7 @@ export function ServiceDetail({
         .map((vehicle) => ({
           name: vehicle.nameZh || vehicle.nameEn || "可安排车型",
           people: vehicle.people || "人数请咨询",
-          image: vehicle.image || activeManagedService.images[0] || photo("photo-1549317661-bd32c8ce0db2", 600),
+          image: vehicle.image || photo("photo-1549317661-bd32c8ce0db2", 600),
           note: vehicle.description || "具体车型以当天安排为准",
           price: vehicle.priceMode === "咨询报价"
             ? "价格咨询"
@@ -867,6 +872,18 @@ export function ServiceDetail({
       })
     : routes;
   const displayRoutes = managedCards.length ? managedCards : staticDisplayRoutes;
+  const heroImage = activeManagedService?.coverImage || activeManagedService?.images?.[0] || service.image || photo("photo-1549317661-bd32c8ce0db2");
+  const heroTitle = zh
+    ? activeManagedService?.nameZh || cityInfo.hero[0]
+    : activeManagedService?.nameEn || activeManagedService?.nameZh || cityInfo.hero[1];
+  const heroIntro = zh
+    ? activeManagedService?.introZh || activeManagedService?.subtitleZh || cityInfo.intro[0]
+    : activeManagedService?.introEn || activeManagedService?.subtitleEn || activeManagedService?.introZh || cityInfo.intro[1];
+  const heroTags = activeManagedService?.tags?.length
+    ? activeManagedService.tags.slice(0, 3)
+    : zh
+      ? ["中文沟通", "路线灵活", "舒适安全"]
+      : ["Chinese support", "Flexible route", "Safe & comfortable"];
   useEffect(() => {
     if (!previewService) return;
     const item = managedForCity.find(
@@ -951,18 +968,16 @@ export function ServiceDetail({
       <main className="car-detail">
         <section className="car-hero">
           <img
-            src={service.image || photo("photo-1549317661-bd32c8ce0db2")}
-            alt={zh ? service.nameZh : service.nameEn}
+            src={heroImage}
+            alt={heroTitle}
           />
           <div className="car-hero-copy">
             <a href="/services">← {zh ? "返回当地服务" : "Back to services"}</a>
             <p className="eyebrow">MAD MAX · PRIVATE DRIVER</p>
-            <h1>{cityInfo.hero[l]}</h1>
-            <p>{cityInfo.intro[l]}</p>
+            <h1>{heroTitle}</h1>
+            <p>{heroIntro}</p>
             <div>
-              <span>{zh ? "中文沟通" : "Chinese support"}</span>
-              <span>{zh ? "路线灵活" : "Flexible route"}</span>
-              <span>{zh ? "舒适安全" : "Safe & comfortable"}</span>
+              {heroTags.map((tag) => <span key={tag}>{tag}</span>)}
             </div>
           </div>
         </section>
@@ -971,11 +986,13 @@ export function ServiceDetail({
             <p className="eyebrow">{zh
               ? activeManagedService?.routes?.[0]?.sectionEyebrowZh || "轻松选择"
               : activeManagedService?.routes?.[0]?.sectionEyebrowEn || "EASY TO CHOOSE"}</p>
-            <h2>{zh ? "热门包车方案" : "Popular Private Car Routes"}</h2>
+            <h2>{zh
+              ? activeManagedService?.routeSectionTitleZh || "热门包车方案"
+              : activeManagedService?.routeSectionTitleEn || activeManagedService?.routeSectionTitleZh || "Popular Private Car Routes"}</h2>
             <p>
               {zh
-                ? "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"
-                : "These routes are examples and can be adjusted around your time and interests."}
+                ? activeManagedService?.routeSectionIntroZh || "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"
+                : activeManagedService?.routeSectionIntroEn || activeManagedService?.routeSectionIntroZh || "These routes are examples and can be adjusted around your time and interests."}
             </p>
           </div>
           <div className="route-grid">
@@ -1047,7 +1064,7 @@ export function ServiceDetail({
                 : "Share your dates, group size and interests, and we will reply soon."}
             </p>
           </div>
-          <button className="button" type="button" onClick={() => setInquiryTitle(cityInfo.hero[0])}>
+          <button className="button" type="button" onClick={() => setInquiryTitle(activeManagedService?.nameZh || cityInfo.hero[0])}>
             {zh ? "提交咨询" : "Submit inquiry"} →
           </button>
         </section>
