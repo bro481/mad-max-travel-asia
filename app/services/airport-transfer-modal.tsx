@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { GalleryCarousel } from "../components/gallery-carousel";
 import { InquiryModal } from "../components/inquiry-modal";
+import { DateInput } from "../components/date-input";
 import "./airport-transfer-modal.css";
 
 export type AirportTransferPreview = {
@@ -268,11 +269,7 @@ export function AirportTransferModal({
                   <div className="airport-request-grid">
                     <label>
                       <span>日期</span>
-                      <input
-                        type="date"
-                        value={request.date}
-                        onChange={(e) => updateRequest("date", e.target.value)}
-                      />
+                      <DateInput value={request.date} label="日期" placeholder="请选择接送日期" onChange={(value) => updateRequest("date", value)} />
                     </label>
                     <label>
                       <span>航班号</span>

@@ -18,6 +18,7 @@ import { LocalServiceOfferCard } from "../components/local-service-offer-card";
 import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
 import { MobileScrollHint } from "../components/mobile-scroll-hint";
+import { DateInput } from "../components/date-input";
 type Lang = "zh" | "en";
 type Offer = {
   title: [string, string];
@@ -1770,7 +1771,7 @@ export function ServicesPage({
                       <div className="airport-request-grid">
                         <label>
                           <span>出发日期</span>
-                          <input type="date" value={intercityRequest.date} onChange={(event) => updateIntercityRequest("date", event.target.value)} />
+                          <DateInput value={intercityRequest.date} label="出发日期" placeholder="请选择出发日期" onChange={(value) => updateIntercityRequest("date", value)} />
                         </label>
                         <label>
                           <span>大概时间</span>

@@ -6,6 +6,7 @@ import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
 import { ServiceMenu } from "./service-menu";
 import { InquiryModal } from "./components/inquiry-modal";
 import { MobileScrollHint } from "./components/mobile-scroll-hint";
+import { DateInput } from "./components/date-input";
 
 const fallbackDestinations: DestinationRecord[] = [
   { id: 1, slug: "kuala-lumpur", nameZh: "吉隆坡", nameEn: "Kuala Lumpur", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 1, serviceSort: 1, onlyShowWithContent: true, status: "visible", updatedAt: "" },
@@ -919,7 +920,7 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
                 {timeMode === timeOptions.en[0] && (
                   <label className="time-detail">
                     {t.dateLabel}
-                    <input type="date" name="travelTime" />
+                    <DateInput name="travelTime" label={t.dateLabel} placeholder={t.dateLabel} />
                   </label>
                 )}
                 {timeMode === timeOptions.en[1] && (

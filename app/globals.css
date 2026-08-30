@@ -2130,7 +2130,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 @media(max-width:700px){.room-modal-title-location{margin-bottom:12px}.room-modal-title-location span{display:none}.room-modal-space-grid>div{grid-template-columns:27px 1fr;padding:10px 10px}.room-modal-space-grid strong{font-size:13px}.room-modal-sleep-row{grid-template-columns:30px 1fr;gap:8px}.room-modal-sleep-row>span{grid-column:2;width:max-content}}
 
 /* Mobile refinement: preserve desktop layout while giving small screens their own hierarchy. */
-.mobile-scroll-shell{min-width:0}.mobile-scroll-more{display:none}
+.mobile-scroll-shell{min-width:0}.mobile-scroll-more,.mobile-scroll-previous{display:none}
 @media(max-width:700px){
   header{padding:0 14px;gap:8px}
   header .logo{min-width:0}.logo b{font-size:10px}.logo small{font-size:9px}
@@ -2166,4 +2166,27 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 
   .room-detail-modal,.route-modal,.service-quick-modal,.private-car-managed-modal,.picks-modal{overflow:hidden;overscroll-behavior:contain}
   .room-modal-shell,.route-modal>div,.service-quick-modal>div,.private-car-managed-modal>div,.picks-modal>div{max-height:calc(100dvh - env(safe-area-inset-top));overscroll-behavior:contain}
+}
+
+@media(max-width:700px){
+  /* Keep the menu discoverable but visually secondary to the gold consultation CTA. */
+  .menu-btn{min-width:66px;height:42px;padding:0 8px;font-size:12px;font-weight:700}
+
+  /* Move the photograph into the copy area and extend the soft transition. */
+  .hero>img{height:calc(100% + 56px);bottom:0;object-position:62% 34%}
+  .hero:after{background:linear-gradient(180deg,var(--cream) 0%,rgba(250,247,243,.97) 34%,rgba(250,247,243,.76) 52%,rgba(250,247,243,.25) 70%,rgba(250,247,243,0) 88%)}
+
+  /* Bidirectional affordance for dynamic destination lists. */
+  .mobile-scroll-shell.has-previous:before{content:"";position:absolute;z-index:2;top:0;left:0;width:48px;height:100%;pointer-events:none;background:linear-gradient(270deg,rgba(250,247,243,0),#faf7f3 70%)}
+  .mobile-scroll-previous{position:absolute;z-index:3;top:50%;left:4px;place-items:center;width:28px;height:28px;border-radius:50%;background:#fff8ef;color:#a96f38;font-size:23px;line-height:1;transform:translateY(-50%);pointer-events:none;box-shadow:0 3px 12px rgba(80,61,40,.12)}
+  .mobile-scroll-shell.has-previous .mobile-scroll-previous{display:grid}
+
+  /* Picks delivery choices should scan quickly on a phone. */
+  .picks-delivery-section{padding:22px 18px}
+  .picks-delivery-main>h2{margin-bottom:14px;font-size:27px}
+  .picks-delivery-options article{gap:12px;padding:14px 0}
+  .picks-delivery-options article>i{flex-basis:38px;height:38px;font-size:16px}
+  .picks-delivery-options h3{margin-bottom:5px;font-size:19px}
+  .picks-delivery-options p{margin-bottom:9px;font-size:12px;line-height:1.55}
+  .picks-delivery-footer{padding-top:16px}
 }

@@ -5,10 +5,12 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 export function MobileScrollHint({ children, className = "" }: { children: ReactNode; className?: string }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [hasMore, setHasMore] = useState(false);
+  const [hasPrevious, setHasPrevious] = useState(false);
 
   const update = useCallback(() => {
     const node = scroller.current;
     if (!node) return;
+    setHasPrevious(node.scrollLeft > 4);
     setHasMore(node.scrollLeft + node.clientWidth < node.scrollWidth - 4);
   }, []);
 
@@ -26,8 +28,9 @@ export function MobileScrollHint({ children, className = "" }: { children: React
   }, [children, update]);
 
   return (
-    <div className={`mobile-scroll-shell${hasMore ? " has-more" : ""} ${className}`.trim()}>
+    <div className={`mobile-scroll-shell${hasPrevious ? " has-previous" : ""}${hasMore ? " has-more" : ""} ${className}`.trim()}>
       <div ref={scroller} className="mobile-scroll-track" onScroll={update}>{children}</div>
+      <span className="mobile-scroll-previous" aria-hidden="true">‹</span>
       <span className="mobile-scroll-more" aria-hidden="true">›</span>
     </div>
   );
