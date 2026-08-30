@@ -41,7 +41,7 @@ export default function PhotographyPage() {
   return <>
     <header>
       <a className="logo" href="/"><span className="logo-mark">⌂</span><span><b>MAD MAX</b><small>MALAYSIA STAY</small></span></a>
-      <button className="menu-btn" aria-label="Menu" onClick={() => setMenu(!menu)}>{menu ? "×" : "☰"}</button>
+      <button className="menu-btn" aria-label="Menu" onClick={() => setMenu(!menu)}>{menu ? "关闭" : "☰ 菜单"}</button>
       <nav className={menu ? "open" : ""}><a href="/#stays">{t.rooms}</a><ServiceMenu lang={lang} active /><a href="/about">{t.about}</a><a href="/#contact">{t.contact}</a><div className="language-switch mobile-language"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中文</button><i /><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>English</button></div></nav>
       <div className="header-right"><div className="language-switch desktop-language"><button className={lang === "zh" ? "active" : ""} onClick={() => setLang("zh")}>中文</button><i /><button className={lang === "en" ? "active" : ""} onClick={() => setLang("en")}>English</button></div><a className="button header-cta" href="/#contact">{t.submit}</a></div>
     </header>

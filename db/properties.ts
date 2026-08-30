@@ -51,9 +51,18 @@ export function mapProperty(row:Record<string,unknown>):PropertyRecord{return {
   descriptionZh:String(row.description_zh),descriptionEn:String(row.description_en),amenities:parse(String(row.amenities)),highlights:parse(String(row.highlights)),suitableFor:parse(String(row.suitable_for||"[]")),guestQuote:String(row.guest_quote||""),guestQuoteAuthor:String(row.guest_quote_author||""),spaceConfig:parse(String(row.space_config||"{}")),sleepingArrangements:parse(String(row.sleeping_arrangements||"[]")),nearby:parse(String(row.nearby)),priceFrom:Number(row.price_from),priceNote:String(row.price_note),status:row.status as PropertyRecord["status"],updatedAt:String(row.updated_at)
 }}
 
-export async function listProperties(){await ensureProperties();const result=await env.DB.prepare("SELECT * FROM properties ORDER BY CASE city WHEN '吉隆坡' THEN 1 WHEN '亚庇' THEN 2 ELSE 3 END, id").all();return result.results.map(x=>mapProperty(x as Record<string,unknown>));}
-export async function getProperty(id:number){await ensureProperties();const row=await env.DB.prepare("SELECT * FROM properties WHERE id=?").bind(id).first();return row?mapProperty(row as Record<string,unknown>):null;}
-export async function getPublishedPropertyBySlug(slug:string){await ensureProperties();const row=await env.DB.prepare("SELECT * FROM properties WHERE slug=? AND status='published'").bind(slug).first();return row?mapProperty(row as Record<string,unknown>):null;}
+async function readWithSchemaFallback<T>(read:()=>Promise<T>){
+  try{return await read();}
+  catch{
+    // Existing production reads should not run CREATE/ALTER statements on every request.
+    // Only initialize/migrate when the first read proves the schema is unavailable.
+    await ensureProperties();
+    return read();
+  }
+}
+export async function listProperties(){return readWithSchemaFallback(async()=>{const result=await env.DB.prepare("SELECT * FROM properties ORDER BY CASE city WHEN '吉隆坡' THEN 1 WHEN '亚庇' THEN 2 ELSE 3 END, id").all();return result.results.map(x=>mapProperty(x as Record<string,unknown>));});}
+export async function getProperty(id:number){return readWithSchemaFallback(async()=>{const row=await env.DB.prepare("SELECT * FROM properties WHERE id=?").bind(id).first();return row?mapProperty(row as Record<string,unknown>):null;});}
+export async function getPublishedPropertyBySlug(slug:string){return readWithSchemaFallback(async()=>{const row=await env.DB.prepare("SELECT * FROM properties WHERE slug=? AND status='published'").bind(slug).first();return row?mapProperty(row as Record<string,unknown>):null;});}
 
 export function staticPropertyRecords(): PropertyRecord[] {
   return rooms.map((room, index) => ({

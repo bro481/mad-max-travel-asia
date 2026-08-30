@@ -936,7 +936,7 @@ export function ServiceDetail({
       <header>
         <Logo />
         <button className="menu-btn" onClick={() => setMenu(!menu)}>
-          {menu ? "×" : "☰"}
+          {menu ? "关闭" : "☰ 菜单"}
         </button>
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{zh ? "房源" : "Stays"}</a>

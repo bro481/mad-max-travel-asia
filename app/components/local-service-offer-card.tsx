@@ -19,7 +19,7 @@ export function LocalServiceOfferCard({
   const l = lang === "zh" ? 0 : 1;
   return (
     <button className="offer-card" type="button" onClick={onOpen}>
-      {data.image ? <img src={data.image} alt={data.title[l]} /> : <span className="offer-card-placeholder">添加服务封面图</span>}
+      {data.image ? <img src={data.image} alt={data.title[l]} loading="lazy" decoding="async" /> : <span className="offer-card-placeholder">添加服务封面图</span>}
       <div>
         <h4>{data.title[l]}</h4>
         <p>{data.description[l]}</p>

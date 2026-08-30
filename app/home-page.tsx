@@ -5,6 +5,7 @@ import type { DestinationRecord } from "../db/destinations";
 import { roomLayoutKey, roomLayoutLabel } from "../lib/room-layout";
 import { ServiceMenu } from "./service-menu";
 import { InquiryModal } from "./components/inquiry-modal";
+import { MobileScrollHint } from "./components/mobile-scroll-hint";
 
 const fallbackDestinations: DestinationRecord[] = [
   { id: 1, slug: "kuala-lumpur", nameZh: "吉隆坡", nameEn: "Kuala Lumpur", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 1, serviceSort: 1, onlyShowWithContent: true, status: "visible", updatedAt: "" },
@@ -231,7 +232,7 @@ function RoomCarousel({
         onClick={onOpen}
         aria-label={room.name[lang]}
       >
-        <img src={images[index]} alt={`${room.name[lang]} ${index + 1}`} />
+        <img src={images[index]} alt={`${room.name[lang]} ${index + 1}`} loading="lazy" decoding="async" />
       </button>
       <span className="location-pill">{room.location[lang]}</span>
       {images.length > 1 && (
@@ -513,10 +514,32 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
     };
   }, [selectedRoom]);
   const t = c[lang];
-  const destinationOptions = destinations
+  const configuredDestinationOptions = destinations
     .filter((destination) => destination.useForProperties && destination.status !== "hidden")
     .filter((destination) => !destination.onlyShowWithContent || rooms.some((room) => room.location.zh === destination.nameZh || room.location.en === destination.nameEn))
     .sort((a, b) => a.propertySort - b.propertySort || a.id - b.id);
+  const configuredNames = new Set(configuredDestinationOptions.flatMap((destination) => [destination.nameZh, destination.nameEn].filter(Boolean)));
+  const roomDerivedDestinations = [...new Map(rooms
+    .filter((room) => !configuredNames.has(room.location.zh) && !configuredNames.has(room.location.en))
+    .map((room) => [room.location.zh, room.location])).values()]
+    .map((location, index): DestinationRecord => ({
+      id: -(index + 1),
+      slug: `room-destination-${index + 1}`,
+      nameZh: location.zh,
+      nameEn: location.en || location.zh,
+      introZh: "",
+      introEn: "",
+      useForProperties: true,
+      useForServices: false,
+      propertySort: 1000 + index,
+      serviceSort: 1000 + index,
+      onlyShowWithContent: true,
+      status: "visible",
+      updatedAt: "",
+    }));
+  // A newly published room must remain discoverable even if destination settings
+  // temporarily fail to load; never silently hide real inventory behind stale fallback data.
+  const destinationOptions = [...configuredDestinationOptions, ...roomDerivedDestinations];
   const roomLayouts = [
     ...new Map(
       rooms.map((room) => [
@@ -577,8 +600,8 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
     <>
       <header id="top">
         <Logo />
-        <button className="menu-btn" onClick={() => setMenu(!menu)}>
-          {menu ? "×" : "☰"}
+        <button className="menu-btn" onClick={() => setMenu(!menu)} aria-label={menu ? "关闭菜单" : "打开菜单"}>
+          {menu ? "关闭" : "☰ 菜单"}
         </button>
         <nav className={menu ? "open" : ""}>
           <a href="#stays">{t.rooms}</a>
@@ -626,6 +649,8 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
         <section className="hero">
           <img
             src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1800&q=90"
+            srcSet="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=760&q=76 760w, https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=82 1200w, https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1800&q=88 1800w"
+            sizes="100vw"
             alt="Warm Malaysian apartment"
           />
           <div className="hero-copy">
@@ -651,6 +676,7 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
           <div className="stay-filters">
             <div className="filter-row">
               <strong>{lang === "zh" ? "目的地" : "Destination"}</strong>
+              <MobileScrollHint className="destination-filter-scroll">
               <div className="filter-options">
                 {[
                   {
@@ -674,6 +700,7 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
                   </button>
                 ))}
               </div>
+              </MobileScrollHint>
             </div>
             <div className="filter-row">
               <strong>{lang === "zh" ? "房型" : "Room type"}</strong>

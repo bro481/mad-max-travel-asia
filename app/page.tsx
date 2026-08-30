@@ -13,18 +13,18 @@ export default async function Page() {
     return <HomePage rooms={rooms} destinations={staticDestinations} />;
   }
 
-  let pageRooms: Room[];
-  let pageDestinations: DestinationRecord[];
-  try {
-    const { listProperties, propertyToRoom } = await import("../db/properties");
-    const { listDestinations } = await import("../db/destinations");
-    pageDestinations = await listDestinations(true);
-    pageRooms=(await listProperties()).filter(x=>x.status==="published").map((item)=>propertyToRoom(item,pageDestinations));
-  } catch {
-    const { rooms } = await import("./data");
-    const { staticDestinations } = await import("../db/destinations");
-    pageRooms = rooms;
-    pageDestinations = staticDestinations;
-  }
+  const [{ rooms }, { staticDestinations, listDestinations }, { listProperties, propertyToRoom }] = await Promise.all([
+    import("./data"),
+    import("../db/destinations"),
+    import("../db/properties"),
+  ]);
+  const [destinationResult, propertyResult] = await Promise.allSettled([
+    listDestinations(true),
+    listProperties(),
+  ]);
+  const pageDestinations: DestinationRecord[] = destinationResult.status === "fulfilled" ? destinationResult.value : staticDestinations;
+  const pageRooms: Room[] = propertyResult.status === "fulfilled"
+    ? propertyResult.value.filter((item)=>item.status==="published").map((item)=>propertyToRoom(item,pageDestinations))
+    : rooms;
   return <HomePage rooms={pageRooms} destinations={pageDestinations} />;
 }

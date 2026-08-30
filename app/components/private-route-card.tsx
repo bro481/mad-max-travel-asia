@@ -21,7 +21,7 @@ export function PrivateRouteCard({
   return (
     <button className="route-card" type="button" onClick={onOpen}>
       <div className="route-card-media">
-        {route.image ? <img src={route.image} alt={route.title[l]} /> : <span>暂无路线封面</span>}
+        {route.image ? <img src={route.image} alt={route.title[l]} loading="lazy" decoding="async" /> : <span>暂无路线封面</span>}
       </div>
       <div className="route-card-body">
         <h3>{route.title[l]}</h3>

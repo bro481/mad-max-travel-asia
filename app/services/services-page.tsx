@@ -17,6 +17,7 @@ import {
 import { LocalServiceOfferCard } from "../components/local-service-offer-card";
 import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
+import { MobileScrollHint } from "../components/mobile-scroll-hint";
 type Lang = "zh" | "en";
 type Offer = {
   title: [string, string];
@@ -1091,8 +1092,8 @@ export function ServicesPage({
     <>
       <header id="top">
         <Logo />
-        <button className="menu-btn" onClick={() => setMenu(!menu)}>
-          {menu ? "×" : "☰"}
+        <button className="menu-btn" onClick={() => setMenu(!menu)} aria-label={menu ? "关闭菜单" : "打开菜单"}>
+          {menu ? "关闭" : "☰ 菜单"}
         </button>
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{t.rooms}</a>
@@ -1140,6 +1141,8 @@ export function ServicesPage({
         <section className="services-hero">
           <img
             src="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1900&q=90"
+            srcSet="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=760&q=76 760w, https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=82 1200w, https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1900&q=88 1900w"
+            sizes="100vw"
             alt="Malaysia coastal journey"
           />
           <div>
@@ -1150,6 +1153,7 @@ export function ServicesPage({
         </section>
         <section className="destination-section">
           <h2>{t.choose}</h2>
+          <MobileScrollHint className="service-destination-scroll">
           <div className="destination-tabs">
             <button
               className={destination === "all" ? "active" : ""}
@@ -1168,6 +1172,7 @@ export function ServicesPage({
               </button>
             ))}
           </div>
+          </MobileScrollHint>
         </section>
         <section className="destination-services">
           {shown.map((place) => (
