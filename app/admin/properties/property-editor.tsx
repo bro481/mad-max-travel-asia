@@ -10,6 +10,18 @@ type StepKey = "basic" | "room" | "images" | "amenities" | "stay" | "nearby" | "
 type PreviewTab = "card" | "modal";
 type ModalTab = "intro" | "amenities" | "stay" | "nearby";
 
+const imageFilterPresets = {
+  clear: { label: "清透", brightness: 112, contrast: 98, saturation: 102 },
+  airy: { label: "透亮", brightness: 116, contrast: 94, saturation: 98 },
+  daylight: { label: "日光", brightness: 108, contrast: 104, saturation: 106 },
+  clean: { label: "洁白", brightness: 114, contrast: 99, saturation: 90 },
+  soft: { label: "柔光", brightness: 110, contrast: 92, saturation: 96 },
+  natural: { label: "自然", brightness: 105, contrast: 102, saturation: 103 },
+  warm: { label: "暖居", brightness: 108, contrast: 101, saturation: 109 },
+} as const;
+
+type ImageFilterPreset = keyof typeof imageFilterPresets;
+
 const steps: { key: StepKey; label: string; preview?: ModalTab }[] = [
   { key: "basic", label: "基本信息" },
   { key: "room", label: "房型信息", preview: "intro" },
@@ -361,20 +373,11 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
     );
   };
 
-  const preset = (name: "bright" | "natural" | "warm") => {
-    if (name === "bright") {
-      setBrightness(118);
-      setContrast(94);
-      setSaturation(104);
-    } else if (name === "warm") {
-      setBrightness(108);
-      setContrast(103);
-      setSaturation(112);
-    } else {
-      setBrightness(105);
-      setContrast(102);
-      setSaturation(103);
-    }
+  const preset = (name: ImageFilterPreset) => {
+    const values = imageFilterPresets[name];
+    setBrightness(values.brightness);
+    setContrast(values.contrast);
+    setSaturation(values.saturation);
   };
 
   const applyFilters = async () => {
@@ -387,6 +390,7 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
     try {
       const files: File[] = [];
       for (let i = 0; i < selectedImages.length; i++) {
+        setImageMessage(`正在处理第 ${i + 1}/${selectedImages.length} 张图片…`);
         const src = selectedImages[i];
         const response = await fetch(src);
         if (!response.ok) throw new Error(`第 ${i + 1} 张图片读取失败`);
@@ -409,21 +413,32 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
         );
         files.push(new File([blob], `adjusted-${i + 1}.jpg`, { type: "image/jpeg" }));
       }
-      const form = new FormData();
-      files.forEach((file) => form.append("files", file));
-      const uploadedResponse = await fetch("/api/admin/uploads", { method: "POST", body: form });
-      if (uploadedResponse.status === 401) {
-        location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
-        return;
+      // Large photo sets cannot be sent in one multipart request on serverless hosts.
+      // Upload small batches to stay below request-size and function-memory limits.
+      const uploadedUrls: string[] = [];
+      const batchSize = 1;
+      for (let start = 0; start < files.length; start += batchSize) {
+        const batch = files.slice(start, start + batchSize);
+        setImageMessage(`正在上传第 ${start + 1}–${Math.min(start + batch.length, files.length)}/${files.length} 张图片…`);
+        const form = new FormData();
+        batch.forEach((file) => form.append("files", file));
+        const uploadedResponse = await fetch("/api/admin/uploads", { method: "POST", body: form });
+        if (uploadedResponse.status === 401) {
+          location.href = `/admin/login?return_to=${encodeURIComponent(location.pathname)}`;
+          return;
+        }
+        const result = await uploadedResponse.json().catch(() => ({})) as { urls?: string[]; error?: string };
+        if (!uploadedResponse.ok || result.urls?.length !== batch.length) {
+          throw new Error(result.error || `第 ${start + 1}–${Math.min(start + batch.length, files.length)} 张上传失败`);
+        }
+        uploadedUrls.push(...result.urls);
       }
-      const result = await uploadedResponse.json().catch(() => ({}));
-      if (!uploadedResponse.ok) throw new Error(result.error || "上传处理后的图片失败");
-      const replacements = new Map(selectedImages.map((src, i) => [src, result.urls[i] as string]));
+      const replacements = new Map(selectedImages.map((src, i) => [src, uploadedUrls[i]]));
       const nextImages = data.images.map((src) => replacements.get(src) || src);
       const nextCategories = { ...(data.imageCategories || {}) };
       const nextOriginals = { ...(data.imageOriginals || {}) };
       selectedImages.forEach((src, i) => {
-        const nextSrc = result.urls[i];
+        const nextSrc = uploadedUrls[i];
         if (nextCategories[src]) nextCategories[nextSrc] = nextCategories[src];
         nextOriginals[nextSrc] = nextOriginals[src] || src;
       });
@@ -434,7 +449,7 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
         imageOriginals: nextOriginals,
       }));
       setSelectedImages([]);
-      setImageMessage(`已完成 ${result.urls.length} 张图片调色`);
+      setImageMessage(`已完成 ${uploadedUrls.length} 张图片调色，请保存房源使修改生效`);
     } catch (error) {
       setImageMessage(error instanceof Error ? error.message : "批量调色失败");
     } finally {
@@ -617,11 +632,12 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
                     <small>已选择 {selectedImages.length} 张图片</small>
                   </div>
                   <div>
-                    <button type="button" onClick={() => preset("bright")}>透亮</button>
-                    <button type="button" onClick={() => preset("natural")}>自然</button>
-                    <button type="button" onClick={() => preset("warm")}>暖色</button>
+                    {(Object.entries(imageFilterPresets) as [ImageFilterPreset, (typeof imageFilterPresets)[ImageFilterPreset]][]).map(([key, values]) => (
+                      <button type="button" key={key} onClick={() => preset(key)}>{values.label}</button>
+                    ))}
                   </div>
                 </div>
+                <p className="filter-hint">推荐先用“清透”；偏暗室内用“透亮”，偏黄房间用“洁白”，阳光充足的照片用“日光”。下方仍可微调。</p>
                 <div className="filter-sliders">
                   <label>亮度 <b>{brightness}%</b><input type="range" min="80" max="135" value={brightness} onChange={(e) => setBrightness(Number(e.target.value))} /></label>
                   <label>对比度 <b>{contrast}%</b><input type="range" min="85" max="125" value={contrast} onChange={(e) => setContrast(Number(e.target.value))} /></label>
