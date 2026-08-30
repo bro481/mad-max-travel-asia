@@ -14,6 +14,27 @@ import {
   updateLocalProperty,
   useLocalProperties,
 } from "../local-dev-store";
+import {
+  listDestinations,
+  staticDestinations,
+} from "../../../../../db/destinations";
+import {
+  listLocalDestinations,
+  useLocalDestinations,
+} from "../../destinations/local-dev-store";
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 function dbError(error: unknown) {
   console.error("Admin property database operation failed", error);
@@ -27,34 +48,64 @@ function dbError(error: unknown) {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const includeDestinations =
+    new URL(request.url).searchParams.get("include") === "destinations";
   if (useLocalProperties()) {
     const item = getLocalProperty(Number(id));
-    return item
-      ? NextResponse.json(item)
-      : NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!item)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!includeDestinations) return NextResponse.json(item);
+    const destinations = useLocalDestinations()
+      ? listLocalDestinations()
+      : staticDestinations;
+    return NextResponse.json({ property: item, destinations });
   }
-  try {
-    const item = await getProperty(Number(id));
-    return item
-      ? NextResponse.json(item)
-      : NextResponse.json({ error: "Not found" }, { status: 404 });
-  } catch (error) {
-    console.error("Failed to load property from database", error);
-    const item = staticPropertyRecords().find(
-      (x) => x.id === Number(id) || x.slug === id,
+  const [propertyResult, destinationResult] = await Promise.allSettled([
+    withTimeout(getProperty(Number(id)), 6500, "property query"),
+    includeDestinations
+      ? withTimeout(listDestinations(true), 6500, "destinations query")
+      : Promise.resolve([]),
+  ]);
+  if (propertyResult.status === "rejected")
+    console.error("Failed to load property from database", propertyResult.reason);
+  if (destinationResult.status === "rejected")
+    console.error(
+      "Failed to load destination options",
+      destinationResult.reason,
     );
-    return item
-      ? NextResponse.json(item, {
-          headers: { "x-admin-data-source": "static-fallback" },
-        })
-      : NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const fallback = staticPropertyRecords().find(
+    (item) => item.id === Number(id) || item.slug === id,
+  );
+  const item =
+    propertyResult.status === "fulfilled" ? propertyResult.value : fallback;
+  if (!item)
+    return NextResponse.json(
+      {
+        error:
+          propertyResult.status === "rejected"
+            ? "房源数据连接超时，请重试"
+            : "Not found",
+      },
+      { status: propertyResult.status === "rejected" ? 503 : 404 },
+    );
+  const usedFallback =
+    propertyResult.status === "rejected" ||
+    destinationResult.status === "rejected";
+  const options = usedFallback
+    ? { headers: { "x-admin-data-source": "partial-fallback" } }
+    : undefined;
+  if (!includeDestinations) return NextResponse.json(item, options);
+  const destinations =
+    destinationResult.status === "fulfilled"
+      ? destinationResult.value
+      : staticDestinations;
+  return NextResponse.json({ property: item, destinations }, options);
 }
 
 export async function PUT(
