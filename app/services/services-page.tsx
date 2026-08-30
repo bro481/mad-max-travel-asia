@@ -19,6 +19,7 @@ import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
 import { MobileScrollHint } from "../components/mobile-scroll-hint";
 import { DateInput } from "../components/date-input";
+import { useInquirySettings } from "../components/use-inquiry-settings";
 type Lang = "zh" | "en";
 type Offer = {
   title: [string, string];
@@ -90,7 +91,6 @@ const intercityGalleryImages = [
   img("photo-1549317661-bd32c8ce0db2"),
   img("photo-1494526585095-c41746248156"),
 ];
-const WECHAT_ID = "MADMAX_STAY";
 const getExperienceDetail = (offer: Offer): ExperienceDetail => {
   if (offer.title[0].includes("美人鱼岛")) {
     return {
@@ -789,6 +789,7 @@ export function ServicesPage({
   managed: ServiceItem[];
   destinationSettings?: DestinationRecord[];
 }) {
+  const globalSettings = useInquirySettings();
   const [lang, setLang] = useState<Lang>("zh"),
     [menu, setMenu] = useState(false),
     [destination, setDestination] = useState("all"),
@@ -954,7 +955,7 @@ export function ServicesPage({
     : [];
   const intercityRequestText = selectedOffer
     ? [
-        `【官网咨询｜${selectedOffer.title[0]}】`,
+        `【${globalSettings.copyRules.sourcePrefix || "官网咨询"}｜${selectedOffer.title[0]}】`,
         `出发日期：${intercityRequest.date || "待补充"}`,
         `大概时间：${intercityRequest.time || "待补充"}`,
         `出发地点：${intercityRequest.pickup || "待补充"}`,
@@ -1721,9 +1722,9 @@ export function ServicesPage({
                   </button>
                   {intercityGenerated ? (
                     <div className="airport-request-result">
-                      <p className="eyebrow">REQUEST READY</p>
-                      <h3>跨城接送需求已整理好</h3>
-                      <p>复制后添加微信发送给我们，我们会根据路线、人数和行李确认车型和价格。</p>
+                      <p className="eyebrow">{globalSettings.completion.eyebrow}</p>
+                      <h3>{globalSettings.completion.title}</h3>
+                      <p>{globalSettings.completion.description}</p>
                       <pre>{intercityRequestText}</pre>
                       <div className="airport-request-actions">
                         <button type="button" onClick={() => copyIntercityText(intercityRequestText, "request")}>
@@ -1740,21 +1741,21 @@ export function ServicesPage({
                         >
                           返回修改
                         </button>
-                        <button type="button" className="primary" onClick={() => copyIntercityText(WECHAT_ID, "wechat")}>
+                        <button type="button" className="primary" onClick={() => copyIntercityText(globalSettings.contacts.wechatId, "wechat")}>
                           {intercityWechatCopied ? "微信号已复制" : "添加微信"}
                         </button>
                       </div>
-                      <div className="airport-wechat">
+                      {globalSettings.contacts.wechatEnabled && <div className="airport-wechat">
                         <div className="airport-wechat-qr">
                           <b>微信</b>
                           <small>二维码</small>
                         </div>
                         <div>
                           <span>微信号</span>
-                          <b>{WECHAT_ID}</b>
-                          <small>复制需求后扫码或搜索微信号添加</small>
+                          <b>{globalSettings.contacts.wechatId}</b>
+                          <small>{globalSettings.completion.footerHint}</small>
                         </div>
-                      </div>
+                      </div>}
                     </div>
                   ) : (
                     <form

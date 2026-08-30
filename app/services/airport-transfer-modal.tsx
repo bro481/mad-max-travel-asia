@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { GalleryCarousel } from "../components/gallery-carousel";
 import { InquiryModal } from "../components/inquiry-modal";
 import { DateInput } from "../components/date-input";
+import { useInquirySettings } from "../components/use-inquiry-settings";
 import "./airport-transfer-modal.css";
 
 export type AirportTransferPreview = {
@@ -32,8 +33,6 @@ type TransferRequest = {
   luggage: number;
 };
 
-const WECHAT_ID = "MADMAX_STAY";
-
 export function AirportTransferModal({
   data,
   onClose,
@@ -42,6 +41,7 @@ export function AirportTransferModal({
   onClose: () => void;
 }) {
   const images = data.images.filter(Boolean);
+  const globalSettings = useInquirySettings();
   const [requestOpen, setRequestOpen] = useState(false);
   const [sharedRequestOpen, setSharedRequestOpen] = useState(false);
   const [generated, setGenerated] = useState(false);
@@ -58,7 +58,7 @@ export function AirportTransferModal({
   const requestText = useMemo(
     () =>
       [
-        `【官网咨询｜${data.title}】`,
+        `【${globalSettings.copyRules.sourcePrefix || "官网咨询"}｜${data.title}】`,
         `接送方向：${request.direction}`,
         `日期：${request.date || "待补充"}`,
         `航班号：${request.flight || "待补充"}`,
@@ -66,7 +66,7 @@ export function AirportTransferModal({
         `同行人数：${request.people} 人`,
         `行李数量：${request.luggage} 件`,
       ].join("\n"),
-    [data.title, request]
+    [data.title, globalSettings.copyRules.sourcePrefix, request]
   );
   const updateRequest = <K extends keyof TransferRequest>(
     key: K,
@@ -91,10 +91,10 @@ export function AirportTransferModal({
   };
   const copyWechat = async () => {
     try {
-      await navigator.clipboard.writeText(WECHAT_ID);
+      await navigator.clipboard.writeText(globalSettings.contacts.wechatId);
     } catch {
       const textarea = document.createElement("textarea");
-      textarea.value = WECHAT_ID;
+      textarea.value = globalSettings.contacts.wechatId;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
@@ -204,9 +204,9 @@ export function AirportTransferModal({
               </button>
               {generated ? (
                 <div className="airport-request-result">
-                  <p className="eyebrow">REQUEST READY</p>
-                  <h3>接送需求已整理好</h3>
-                  <p>复制后添加微信发送给我们，我们会直接根据这些信息确认车型和价格。</p>
+                  <p className="eyebrow">{globalSettings.completion.eyebrow}</p>
+                  <h3>{globalSettings.completion.title}</h3>
+                  <p>{globalSettings.completion.description}</p>
                   <pre>{requestText}</pre>
                   <div className="airport-request-actions">
                     <button type="button" onClick={copyRequest}>
@@ -227,17 +227,17 @@ export function AirportTransferModal({
                       {wechatCopied ? "微信号已复制" : "添加微信"}
                     </button>
                   </div>
-                  <div className="airport-wechat">
+                  {globalSettings.contacts.wechatEnabled && <div className="airport-wechat">
                     <div className="airport-wechat-qr">
                       <b>微信</b>
                       <small>二维码</small>
                     </div>
                     <div>
                       <span>微信号</span>
-                      <b>{WECHAT_ID}</b>
-                      <small>复制需求后扫码或搜索微信号添加</small>
+                      <b>{globalSettings.contacts.wechatId}</b>
+                      <small>{globalSettings.completion.footerHint}</small>
                     </div>
-                  </div>
+                  </div>}
                 </div>
               ) : (
                 <form

@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { DestinationRecord } from "../../db/destinations";
+import {
+  defaultAboutSettings,
+  type AboutSettings,
+} from "../../db/site-settings";
 import { ServiceMenu } from "../service-menu";
 
 type Lang = "zh" | "en";
@@ -58,6 +63,31 @@ const copy = {
 export default function AboutPage() {
   const [lang, setLang] = useState<Lang>("zh");
   const [menu, setMenu] = useState(false);
+  const [about, setAbout] = useState<AboutSettings>(defaultAboutSettings);
+  const [managedDestinations, setManagedDestinations] = useState<DestinationRecord[]>([]);
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/site-settings?key=about").then((response) => response.ok ? response.json() : defaultAboutSettings),
+      fetch("/api/destinations?surface=services").then((response) => response.ok ? response.json() : []),
+    ]).then(([settings, destinationItems]) => {
+      setAbout(settings);
+      setManagedDestinations(destinationItems);
+    }).catch(() => undefined);
+  }, []);
+  const configuredDestinations = useMemo(() => {
+    if (!managedDestinations.length) return cityCoverage;
+    return managedDestinations.map((destination, index) => {
+      const setting = about.destinations.items.find((item) => item.destinationId === destination.id);
+      return {
+        zh: destination.nameZh,
+        en: destination.nameEn,
+        zhServices: setting?.serviceSummaryZh || destination.introZh,
+        enServices: setting?.serviceSummaryEn || destination.introEn,
+        visible: setting?.visible !== false,
+        sortOrder: setting?.sortOrder ?? index,
+      };
+    }).filter((item) => item.visible).sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [about.destinations.items, managedDestinations]);
   const t = copy[lang];
   return <>
     <header>
@@ -68,15 +98,15 @@ export default function AboutPage() {
     </header>
     <main className="about-page">
       <section className="about-hero">
-        <div className="about-hero-copy"><p className="eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p>{t.intro}</p><div>{t.tags.map(tag => <span key={tag}>{tag}</span>)}</div></div>
-        <div className="about-hero-scenes"><figure><img src={image("photo-1549317661-bd32c8ce0db2")} alt="" /></figure><figure><img src={image("photo-1544550285-f813152fb2fd")} alt="" /></figure><figure><img src={image("photo-1600566753190-17f0baa2a6c3")} alt="" /></figure><small>{lang === "zh" ? "住宿 · 车辆 · 当地行程" : "Stays · vehicles · local journeys"}</small></div>
+        <div className="about-hero-copy"><p className="eyebrow">{about.hero.eyebrow}</p><h1>{(lang === "zh" ? about.hero.titleZh : about.hero.titleEn).split("\n").map((line, index) => <span key={line}>{index ? <br /> : null}{line}</span>)}</h1><p>{lang === "zh" ? about.hero.introZh : about.hero.introEn}</p><div>{(lang === "zh" ? about.hero.tagsZh : about.hero.tagsEn).map(tag => <span key={tag}>{tag}</span>)}</div></div>
+        <div className="about-hero-scenes">{about.hero.images.map((src) => <figure key={src}><img src={src} alt="" /></figure>)}<small>{lang === "zh" ? about.hero.imageBadgeZh : about.hero.imageBadgeEn}</small></div>
       </section>
-      <section className="about-here about-container"><div className="about-heading"><p className="eyebrow">MALAYSIA &amp; BEYOND</p><h2>{t.here}</h2><p>{t.hereText}</p></div><div className="about-city-grid">{cityCoverage.map(city => <article key={city.en}><h3>{city.zh}<small>{city.en}</small></h3><p>{lang === "zh" ? city.zhServices : city.enServices}</p></article>)}</div><p className="about-coverage">{t.coverage}</p></section>
-      <section className="about-how"><div className="about-container"><div className="about-heading left"><p className="eyebrow">HOW WE HELP</p><h2>{t.how}</h2><p>{t.howText}</p></div><div className="about-way-grid">{ways.map(item => <article key={item.no}><span>{item.no}</span><h3>{lang === "zh" ? item.zh : item.en}</h3><p>{lang === "zh" ? item.zhText : item.enText}</p></article>)}</div></div></section>
-      <section className="about-why about-container"><p className="eyebrow">A MORE PERSONAL WAY</p><div><h2>{t.why}</h2><article><h3>{t.whyTitle}</h3>{t.whyText.map(text => <p key={text}>{text}</p>)}</article></div></section>
-      <section className="about-daily about-container"><div className="about-heading"><p className="eyebrow">EVERYDAY MOMENTS</p><h2>{t.daily}</h2><p>{t.dailyText}</p></div><div className="about-mosaic">{moments.map(([id, zh, en], index) => <figure key={id} className={`moment-${index + 1}`}><img src={image(id)} alt={lang === "zh" ? zh : en} /><figcaption>{lang === "zh" ? zh : en}</figcaption></figure>)}</div></section>
-      <section className="about-people about-container"><div className="about-people-image"><img src={image("photo-1550355291-bbee04a92027")} alt="" /><span>{lang === "zh" ? "当地安排，直接沟通" : "Local planning, direct communication"}</span></div><div><p className="eyebrow">THE PEOPLE BEHIND THE SCREEN</p><h2>{t.people}</h2><b>{t.peopleTag}</b><small>{t.peopleSub}</small><p>{t.peopleText}</p><div className="about-contact-links"><a href="/#contact">微信咨询 →</a><a href="/#contact">WhatsApp →</a></div></div></section>
-      <section className="about-final"><div><h2>{t.ready}</h2><p>{t.readyText}</p></div><div><a className="button" href="/#contact">{t.consult} →</a><a className="button outline" href="/#stays">{t.seeRooms}</a></div></section>
+      {about.destinations.visible && <section className="about-here about-container"><div className="about-heading"><p className="eyebrow">{about.destinations.eyebrow}</p><h2>{lang === "zh" ? about.destinations.titleZh : about.destinations.titleEn}</h2><p>{lang === "zh" ? about.destinations.introZh : about.destinations.introEn}</p></div><div className="about-city-grid">{configuredDestinations.map(city => <article key={city.en}><h3>{city.zh}<small>{city.en}</small></h3><p>{lang === "zh" ? city.zhServices : city.enServices}</p></article>)}</div><p className="about-coverage">{lang === "zh" ? about.destinations.footerZh : about.destinations.footerEn}</p></section>}
+      {about.ways.visible && <section className="about-how"><div className="about-container"><div className="about-heading left"><p className="eyebrow">{about.ways.eyebrow}</p><h2>{lang === "zh" ? about.ways.titleZh : about.ways.titleEn}</h2><p>{lang === "zh" ? about.ways.introZh : about.ways.introEn}</p></div><div className="about-way-grid">{about.ways.items.map((item, index) => <article key={item.id}><span>{String(index + 1).padStart(2, "0")}</span><h3>{lang === "zh" ? item.titleZh : item.titleEn}</h3><p>{lang === "zh" ? item.descriptionZh : item.descriptionEn}</p></article>)}</div></div></section>}
+      {about.philosophy.visible && <section className="about-why about-container"><p className="eyebrow">{about.philosophy.eyebrow}</p><div><h2>{lang === "zh" ? about.philosophy.titleZh : about.philosophy.titleEn}</h2><article><h3>{lang === "zh" ? about.philosophy.sideTitleZh : about.philosophy.sideTitleEn}</h3>{(lang === "zh" ? about.philosophy.paragraphsZh : about.philosophy.paragraphsEn).map(text => <p key={text}>{text}</p>)}</article></div></section>}
+      {about.moments.visible && <section className="about-daily about-container"><div className="about-heading"><p className="eyebrow">{about.moments.eyebrow}</p><h2>{lang === "zh" ? about.moments.titleZh : about.moments.titleEn}</h2><p>{lang === "zh" ? about.moments.introZh : about.moments.introEn}</p></div><div className="about-mosaic">{about.moments.items.map((item, index) => <figure key={item.id} className={`moment-${index + 1}`}><img src={item.image} alt={lang === "zh" ? item.captionZh : item.captionEn} /><figcaption>{lang === "zh" ? item.captionZh : item.captionEn}</figcaption></figure>)}</div></section>}
+      {about.team.visible && <section className="about-people about-container"><div className="about-people-image"><img src={about.team.image} alt="" /><span>{lang === "zh" ? about.team.imageBadgeZh : about.team.imageBadgeEn}</span></div><div><p className="eyebrow">{about.team.eyebrow}</p><h2>{lang === "zh" ? about.team.titleZh : about.team.titleEn}</h2><b>{about.team.brandName}</b><small>{lang === "zh" ? about.team.brandSubtitleZh : about.team.brandSubtitleEn}</small><p>{lang === "zh" ? about.team.bodyZh : about.team.bodyEn}</p><div className="about-contact-links">{about.team.showWechat && <a href="/#contact">微信咨询 →</a>}{about.team.showWhatsapp && <a href="/#contact">WhatsApp →</a>}</div></div></section>}
+      {about.cta.visible && <section className="about-final"><div><h2>{lang === "zh" ? about.cta.titleZh : about.cta.titleEn}</h2><p>{lang === "zh" ? about.cta.descriptionZh : about.cta.descriptionEn}</p></div><div><a className="button" href="/#contact">{lang === "zh" ? about.cta.primaryTextZh : about.cta.primaryTextEn} →</a><a className="button outline" href={about.cta.secondaryLink}>{lang === "zh" ? about.cta.secondaryTextZh : about.cta.secondaryTextEn}</a></div></section>}
     </main>
     <footer><a className="logo" href="/"><span className="logo-mark">⌂</span><span><b>MAD MAX</b><small>MALAYSIA STAY</small></span></a><div><a href="/#stays">{t.rooms}</a><a href="/services">{t.services}</a><a href="/about">{t.about}</a><a href="/#contact">{t.contact}</a></div><small>© 2026 MAD MAX Malaysia Stay</small></footer>
   </>;

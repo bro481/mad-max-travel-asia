@@ -4,6 +4,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import "./inquiry-modal.css";
 import { DateInput } from "./date-input";
+import { useInquirySettings } from "./use-inquiry-settings";
 
 export type InquiryKind =
   | "accommodation"
@@ -18,8 +19,6 @@ type InquiryModalProps = {
   maxGuests?: number;
   onClose: () => void;
 };
-
-const WECHAT_ID = "MADMAX_STAY";
 
 const meta = {
   accommodation: { eyebrow: "STAY REQUEST", heading: "告诉我你的住宿安排", action: "生成住宿需求", service: "住宿咨询" },
@@ -40,6 +39,7 @@ async function copyText(text: string) {
 
 export function InquiryModal({ kind, title, maxGuests = 14, onClose }: InquiryModalProps) {
   const info = meta[kind];
+  const globalSettings = useInquirySettings();
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
   const [logged, setLogged] = useState(false);
@@ -57,13 +57,13 @@ export function InquiryModal({ kind, title, maxGuests = 14, onClose }: InquiryMo
     setCopied(false); setForm((current) => ({ ...current, [key]: value }));
   };
   const lines = useMemo(() => {
-    const head = `【官网咨询｜${title || info.service}】`;
+    const head = `【${globalSettings.copyRules.sourcePrefix || "官网咨询"}｜${title || info.service}】`;
     if (kind === "airport-transfer") return [head, `方向：${form.direction}`, `日期：${form.date || "待补充"}`, `航班：${form.flight || "稍后补充"}`, `接送地点：${form.place || "待补充"}`, `人数：${form.adults} 人`, `行李：${form.luggage} 件`];
     if (kind === "accommodation") return [head, `入住：${form.date || "待补充"}`, `退房：${form.endDate || "待补充"}`, `成人：${form.adults} 人`, `儿童：${form.children} 人`, title ? `正在咨询：${title}` : "", `补充需求：${form.wishes || "无"}`];
     if (kind === "private-charter") return [head, `日期：${form.date || "待补充"}`, `人数：${form.adults} 人`, `出发地点：${form.place || "待补充"}`, title ? `已选择路线：${title}` : `安排方式：${form.routeMode}`, `想去的地方：${form.wishes || "待沟通"}`, `特殊需求：${form.special || "无"}`];
     if (kind === "experience") return [head, title ? `已选择：${title}` : "", `出行日期：${form.date || "待补充"}`, `成人：${form.adults} 人`, `儿童：${form.children} 人`, `住宿地点：${form.place || "待补充"}`, `补充需求：${form.wishes || "无"}`];
     return [head, `商品：${title || "请推荐"} × ${form.quantity}`, `目前：${form.location}`, `获取方式：${form.delivery}`, form.location === "已经回国" ? `所在城市：${form.city || "待补充"}` : "", `备注：${form.wishes || "无"}`];
-  }, [form, info.service, kind, title]);
+  }, [form, globalSettings.copyRules.sourcePrefix, info.service, kind, title]);
   const requestText = lines.filter(Boolean).join("\n");
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setGenerated(true); setCopied(false);
@@ -84,11 +84,11 @@ export function InquiryModal({ kind, title, maxGuests = 14, onClose }: InquiryMo
     <div className="inquiry-card" onMouseDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
       <button className="inquiry-close" type="button" onClick={onClose} aria-label="关闭">×</button>
       {generated ? <section className="inquiry-result">
-        <p className="eyebrow">REQUEST READY</p><h2>需求整理好了</h2>
-        <p>{kind === "private-charter" ? "我们会根据当天时间帮你确认具体安排。" : kind === "gift" ? "我们会帮你确认库存、价格和获取方式。" : "我们会根据这些信息帮你确认具体安排。"}</p><pre>{requestText}</pre>
-        <div className="inquiry-actions"><button className="primary" onClick={async () => { await copyText(requestText); setCopied(true); }}>{copied ? "需求已复制，请添加微信" : "复制需求并添加微信 →"}</button></div>
-        <button className="inquiry-back" onClick={() => setGenerated(false)}>← 返回修改</button>
-        <div className="inquiry-wechat"><span>微信号</span><b>{WECHAT_ID}</b><small>添加微信后，把刚刚复制的需求发给我们即可。</small></div>
+        <p className="eyebrow">{globalSettings.completion.eyebrow}</p><h2>{globalSettings.completion.title}</h2>
+        <p>{globalSettings.completion.description}</p><pre>{requestText}</pre>
+        <div className="inquiry-actions"><button className="primary" onClick={async () => { await copyText(requestText); setCopied(true); }}>{copied ? "需求已复制，请添加微信" : globalSettings.completion.copyButton}</button></div>
+        <button className="inquiry-back" onClick={() => setGenerated(false)}>{globalSettings.completion.backButton}</button>
+        {globalSettings.contacts.wechatEnabled && <div className="inquiry-wechat"><span>微信号</span><b>{globalSettings.contacts.wechatId}</b><small>{globalSettings.completion.footerHint}</small></div>}
       </section> : <form onSubmit={submit}>
         <p className="eyebrow">{info.eyebrow}</p><h2>{info.heading}</h2><p>填好后自动整理需求，再添加微信发送给我们。</p>
         {title && <div className="inquiry-selected"><span>{kind === "accommodation" ? "正在咨询" : kind === "private-charter" ? "已选择路线" : kind === "gift" ? "商品" : "已选择"}</span><b>{title}</b></div>}

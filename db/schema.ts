@@ -60,6 +60,12 @@ export const imageImportSessions = sqliteTable("image_import_sessions", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const siteSettings = sqliteTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const serviceCategories = sqliteTable("service_categories", {
   id: integer("id").primaryKey({ autoIncrement:true }),
   slug: text("slug").notNull().unique(),
