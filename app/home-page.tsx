@@ -31,6 +31,26 @@ const timeOptions = {
 const MYR_TO_CNY = 1.7;
 type RoomIconName = "layout" | "area" | "floor" | "guests" | "bed" | "sofa" | "pin";
 
+function roomPriceDisplay(room: Room, lang: Lang) {
+  const space = room.spaceConfig as (Room["spaceConfig"] & Record<string, any>) | undefined;
+  const priceType = space?.priceType || (space?.showPriceFrom === false ? "fixed" : "from");
+  if (priceType === "consult" || !room.priceFrom) {
+    return { price: lang === "zh" ? "价格咨询" : "Ask for price", suffix: "" };
+  }
+  const currency = space?.currency;
+  const showCny = currency ? currency !== "MYR" : lang === "zh";
+  const amount = currency
+    ? room.priceFrom
+    : showCny
+      ? Math.round(room.priceFrom * MYR_TO_CNY)
+      : room.priceFrom;
+  const unit = space?.priceUnit || (lang === "zh" ? "晚" : "night");
+  return {
+    price: showCny ? `¥${amount}` : `RM ${amount}`,
+    suffix: `${priceType === "from" ? (lang === "zh" ? " 起" : " from") : ""}/${unit}`,
+  };
+}
+
 function RoomIcon({ name }: { name: RoomIconName }) {
   const paths: Record<RoomIconName, ReactElement> = {
     layout: <path d="M4 11.5 12 5l8 6.5v7a1 1 0 0 1-1 1h-5v-5h-4v5H5a1 1 0 0 1-1-1z" />,
@@ -292,9 +312,7 @@ export function RoomDetailModal({
   const touchStartX = useRef<number | null>(null);
   const images = room.images?.length ? room.images : [room.image];
   const space = room.spaceConfig as (Room["spaceConfig"] & Record<string, any>) | undefined;
-  const showCnyPrice = space?.currency ? space.currency !== "MYR" : lang === "zh";
-  const visiblePrice = space?.currency && space.currency !== "MYR" ? room.priceFrom : Math.round(room.priceFrom * MYR_TO_CNY);
-  const priceUnit = space?.priceUnit || (lang === "zh" ? "/晚" : "/ night");
+  const displayedPrice = roomPriceDisplay(room, lang);
   const priceNote = room.description[lang] ? space?.priceNote || (lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date") : "";
   const coreAmenityKeys = ["High-speed WiFi", "Air Conditioning", "Fully Equipped Kitchen", "Washer"];
   const coreAmenities = coreAmenityKeys
@@ -388,14 +406,14 @@ export function RoomDetailModal({
           <h2>{room.name[lang]}</h2>
           <div className="room-modal-area room-modal-title-location"><RoomIcon name="pin" /><b>{modalLocationLabel(room, lang)}</b></div>
           <div className="room-modal-price">
-            {room.priceFrom ? (
+            {displayedPrice.suffix ? (
               <>
-                <strong>{showCnyPrice ? `¥${visiblePrice}` : `RM ${room.priceFrom}`}</strong>
-                <b>{space?.showPriceFrom === false ? priceUnit : `起 ${priceUnit}`}</b>
+                <strong>{displayedPrice.price}</strong>
+                <b>{displayedPrice.suffix}</b>
                 {priceNote ? <small>{priceNote}</small> : null}
               </>
             ) : (
-              <strong>{lang === "zh" ? "价格咨询" : "Ask for price"}</strong>
+              <strong>{displayedPrice.price}</strong>
             )}
           </div>
           <div className="room-modal-tabs" role="tablist">
@@ -762,11 +780,10 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
                       </span>
                     </div>
                   </div>
-                  <div className="room-price">
-                    {lang === "zh"
-                      ? `¥${Math.round(room.priceFrom * MYR_TO_CNY)} 起/晚`
-                      : `RM ${room.priceFrom} / night`}
-                  </div>
+                  <div className="room-price">{(() => {
+                    const displayed = roomPriceDisplay(room, lang);
+                    return `${displayed.price}${displayed.suffix}`;
+                  })()}</div>
                   <button className="text-link" type="button" onClick={() => setSelectedRoom(room)}>
                     {t.viewRoom}
                     <span>↗</span>
