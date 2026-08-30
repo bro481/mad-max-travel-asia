@@ -12,6 +12,21 @@ import {
   listLocalProperties,
   useLocalProperties,
 } from "./local-dev-store";
+import { listDestinations, staticDestinations } from "../../../../db/destinations";
+import { listLocalDestinations, useLocalDestinations } from "../destinations/local-dev-store";
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 function databaseWriteError(error: unknown) {
   console.error("Failed to write property to database", error);
@@ -24,18 +39,59 @@ function databaseWriteError(error: unknown) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!(await getChatGPTUser()))
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (useLocalProperties()) return NextResponse.json(listLocalProperties());
-  try {
-    return NextResponse.json(await listProperties());
-  } catch (error) {
-    console.error("Failed to load properties from database", error);
-    return NextResponse.json(staticPropertyRecords(), {
-      headers: { "x-admin-data-source": "static-fallback" },
-    });
+  const includeDestinations =
+    new URL(request.url).searchParams.get("include") === "destinations";
+  if (useLocalProperties()) {
+    const properties = listLocalProperties();
+    if (!includeDestinations) return NextResponse.json(properties);
+    const destinations = useLocalDestinations()
+      ? listLocalDestinations()
+      : staticDestinations;
+    return NextResponse.json({ properties, destinations });
   }
+  const [propertyResult, destinationResult] = await Promise.allSettled([
+    withTimeout(listProperties(), 6500, "properties query"),
+    includeDestinations
+      ? withTimeout(listDestinations(true), 6500, "destinations query")
+      : Promise.resolve([]),
+  ]);
+  if (propertyResult.status === "rejected")
+    console.error(
+      "Failed to load properties from database",
+      propertyResult.reason,
+    );
+  if (destinationResult.status === "rejected")
+    console.error(
+      "Failed to load destination options",
+      destinationResult.reason,
+    );
+  const properties =
+    propertyResult.status === "fulfilled"
+      ? propertyResult.value
+      : staticPropertyRecords();
+  if (!includeDestinations)
+    return NextResponse.json(
+      properties,
+      propertyResult.status === "rejected"
+        ? { headers: { "x-admin-data-source": "static-fallback" } }
+        : undefined,
+    );
+  const destinations =
+    destinationResult.status === "fulfilled"
+      ? destinationResult.value
+      : staticDestinations;
+  const usedFallback =
+    propertyResult.status === "rejected" ||
+    destinationResult.status === "rejected";
+  return NextResponse.json(
+    { properties, destinations },
+    usedFallback
+      ? { headers: { "x-admin-data-source": "partial-fallback" } }
+      : undefined,
+  );
 }
 export async function POST(request: Request) {
   if (!(await getChatGPTUser()))

@@ -600,9 +600,9 @@ export function PropertyEditor({ initial, destinations = fallbackDestinationOpti
                   <small>通过浏览器扩展读取你已打开的房源页面</small>
                 </div>
                 <ol>
-                  <li><a href="/downloads/my-malaysia-airbnb-importer.zip" download>下载并安装图片导入扩展</a></li>
-                  <li>打开 Airbnb 房源的“显示所有照片”页面</li>
-                  <li>生成导入码，在扩展中输入并开始导入</li>
+                  <li><a href="/downloads/my-malaysia-airbnb-importer.zip" download>下载图片导入扩展 v1.6.0（ZIP）</a></li>
+                  <li>解压后在 chrome://extensions 开启开发者模式，选择“加载已解压的扩展程序”</li>
+                  <li>打开 Airbnb 的“显示所有照片”，生成导入码后在扩展中开始导入</li>
                 </ol>
                 <div>
                   {importCode ? <strong className="pair-code">{importCode}</strong> : <button type="button" onClick={createImportCode}>生成一次性导入码</button>}

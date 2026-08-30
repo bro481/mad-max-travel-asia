@@ -47,7 +47,7 @@ export async function addLocalImportFiles(code: string, files: File[], complete:
   const session = sessions.get(code);
   if (!session) return null;
   if (session.completedAt || new Date(session.expiresAt) < new Date()) return "expired" as const;
-  if (!files.length || session.images.length + files.length > 50) return "invalid" as const;
+  if ((!files.length && !complete) || session.images.length + files.length > 50) return "invalid" as const;
 
   const urls: string[] = [];
   for (const file of files) {

@@ -1,4 +1,4 @@
-const DEFAULT_API = "http://127.0.0.1:3000";
+const DEFAULT_API = "https://madmaxtravel.asia";
 const codeEl = document.querySelector("#code");
 const apiEl = document.querySelector("#apiBase");
 const start = document.querySelector("#start");
@@ -201,7 +201,7 @@ start.addEventListener("click", async () => {
         }
       }
       if (![...form.keys()].length) continue;
-      form.append("complete", String(i + group.length >= urls.length));
+      form.append("complete", "false");
       const response = await fetch(`${API}/api/import/${code}`, {
         method: "POST",
         body: form,
@@ -215,6 +215,12 @@ start.addEventListener("click", async () => {
         12 + Math.round(((i + group.length) / urls.length) * 84),
       );
     }
+    if (!uploaded) throw new Error("图片下载失败，请刷新 Airbnb 相册后重试");
+    const completion = new FormData();
+    completion.append("complete", "true");
+    const completionResponse = await fetch(`${API}/api/import/${code}`, { method: "POST", body: completion });
+    const completionResult = await json(completionResponse);
+    if (!completionResponse.ok) throw new Error(completionResult.error || "无法完成导入");
     status(
       `导入完成：识别 ${result.urls.length} 张，成功 ${uploaded} 张，失败 ${failed} 张。`,
       100,
