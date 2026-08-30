@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { DestinationRecord } from "../../../../db/destinations";
 import type { ServiceCategory } from "../../../../db/services";
 
@@ -20,12 +21,13 @@ const structures: ServiceStructure[] = [
 ];
 
 export default function NewService() {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
-  const [city, setCity] = useState("吉隆坡");
-  const [draft, setDraft] = useState<{ structure: ServiceStructure; categoryId: number; nameZh: string } | null>(null);
+  const [selectedDestinationId, setSelectedDestinationId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<{ structure: ServiceStructure; nameZh: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -40,26 +42,36 @@ export default function NewService() {
         .sort((a: ServiceCategory, b: ServiceCategory) => a.sortOrder - b.sortOrder || a.id - b.id);
       setDestinations(destinationOptions);
       setCategories(categoryOptions);
-      if (destinationOptions[0]) setCity(destinationOptions[0].nameZh);
+      setSelectedDestinationId((current) =>
+        destinationOptions.some((item: DestinationRecord) => item.id === current)
+          ? current
+          : destinationOptions[0]?.id || null,
+      );
     });
   }, []);
 
-  const destinationOptions = destinations.length ? destinations.map((item) => item.nameZh) : ["吉隆坡", "亚庇", "仙本那", "马六甲", "新加坡"];
-  const selectedDestination = destinations.find((item) => item.nameZh === city);
-  const selectedCategory = useMemo(
-    () => categories.find((item) => item.id === draft?.categoryId) || categories[0],
-    [categories, draft?.categoryId],
-  );
+  const selectedDestination = destinations.find((item) => item.id === selectedDestinationId);
+  const selectedCategory = draft
+    ? categories.find((item) => item.nameZh === draft.structure.defaultCategory)
+    : undefined;
 
   const openDraft = (structure: ServiceStructure) => {
-    const category = categories.find((item) => item.nameZh === structure.defaultCategory) || categories[0];
+    if (!selectedDestination) {
+      setNotice("请先选择目的地。");
+      return;
+    }
     setNotice("");
-    setDraft({ structure, categoryId: category?.id || 1, nameZh: "" });
+    setDraft({ structure, nameZh: "" });
   };
 
   const create = async () => {
-    if (!draft) return;
-    const nameZh = draft.nameZh.trim() || defaultServiceName(city, draft.structure.templateType);
+    if (!draft || !selectedDestination) return;
+    const category = categories.find((item) => item.nameZh === draft.structure.defaultCategory);
+    if (!category) {
+      setNotice(`找不到“${draft.structure.defaultCategory}”展示分类，请先到展示分类中启用。`);
+      return;
+    }
+    const nameZh = draft.nameZh.trim() || defaultServiceName(selectedDestination.nameZh, draft.structure.templateType);
     setBusy(true);
     setNotice("正在创建草稿…");
     const controller = new AbortController();
@@ -72,10 +84,10 @@ export default function NewService() {
         body: JSON.stringify({
           type: draft.structure.type,
           templateType: draft.structure.templateType,
-          categoryId: draft.categoryId,
-          category: selectedCategory?.nameZh || draft.structure.defaultCategory,
-          destinationId: selectedDestination?.id || 0,
-          city,
+          categoryId: category.id,
+          category: category.nameZh,
+          destinationId: selectedDestination.id,
+          city: selectedDestination.nameZh,
           nameZh,
           nameEn: nameZh,
         }),
@@ -84,7 +96,7 @@ export default function NewService() {
       const x = text ? JSON.parse(text) : null;
       if (!r.ok || !x?.id) throw new Error(x?.error || `创建失败：${r.status}`);
       window.clearTimeout(timeout);
-      location.href = `/admin/services/${x.id}`;
+      router.push(`/admin/services/${x.id}`);
     } catch (error) {
       window.clearTimeout(timeout);
       setBusy(false);
@@ -111,16 +123,21 @@ export default function NewService() {
       <section className="new-service-flow">
         <label className="new-service-destination">
           <span>① 目的地</span>
-          <select value={city} onChange={(event) => setCity(event.target.value)}>
-            {destinationOptions.map((name) => (
-              <option value={name} key={name}>{name}</option>
+          <select
+            value={selectedDestinationId ?? ""}
+            disabled={!destinations.length}
+            onChange={(event) => setSelectedDestinationId(Number(event.target.value))}
+          >
+            {!destinations.length ? <option value="">正在读取目的地…</option> : null}
+            {destinations.map((destination) => (
+              <option value={destination.id} key={destination.id}>{destination.nameZh}</option>
             ))}
           </select>
         </label>
         <h2>② 你要新建哪种服务？</h2>
         <div className="service-type-picker compact-picker">
           {structures.map((structure) => (
-            <button disabled={busy} onClick={() => openDraft(structure)} key={structure.templateType}>
+            <button disabled={busy || !selectedDestination} onClick={() => openDraft(structure)} key={structure.templateType}>
               <span>{structure.icon}</span>
               <b>{structure.title}</b>
               <small>{structure.desc}</small>
@@ -135,25 +152,17 @@ export default function NewService() {
           <div className="destination-dialog new-service-dialog">
             <button className="dialog-close" onClick={() => setDraft(null)}>×</button>
             <h2>新建{draft.structure.title}</h2>
-            <p className="dialog-muted">系统会自动绑定：{city} / {selectedCategory?.nameZh || "展示分类"} / {templateLabel(draft.structure.templateType)}</p>
+            <p className="dialog-muted new-service-binding">
+              <span>已选择</span>
+              <b>{selectedDestination?.nameZh} · {selectedCategory?.nameZh || draft.structure.defaultCategory} · {templateLabel(draft.structure.templateType)}</b>
+            </p>
             <div className="destination-form-grid">
-              <label>
-                <span>目的地</span>
-                <input value={city} readOnly />
-              </label>
-              <label>
-                <span>所属展示分类</span>
-                <select value={draft.categoryId} onChange={(e) => setDraft({ ...draft, categoryId: Number(e.target.value) })}>
-                  {(categories.length ? categories : [{ id: 1, nameZh: draft.structure.defaultCategory } as ServiceCategory]).map((category) => (
-                    <option value={category.id} key={category.id}>{category.nameZh}</option>
-                  ))}
-                </select>
-              </label>
               <label className="destination-wide">
                 <span>服务名称</span>
-                <input value={draft.nameZh} onChange={(e) => setDraft({ ...draft, nameZh: e.target.value })} placeholder={defaultServiceName(city, draft.structure.templateType)} />
+                <input value={draft.nameZh} onChange={(e) => setDraft({ ...draft, nameZh: e.target.value })} placeholder={defaultServiceName(selectedDestination?.nameZh || "", draft.structure.templateType)} />
               </label>
             </div>
+            <p className="new-service-destination-help">目的地继承自新建服务页面顶部选择，如需更换请关闭弹窗后在顶部修改。</p>
             {notice && <p className="dialog-muted">{notice}</p>}
             <div className="dialog-actions">
               <button onClick={() => setDraft(null)}>取消</button>
