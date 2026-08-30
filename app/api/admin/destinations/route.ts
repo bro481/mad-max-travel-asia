@@ -51,34 +51,42 @@ function withStaticCounts(items: DestinationRecord[]): DestinationWithCounts[] {
 }
 
 async function withDbCounts(items: DestinationRecord[]): Promise<DestinationWithCounts[]> {
-  return Promise.all(
-    items.map(async (item) => {
-      const [properties, publishedProperties, services, publishedServices] = await Promise.all([
-        env.DB.prepare("SELECT COUNT(*) AS total FROM properties WHERE city=?").bind(item.nameZh).first<{ total: number }>(),
-        env.DB.prepare("SELECT COUNT(*) AS total FROM properties WHERE city=? AND status='published'").bind(item.nameZh).first<{ total: number }>(),
-        env.DB.prepare("SELECT COUNT(*) AS total FROM service_items WHERE city=?").bind(item.nameZh).first<{ total: number }>(),
-        env.DB.prepare("SELECT COUNT(*) AS total FROM service_items WHERE city=? AND status='published'").bind(item.nameZh).first<{ total: number }>(),
-      ]);
-      return {
-        ...item,
-        propertyCount: Number(properties?.total || 0),
-        publishedPropertyCount: Number(publishedProperties?.total || 0),
-        serviceCount: Number(services?.total || 0),
-        publishedServiceCount: Number(publishedServices?.total || 0),
-      };
-    }),
-  );
+  type CountRow = { city: string; total: number; published: number };
+  const [propertyResult, serviceResult] = await Promise.all([
+    env.DB.prepare(
+      "SELECT city, COUNT(*) AS total, SUM(CASE WHEN status='published' THEN 1 ELSE 0 END) AS published FROM properties GROUP BY city",
+    ).all<CountRow>(),
+    env.DB.prepare(
+      "SELECT city, COUNT(*) AS total, SUM(CASE WHEN status='published' THEN 1 ELSE 0 END) AS published FROM service_items GROUP BY city",
+    ).all<CountRow>(),
+  ]);
+  const properties = new Map(propertyResult.results.map((row) => [row.city, row]));
+  const services = new Map(serviceResult.results.map((row) => [row.city, row]));
+  return items.map((item) => ({
+    ...item,
+    propertyCount: Number(properties.get(item.nameZh)?.total || 0),
+    publishedPropertyCount: Number(properties.get(item.nameZh)?.published || 0),
+    serviceCount: Number(services.get(item.nameZh)?.total || 0),
+    publishedServiceCount: Number(services.get(item.nameZh)?.published || 0),
+  }));
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!(await getChatGPTUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (useLocalDestinations()) return NextResponse.json(withLocalCounts(listLocalDestinations()));
+  const optionsOnly = new URL(request.url).searchParams.get("view") === "options";
+  if (useLocalDestinations()) {
+    const items = listLocalDestinations();
+    return NextResponse.json(optionsOnly ? items : withLocalCounts(items));
+  }
   try {
+    // Editors only need destination labels and ids. Avoid the schema check and
+    // four COUNT queries per destination that are required by the management page.
+    if (optionsOnly) return NextResponse.json(await listDestinations(true));
     await ensureDestinations();
     return NextResponse.json(await withDbCounts(await listDestinations(true)));
   } catch (error) {
     console.error("Failed to load destinations from database", error);
-    return NextResponse.json(withStaticCounts(staticDestinations), {
+    return NextResponse.json(optionsOnly ? staticDestinations : withStaticCounts(staticDestinations), {
       headers: { "x-admin-data-source": "static-fallback" },
     });
   }

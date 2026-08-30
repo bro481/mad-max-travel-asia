@@ -47,12 +47,23 @@ export default function ServiceEditor() {
       }
       return text ? JSON.parse(text) : fallback;
     };
-    Promise.all([
-      readJson<ServiceItem | null>(`/api/admin/service-items/${id}`, null),
-      readJson<DestinationRecord[]>("/api/admin/destinations", []),
-      readJson<ServiceCategory[]>("/api/admin/services", []),
-    ])
-      .then(([item, dests, cats]) => {
+    const load = async () => {
+      // The service record is the only data required to open the editor. Lookup
+      // lists are auxiliary and must not leave the whole screen unusable when one
+      // of their endpoints is temporarily slow.
+      const item = await readJson<ServiceItem | null>(`/api/admin/service-items/${id}`, null);
+      const [destinationsResult, categoriesResult] = await Promise.allSettled([
+        readJson<DestinationRecord[]>("/api/admin/destinations?view=options", []),
+        readJson<ServiceCategory[]>("/api/admin/services", []),
+      ]);
+      return {
+        item,
+        dests: destinationsResult.status === "fulfilled" ? destinationsResult.value : [],
+        cats: categoriesResult.status === "fulfilled" ? categoriesResult.value : [],
+      };
+    };
+    load()
+      .then(({ item, dests, cats }) => {
         if (!active) return;
         if (!item) {
           setLoadError(`找不到这个服务：${id}`);
