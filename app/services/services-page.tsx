@@ -14,6 +14,7 @@ import {
   type PrivateRouteDetailData,
   type PrivateRouteDetailStop,
 } from "../components/private-route-detail-modal";
+import { LocalServiceOfferCard } from "../components/local-service-offer-card";
 import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
 type Lang = "zh" | "en";
@@ -315,10 +316,7 @@ const routePlanToPrivateRoute = (
     desc: textPair(descZh, route.descriptionEn, descZh),
     duration: textPair(route.duration || "时间灵活", route.duration || "Flexible duration"),
     tags: routePlanTags(route),
-    image:
-      route.image ||
-      route.nodes?.find((node) => node.image)?.image ||
-      "",
+    image: route.coverImage || route.image || "",
     stops: routePlanNodes(route),
   };
 };
@@ -1192,9 +1190,10 @@ export function ServicesPage({
                         item.title[0].includes("私人包车") ||
                         item.title[0].includes("一日包车");
                       return (
-                        <button
-                          className="offer-card"
-                          onClick={() => {
+                        <LocalServiceOfferCard
+                          data={{ title: item.title, description: item.desc, tags: item.tags, image: item.image }}
+                          lang={lang}
+                          onOpen={() => {
                             if (hasFullPage && !item.serviceId) {
                               window.location.href = `/services/private-car?city=${place.key}`;
                               return;
@@ -1205,18 +1204,7 @@ export function ServicesPage({
                             setSelectedOffer(item);
                           }}
                           key={item.title[0]}
-                        >
-                          <img src={item.image} alt={item.title[l]} />
-                          <div>
-                            <h4>{item.title[l]}</h4>
-                            <p>{item.desc[l]}</p>
-                            <div>
-                              {item.tags.map((tag) => (
-                                <span key={tag[0]}>{tag[l]}</span>
-                              ))}
-                            </div>
-                          </div>
-                        </button>
+                        />
                       );
                     })}
                   </div>

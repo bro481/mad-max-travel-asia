@@ -104,7 +104,11 @@ export async function PUT(
         b.subtitleEn,
         b.introZh,
         b.introEn,
-        JSON.stringify(b.images || []),
+        JSON.stringify(
+          b.coverImage !== undefined || Array.isArray(b.gallery)
+            ? [b.coverImage || "", ...(b.gallery || [])].filter(Boolean)
+            : b.images || [],
+        ),
         JSON.stringify(b.tags || []),
         JSON.stringify(b.steps || []),
         b.routeSectionTitleZh || "",

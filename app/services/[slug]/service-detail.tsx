@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { InquiryModal } from "../../components/inquiry-modal";
+import { PrivateRouteCard } from "../../components/private-route-card";
 import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem, ServiceRouteNode, ServiceRoutePlan } from "../../../db/service-items";
 import { ServiceMenu } from "../../service-menu";
@@ -797,10 +798,7 @@ export function ServiceDetail({
           .map((name) => name.trim())
           .filter(Boolean)
           .map((name) => ({ nameZh: name } as ServiceRouteNode));
-    const cover =
-      plan?.image ||
-      nodes.find((node) => node.image)?.image ||
-      photo("photo-1596422846543-75c6fc197f07");
+    const cover = plan?.coverImage || plan?.image || "";
     const durationKey = String(plan?.duration || "").replace(/\s+/g, "");
     const tags = (plan?.tags?.length ? plan.tags : [plan?.tag].filter(Boolean) as string[])
       .filter((tag) => String(tag).replace(/\s+/g, "") !== durationKey)
@@ -817,8 +815,8 @@ export function ServiceDetail({
         time: node.stayTime || node.time || "",
         title: [node.nameZh || node.title || `路线节点 ${index + 1}`, node.nameEn || node.nameZh || node.title || `Route stop ${index + 1}`],
         note: [node.descriptionZh || node.description || "可根据当天时间灵活调整", node.descriptionEn || node.descriptionZh || node.description || "Flexible timing"],
-        image: node.image || plan?.image || cover,
-        images: [node.image || plan?.image || cover].filter(Boolean),
+        image: node.image || "",
+        images: [node.image || ""].filter(Boolean),
       })),
     };
   };
@@ -982,30 +980,16 @@ export function ServiceDetail({
           </div>
           <div className="route-grid">
             {displayRoutes.map((route) => (
-              <button
-                className="route-card"
-                onClick={() => {
+              <PrivateRouteCard
+                route={route}
+                lang={lang}
+                onOpen={() => {
                   setStopIndex(0);
                   setStopPhotoIndex(0);
                   setSelected(route);
                 }}
                 key={route.title[0]}
-              >
-                <div className="route-card-media">
-                  <img src={route.image} alt={route.title[l]} />
-                </div>
-                <div className="route-card-body">
-                  <h3>{route.title[l]}</h3>
-                  <p>
-                    <span>{route.duration[l]}</span>
-                    <span>{route.tags[0][l]}</span>
-                  </p>
-                  <div className="route-card-footer">
-                    <small>{route.summary[l]}</small>
-                    <b>{zh ? "查看路线" : "View route"} →</b>
-                  </div>
-                </div>
-              </button>
+              />
             ))}
           </div>
         </section>

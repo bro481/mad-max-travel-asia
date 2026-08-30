@@ -8,6 +8,8 @@ import {
   PrivateRouteDetailModal,
   type PrivateRouteDetailData,
 } from "../../../components/private-route-detail-modal";
+import { PrivateRouteCard } from "../../../components/private-route-card";
+import { LocalServiceOfferCard } from "../../../components/local-service-offer-card";
 import type { DestinationRecord } from "../../../../db/destinations";
 import type { ServiceCategory } from "../../../../db/services";
 import type {
@@ -18,8 +20,8 @@ import type {
 import { TransferEditor } from "./transfer-editor";
 
 const defaultTabs = ["基础信息", "图片", "内容", "行程／路线", "咨询", "发布"];
-const routeTabs = ["基础信息", "服务图片", "车型与价格", "热门路线", "咨询与发布"];
-const inquiryFieldOptions = ["日期", "人数", "出发地点", "接送地点", "想去的地方", "儿童人数", "行李数量", "特殊需求"];
+const routeTabs = ["基础信息", "图片", "车型与价格", "路线方案", "咨询设置", "发布"];
+const inquiryFieldOptions = ["日期", "同行人数", "出发地点", "想去的地方", "接送地点", "儿童人数", "行李数量", "特殊需求"];
 
 export default function ServiceEditor() {
   const { id } = useParams<{ id: string }>();
@@ -56,7 +58,10 @@ export default function ServiceEditor() {
           setLoadError(`找不到这个服务：${id}`);
           return;
         }
-        setD(item);
+        const serviceImages = item.images?.length
+          ? item.images
+          : [item.coverImage || "", ...(item.gallery || [])].filter(Boolean);
+        setD({ ...item, coverImage: serviceImages[0] || "", gallery: serviceImages.slice(1), images: serviceImages });
         setDestinations(dests);
         setCategories(cats);
       })
@@ -107,7 +112,14 @@ export default function ServiceEditor() {
     const inquiry = isCar ? normalizeInquiryConfig(d.inquiryFields, d.inquiryRequired) : null;
     const next = {
       ...d,
-      ...(inquiry ? { inquiryFields: inquiry.fields, inquiryRequired: inquiry.required } : {}),
+      coverImage: d.images[0] || "",
+      gallery: d.images.slice(1),
+      routes: isCar
+        ? d.routes.map(({ image, ...route }) => ({ ...route, coverImage: route.coverImage || image || "" }))
+        : d.routes,
+      ...(inquiry
+        ? { inquiryFields: inquiry.fields, inquiryRequired: inquiry.required, inquiryPromptFields: inquiry.fields }
+        : {}),
       status: status || d.status,
     };
     setNotice(status === "published" ? "发布中…" : "保存中…");
@@ -191,7 +203,7 @@ export default function ServiceEditor() {
           )}
         </p>
       )}
-      <div className="service-editor-layout">
+      <div className={`service-editor-layout ${tab === 0 || tab === 1 ? "" : "without-preview"}`}>
         <aside>
           {activeTabs.map((x, i) => (
             <button className={tab === i ? "active" : ""} onClick={() => setTab(i)} key={x}>
@@ -348,7 +360,6 @@ export default function ServiceEditor() {
             (isCar ? (
               <VehiclePricingEditor
                 items={d.vehicles}
-                serviceImages={d.images}
                 onUpload={(files, done) => upload(files, done)}
                 onChange={(x) => set("vehicles", x)}
               />
@@ -367,7 +378,7 @@ export default function ServiceEditor() {
             <>
               {isCar ? (
                 <>
-                  <Head title="热门路线" text="管理私人包车详情页中的“热门包车方案”。Route 属于当前 Service，不是独立服务。" />
+                  <Head title="路线方案" text="管理私人包车详情页中的“热门包车方案”。Route 属于当前 Service，不是独立服务。" />
                   <RouteSectionCopy
                     eyebrow={d.routes[0]?.sectionEyebrowZh || ""}
                     eyebrowEn={d.routes[0]?.sectionEyebrowEn || ""}
@@ -417,14 +428,17 @@ export default function ServiceEditor() {
           )}
           {tab === 4 && (
             <>
-              <Head title="咨询与发布" text="统一设置咨询字段、检查发布条件，并从这里保存或发布。" />
-              <h3 className="editor-section-title">咨询字段</h3>
+              <Head title="咨询设置" text="设置前台咨询表单显示哪些字段，以及哪些字段必填。" />
               <InquiryPicker
                 fields={d.inquiryFields}
                 required={d.inquiryRequired}
                 onChange={(fields, required) => setMany({ inquiryFields: fields, inquiryRequired: required })}
               />
-              <h3 className="editor-section-title">发布检查</h3>
+            </>
+          )}
+          {tab === 5 && (
+            <>
+              <Head title="发布" text="这里只检查当前服务是否具备发布条件，不编辑业务内容。" />
               <div className="publish-check">
                 <ul>
                   {checks.map((check) => (
@@ -442,12 +456,11 @@ export default function ServiceEditor() {
             </>
           )}
         </main>
-        <aside className="service-live-preview">
-          {tab === 0 || tab === 1 ? <ServiceCardPreview data={d} category={currentCategory} /> : null}
-          {tab === 2 ? <VehicleCardPreview data={d} /> : null}
-          {tab === 3 ? <RouteCardPreview data={d} /> : null}
-          {tab === 4 ? <InquiryPublishPreview data={d} /> : null}
-        </aside>
+        {(tab === 0 || tab === 1) && (
+          <aside className="service-live-preview">
+            <ServiceCardPreview data={d} category={currentCategory} />
+          </aside>
+        )}
       </div>
     </>
   );
@@ -630,17 +643,15 @@ function emptyVehicle(index: number, image = ""): ServiceItem["vehicles"][number
 
 function VehiclePricingEditor({
   items,
-  serviceImages,
   onUpload,
   onChange,
 }: {
   items: ServiceItem["vehicles"];
-  serviceImages: string[];
   onUpload: (files: FileList | null, done: (urls: string[]) => void) => void;
   onChange: (x: ServiceItem["vehicles"]) => void;
 }) {
   const [editing, setEditing] = useState(0);
-  const vehicles = items.length ? items : [emptyVehicle(0, serviceImages[0] || "")];
+  const vehicles = items.length ? items : [emptyVehicle(0)];
   const update = (index: number, patch: Partial<ServiceItem["vehicles"][number]>) =>
     onChange(vehicles.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   return (
@@ -651,7 +662,7 @@ function VehiclePricingEditor({
           <h3>可安排车型</h3>
           <p>价格不固定时可设为“咨询报价”，前台就不会显示 ¥0。</p>
         </div>
-        <button onClick={() => { onChange([...vehicles, emptyVehicle(vehicles.length, serviceImages[0] || "")]); setEditing(vehicles.length); }}>
+        <button onClick={() => { onChange([...vehicles, emptyVehicle(vehicles.length)]); setEditing(vehicles.length); }}>
           ＋ 添加车型
         </button>
       </div>
@@ -764,7 +775,8 @@ function InquiryPicker({
 }) {
   const aliases: Record<string, string> = {
     "计划日期": "日期",
-    "同行人数": "人数",
+    "人数": "同行人数",
+    "想去的地点": "想去的地方",
     "想去的路线 / 景点": "想去的地方",
     "想去的路线/景点": "想去的地方",
   };
@@ -888,11 +900,12 @@ function emptyRoutePlan(index: number): ServiceRoutePlan {
 function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRoutePlan {
   const tags = routePlanTags(route);
   const nodes = routePlanNodes(route).map((node) => ({ ...node, type: node.type || guessNodeType(node.nameZh || node.title || "") }));
+  const coverImage = route.coverImage || route.image || "";
   return {
     ...route,
     name: route.name || route.nameZh || `路线 ${index + 1}`,
     nameZh: route.nameZh || route.name || `路线 ${index + 1}`,
-    image: route.image || "",
+    coverImage,
     duration: route.duration || "约 8 小时",
     tag: tags[0] || "",
     tags,
@@ -960,7 +973,7 @@ function RoutePlansEditor({
         ],
         duration: [activeRoute.duration || "时间灵活", activeRoute.duration || "Flexible duration"],
         tags: cleanRouteTags(activeRoute).map((tag) => [tag, tag]),
-        image: activeRoute.image || "",
+        image: activeRoute.coverImage || activeRoute.image || "",
         stops: activeNodes.map((node, index) => ({
           title: [
             node.nameZh || node.title || `路线节点 ${index + 1}`,
@@ -1133,7 +1146,7 @@ function RoutePlansEditor({
                   ≡
                 </span>
                 <div className="route-plan-thumb">
-                  {route.image ? <img src={route.image} alt="" /> : <span>路线图</span>}
+                  {route.coverImage || route.image ? <img src={route.coverImage || route.image} alt="" /> : <span>路线图</span>}
                 </div>
                 <div className="route-plan-main">
                   <h4>
@@ -1283,14 +1296,14 @@ function RoutePlansEditor({
                   <Field n="路线封面">
                     <div className="route-cover-compact">
                       <ImageChooser
-                        value={activeRoute.image || ""}
+                        value={activeRoute.coverImage || activeRoute.image || ""}
                         images={[]}
                         onUpload={(files) =>
-                          onUpload(files, (urls) => update(editingRouteIndex, { image: urls[0] || activeRoute.image }))
+                          onUpload(files, (urls) => update(editingRouteIndex, { coverImage: urls[0] || activeRoute.coverImage || activeRoute.image }))
                         }
-                        onChange={(url) => update(editingRouteIndex, { image: url })}
+                        onChange={(url) => update(editingRouteIndex, { coverImage: url })}
                       />
-                      <button type="button" className="route-cover-remove" onClick={() => update(editingRouteIndex, { image: "" })}>
+                      <button type="button" className="route-cover-remove" onClick={() => update(editingRouteIndex, { coverImage: "", image: "" })}>
                         删除封面
                       </button>
                       <small>建议比例 16:9，右侧可实时查看前台卡片效果。</small>
@@ -1299,18 +1312,19 @@ function RoutePlansEditor({
                 </div>
                 <aside className="route-card-preview">
                   <small>前台路线卡预览</small>
-                  <div className="route-preview-card">
-                    <div className="route-preview-image">
-                      {activeRoute.image ? <img src={activeRoute.image} alt="" /> : <span>封面图</span>}
-                    </div>
-                    <h4>{routePlanName(activeRoute)}</h4>
-                    <p>
-                      {activeRoute.duration || "约 8 小时"}　
-                      {cleanRouteTags(activeRoute).slice(0, 1).join("") || "推荐路线"}
-                    </p>
-                    <b>{routePlanDescription(activeRoute) || "路线简介会显示在这里"}</b>
-                    <em>查看路线 →</em>
-                  </div>
+                  <PrivateRouteCard
+                    route={{
+                      title: [routePlanName(activeRoute), activeRoute.nameEn || routePlanName(activeRoute)],
+                      duration: [activeRoute.duration || "约 8 小时", activeRoute.duration || "About 8 hours"],
+                      summary: [
+                        routePlanDescription(activeRoute) || "路线简介会显示在这里",
+                        activeRoute.descriptionEn || routePlanDescription(activeRoute) || "Route summary",
+                      ],
+                      tags: cleanRouteTags(activeRoute).map((tag) => [tag, tag] as [string, string]),
+                      image: activeRoute.coverImage || activeRoute.image || "",
+                    }}
+                    onOpen={() => setRoutePreview({ focusStopIndex: null })}
+                  />
                 </aside>
               </div>
             )}
@@ -1528,7 +1542,7 @@ function publishChecks(d: ServiceItem, isCar: boolean) {
     { label: "服务封面", ok: Boolean(d.images[0]) },
     ...(isCar
       ? [
-          { label: "至少 1 个车型", ok: visibleVehicles.length > 0 },
+          { label: "至少 1 个车型，或允许咨询报价", ok: visibleVehicles.length > 0 || d.priceMode === "咨询报价" },
           { label: "至少 1 条前台显示路线", ok: visibleRoutes.length > 0 },
         ]
       : []),
@@ -1537,53 +1551,20 @@ function publishChecks(d: ServiceItem, isCar: boolean) {
 }
 
 function ServiceCardPreview({ data, category }: { data: ServiceItem; category?: ServiceCategory }) {
-  return <div className="typed-preview"><small>服务卡片预览</small><div className="typed-preview-card">{data.images[0] ? <img src={data.images[0]} alt="" /> : <span>添加服务封面图</span>}<p>{data.city} · {category?.nameZh || data.category}</p><h2>{data.nameZh}</h2><b>{data.subtitleZh}</b><div>{data.tags.slice(0, 2).map((tag) => <i key={tag}>{tag}</i>)}</div></div></div>;
-}
-
-function VehicleCardPreview({ data }: { data: ServiceItem }) {
-    const vehicles = (data.vehicles || []).filter((vehicle) => vehicle.visible !== false);
-    return (
-      <div className="typed-preview"><small>车型卡片预览</small><div className="typed-preview-card">
-        <h2>可安排车型</h2>
-        {vehicles.slice(0, 3).map((vehicle, index) => (
-          <p key={`${vehicle.nameZh}-${index}`}>
-            <b>{vehicle.nameZh}</b>
-            <br />
-            {vehicle.people} · {vehicle.priceMode === "咨询报价" ? "价格咨询" : `半日 ¥${vehicle.halfDayPrice || vehicle.price || 0} 起`}
-          </p>
-        ))}
-      </div></div>
-    );
-}
-
-function RouteCardPreview({ data }: { data: ServiceItem }) {
-    return (
-      <div className="typed-preview"><small>路线卡片预览</small><div className="typed-preview-card">
-        <h2>{data.routeSectionTitleZh || "热门包车方案"}</h2>
-        {(data.routes || [])
-          .filter((route) => route.visible !== false)
-          .slice(0, 3)
-          .map((route, index) => (
-            <p key={`${routePlanName(route)}-${index}`}>
-              <b>{route.recommended ? "热门 · " : ""}{routePlanName(route)}</b>
-              <br />
-              {route.duration} · {routePlanTags(route).slice(0, 1).join("") || `${routePlanNodes(route).length} 个节点`}
-              <br />{routePlanDescription(route) || "路线简介未填写"}<br />查看路线 →
-            </p>
-          ))}
-      </div></div>
-    );
-}
-
-function InquiryPublishPreview({ data }: { data: ServiceItem }) {
-    return (
-      <div className="typed-preview"><small>咨询字段预览</small><div className="typed-preview-card">
-        <h2>咨询时需要提供</h2>
-        {data.inquiryFields.slice(0, 8).map((field) => (
-          <i key={field}>{field}</i>
-        ))}
-      </div></div>
-    );
+  const descriptionZh = [data.city && `${data.city} · ${category?.nameZh || data.category}`, data.subtitleZh || data.introZh].filter(Boolean).join("\n");
+  return (
+    <div className="typed-preview">
+      <small>服务卡片预览</small>
+      <LocalServiceOfferCard
+        data={{
+          title: [data.nameZh, data.nameEn || data.nameZh],
+          description: [descriptionZh, data.subtitleEn || data.introEn || descriptionZh],
+          tags: data.tags.slice(0, 3).map((tag) => [tag, tag]),
+          image: data.images[0] || "",
+        }}
+      />
+    </div>
+  );
 }
 
 function RouteDetailPreview({ route, focusStopIndex, onClose }: { route: PrivateRouteDetailData; focusStopIndex: number | null; onClose: () => void }) {
@@ -1591,7 +1572,7 @@ function RouteDetailPreview({ route, focusStopIndex, onClose }: { route: Private
 }
 
 function normalizeInquiryConfig(fields: string[], required: string[]) {
-  const aliases: Record<string, string> = { "计划日期": "日期", "同行人数": "人数", "想去的路线 / 景点": "想去的地方", "想去的路线/景点": "想去的地方" };
+  const aliases: Record<string, string> = { "计划日期": "日期", "人数": "同行人数", "想去的地点": "想去的地方", "想去的路线 / 景点": "想去的地方", "想去的路线/景点": "想去的地方" };
   const normalize = (items: string[]) => Array.from(new Set(items.map((item) => aliases[item] || item))).filter((item) => inquiryFieldOptions.includes(item));
   const nextFields = normalize(fields);
   return { fields: nextFields, required: normalize(required).filter((item) => nextFields.includes(item)) };

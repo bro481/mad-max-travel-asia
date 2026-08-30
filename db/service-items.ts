@@ -16,6 +16,9 @@ export type ServiceItem = {
   subtitleEn: string;
   introZh: string;
   introEn: string;
+  /** Canonical Service-level image fields exposed to the editor/API. */
+  coverImage?: string;
+  gallery?: string[];
   images: string[];
   tags: string[];
   steps: { title: string; description: string }[];
@@ -67,6 +70,8 @@ export type ServiceRoutePlan = {
   descriptionZh?: string;
   descriptionEn?: string;
   image?: string;
+  /** Canonical Route-level cover. `image` remains readable for migrated records. */
+  coverImage?: string;
   duration?: string;
   tag?: string;
   tags?: string[];
@@ -220,6 +225,8 @@ export function staticServiceItemRecords(): ServiceItem[] {
     subtitleEn: item.subtitleEn,
     introZh: item.introZh,
     introEn: item.introEn,
+    coverImage: item.images[0] || "",
+    gallery: item.images.slice(1),
     images: item.images,
     tags: item.tags,
     steps: item.steps,
@@ -344,6 +351,7 @@ const j = (x: unknown) => {
   }
 };
 export function mapServiceItem(r: Record<string, unknown>): ServiceItem {
+  const serviceImages = j(r.images) as string[];
   return {
     id: Number(r.id),
     slug: String(r.slug),
@@ -360,7 +368,9 @@ export function mapServiceItem(r: Record<string, unknown>): ServiceItem {
     subtitleEn: String(r.subtitle_en),
     introZh: String(r.intro_zh),
     introEn: String(r.intro_en),
-    images: j(r.images),
+    coverImage: serviceImages[0] || "",
+    gallery: serviceImages.slice(1),
+    images: serviceImages,
     tags: j(r.tags),
     steps: j(r.steps),
     routeSectionTitleZh: String(r.route_section_title_zh || "热门包车方案"),
