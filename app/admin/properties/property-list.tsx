@@ -316,6 +316,7 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncSourceId, setSyncSourceId] = useState<number | null>(null);
   const [syncFields, setSyncFields] = useState<SyncField[]>([]);
+  const [syncProgress, setSyncProgress] = useState<{ completed: number; total: number; failed: number } | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkFields, setBulkFields] = useState<BulkField[]>([]);
   const [bulkForm, setBulkForm] = useState<BulkForm>({
@@ -462,21 +463,53 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
   const runSync = async () => {
     if (!syncSource || !syncTargets.length || !syncFields.length) return;
     if (!window.confirm(`确认将所选内容同步到另外 ${syncTargets.length} 个房源？`)) return;
-    setBusy("正在同步…");
     const updated = syncTargets.map((target) => applySyncField(target, syncSource, syncFields));
-    await Promise.all(
-      updated.map((item) =>
-        fetch(`/api/admin/properties/${item.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item),
-        }),
-      ),
-    );
-    setItems((current) => current.map((item) => updated.find((next) => next.id === item.id) || item));
+    const succeeded: PropertyRecord[] = [];
+    const failed: PropertyRecord[] = [];
+    let completed = 0;
+    setSyncProgress({ completed: 0, total: updated.length, failed: 0 });
+    setBusy(`正在同步 0 / ${updated.length}`);
+
+    for (let index = 0; index < updated.length; index += 3) {
+      const batch = updated.slice(index, index + 3);
+      await Promise.all(batch.map(async (item) => {
+        try {
+          const response = await fetch(`/api/admin/properties/${item.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item),
+          });
+          if (response.status === 401) {
+            location.href = `/admin/login?next=${encodeURIComponent(location.pathname)}`;
+            throw new Error("登录已过期");
+          }
+          if (!response.ok) throw new Error("同步失败");
+          succeeded.push(item);
+        } catch {
+          failed.push(item);
+        } finally {
+          completed += 1;
+          setSyncProgress({ completed, total: updated.length, failed: failed.length });
+          setBusy(`正在同步 ${completed} / ${updated.length}`);
+        }
+      }));
+    }
+
+    if (succeeded.length) {
+      setItems((current) => current.map((item) => succeeded.find((next) => next.id === item.id) || item));
+    }
+    if (failed.length) {
+      setBusy("");
+      window.alert(`已完成 ${succeeded.length} 个房源，${failed.length} 个同步失败。失败的房源仍保持原数据，可以重新同步。`);
+      return;
+    }
+
+    setBusy("同步完成");
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
     setSelected([]);
     setSyncOpen(false);
     setSyncFields([]);
+    setSyncProgress(null);
     setBusy("");
   };
 
@@ -630,7 +663,7 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
       {syncOpen && syncSource && (
         <div className="admin-modal-layer">
           <section className="admin-dialog sync-dialog">
-            <button className="dialog-close" onClick={() => setSyncOpen(false)}>×</button>
+            <button className="dialog-close" onClick={() => { setSyncOpen(false); setSyncProgress(null); }} disabled={Boolean(busy)}>×</button>
             <h2>同步房源信息</h2>
             <FieldLite label="选择来源房源">
               <select value={syncSource.id} onChange={(e) => setSyncSourceId(Number(e.target.value))}>
@@ -642,9 +675,19 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
               {syncGroups.map((group) => <div key={group.title}><h3>{group.title}</h3>{group.fields.map((field) => <label key={field.key}><input type="checkbox" checked={syncFields.includes(field.key)} onChange={() => toggleSyncField(field.key)} /><span>{field.label}</span></label>)}</div>)}
             </div>
             <p className="dialog-note">只会覆盖本次勾选的字段，未勾选的信息不会改变。图片允许同步，但默认不勾选。</p>
+            {syncProgress && (
+              <div className="sync-progress" aria-live="polite">
+                <div>
+                  <strong>{syncProgress.completed >= syncProgress.total ? "同步完成" : "正在同步房源"}</strong>
+                  <span>{syncProgress.completed} / {syncProgress.total}</span>
+                </div>
+                <progress value={syncProgress.completed} max={syncProgress.total} />
+                <small>{syncProgress.failed ? `有 ${syncProgress.failed} 个房源同步失败，原数据已保留` : "请保持当前页面打开，完成后会自动关闭"}</small>
+              </div>
+            )}
             <div className="dialog-actions">
-              <button onClick={() => setSyncOpen(false)}>取消</button>
-              <button className="admin-primary" onClick={runSync} disabled={Boolean(busy) || !syncFields.length || !syncTargets.length}>确认同步到 {syncTargets.length} 个房源</button>
+              <button onClick={() => { setSyncOpen(false); setSyncProgress(null); }} disabled={Boolean(busy)}>取消</button>
+              <button className="admin-primary" onClick={runSync} disabled={Boolean(busy) || !syncFields.length || !syncTargets.length}>{busy || `确认同步到 ${syncTargets.length} 个房源`}</button>
             </div>
           </section>
         </div>
