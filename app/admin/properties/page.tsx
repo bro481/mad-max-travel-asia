@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { DestinationRecord } from "../../../db/destinations";
 import type { PropertyRecord } from "../../../db/properties";
+import { AdminDataError, fetchAdminData } from "./fetch-admin-data";
 import { PropertyList } from "./property-list";
 
 type PropertyPayload = {
@@ -19,26 +20,20 @@ export default function PropertiesPage() {
   const load = useCallback(async () => {
     setError("");
     try {
-      const response = await fetch(
+      const payload = await fetchAdminData<PropertyPayload>(
         "/api/admin/properties?include=destinations",
-        { signal: AbortSignal.timeout(12000), cache: "no-store" },
       );
-      if (response.status === 401) {
-        location.href = "/admin/login?return_to=%2Fadmin%2Fproperties";
-        return;
-      }
-      if (!response.ok) throw new Error(`服务器返回 ${response.status}`);
-      const payload = (await response.json()) as PropertyPayload;
-      setItems(Array.isArray(payload.properties) ? payload.properties : []);
+      if (!Array.isArray(payload.properties)) throw new Error("房源数据格式异常");
+      setItems(payload.properties);
       setDestinations(
         Array.isArray(payload.destinations) ? payload.destinations : [],
       );
     } catch (reason) {
-      setError(
-        reason instanceof DOMException && reason.name === "TimeoutError"
-          ? "房源数据连接超时，请重试。"
-          : "房源后台暂时无法连接，请重试。",
-      );
+      if (reason instanceof AdminDataError && reason.status === 401) {
+        location.href = "/admin/login?return_to=%2Fadmin%2Fproperties";
+        return;
+      }
+      setError(reason instanceof Error ? reason.message : "房源后台暂时无法连接，请重试。");
     }
   }, []);
 

@@ -5,7 +5,6 @@ import { getChatGPTUser } from "../../../chatgpt-auth";
 import {
   ensureProperties,
   listProperties,
-  staticPropertyRecords,
 } from "../../../../db/properties";
 import {
   createLocalProperty,
@@ -53,9 +52,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ properties, destinations });
   }
   const [propertyResult, destinationResult] = await Promise.allSettled([
-    withTimeout(listProperties(), 6500, "properties query"),
+    withTimeout(listProperties(), 9000, "properties query"),
     includeDestinations
-      ? withTimeout(listDestinations(true), 6500, "destinations query")
+      ? withTimeout(listDestinations(true), 9000, "destinations query")
       : Promise.resolve([]),
   ]);
   if (propertyResult.status === "rejected")
@@ -68,29 +67,32 @@ export async function GET(request: Request) {
       "Failed to load destination options",
       destinationResult.reason,
     );
-  const properties =
-    propertyResult.status === "fulfilled"
-      ? propertyResult.value
-      : staticPropertyRecords();
-  if (!includeDestinations)
+  if (propertyResult.status === "rejected")
     return NextResponse.json(
-      properties,
-      propertyResult.status === "rejected"
-        ? { headers: { "x-admin-data-source": "static-fallback" } }
-        : undefined,
+      { error: "房源数据库暂时连接不上，请稍后重试。已有房源数据不会被覆盖。" },
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "Retry-After": "1" },
+      },
     );
+  const properties = propertyResult.value;
+  if (!includeDestinations)
+    return NextResponse.json(properties, {
+      headers: { "Cache-Control": "no-store", "x-admin-data-source": "database" },
+    });
   const destinations =
     destinationResult.status === "fulfilled"
       ? destinationResult.value
       : staticDestinations;
-  const usedFallback =
-    propertyResult.status === "rejected" ||
-    destinationResult.status === "rejected";
+  const usedFallback = destinationResult.status === "rejected";
   return NextResponse.json(
     { properties, destinations },
-    usedFallback
-      ? { headers: { "x-admin-data-source": "partial-fallback" } }
-      : undefined,
+    {
+      headers: {
+        "Cache-Control": "no-store",
+        "x-admin-data-source": usedFallback ? "database-with-destination-fallback" : "database",
+      },
+    },
   );
 }
 export async function POST(request: Request) {

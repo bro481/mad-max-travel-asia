@@ -51,11 +51,17 @@ export function mapProperty(row:Record<string,unknown>):PropertyRecord{return {
   descriptionZh:String(row.description_zh),descriptionEn:String(row.description_en),amenities:parse(String(row.amenities)),highlights:parse(String(row.highlights)),suitableFor:parse(String(row.suitable_for||"[]")),guestQuote:String(row.guest_quote||""),guestQuoteAuthor:String(row.guest_quote_author||""),spaceConfig:parse(String(row.space_config||"{}")),sleepingArrangements:parse(String(row.sleeping_arrangements||"[]")),nearby:parse(String(row.nearby)),priceFrom:Number(row.price_from),priceNote:String(row.price_note),status:row.status as PropertyRecord["status"],updatedAt:String(row.updated_at)
 }}
 
+function isMissingPropertySchema(error:unknown){
+  const code=String((error as {code?:unknown})?.code||"");
+  const message=error instanceof Error?error.message:"";
+  return code==="42P01"||code==="42703"||/relation .*properties.* does not exist|column .* does not exist/i.test(message);
+}
 async function readWithSchemaFallback<T>(read:()=>Promise<T>){
   try{return await read();}
-  catch{
-    // Existing production reads should not run CREATE/ALTER statements on every request.
-    // Only initialize/migrate when the first read proves the schema is unavailable.
+  catch(error){
+    // Never start CREATE/ALTER work because of a timeout or a transient network
+    // error. That made a brief Supabase hiccup much slower and hid real data.
+    if(!isMissingPropertySchema(error))throw error;
     await ensureProperties();
     return read();
   }

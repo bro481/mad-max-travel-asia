@@ -13,12 +13,26 @@ function getClient() {
     throw new Error("DATABASE_URL is not configured.");
   }
   client ??= postgres(process.env.DATABASE_URL, {
-    max: 1,
+    // Admin pages load properties and destination options together. A single
+    // connection makes the second query wait behind a cold Supabase connect.
+    max: 2,
     prepare: false,
-    connect_timeout: 8,
+    connect_timeout: 4,
     idle_timeout: 20,
   });
   return client;
+}
+
+async function readWithReconnect<T>(read: () => Promise<T>): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    // A serverless instance can retain a connection that Supabase's pooler has
+    // already closed. Drop it and retry a read once; writes are never retried.
+    client = null;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    return read();
+  }
 }
 
 function requireSupabaseEnv() {
@@ -90,11 +104,11 @@ function makeStatement(sqlText: string, values: BoundValue[] = []) {
   return {
     bind: (...nextValues: BoundValue[]) => makeStatement(sqlText, nextValues),
     async first<T = Record<string, unknown>>() {
-      const rows = await queryRows(sqlText, values);
+      const rows = await readWithReconnect(() => queryRows(sqlText, values));
       return (rows[0] ?? null) as T | null;
     },
     async all<T = Record<string, unknown>>() {
-      const rows = await queryRows(sqlText, values);
+      const rows = await readWithReconnect(() => queryRows(sqlText, values));
       return { results: rows as unknown as T[] };
     },
     async run() {

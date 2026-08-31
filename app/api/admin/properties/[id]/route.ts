@@ -5,7 +5,6 @@ import { getChatGPTUser } from "../../../../chatgpt-auth";
 import {
   ensureProperties,
   getProperty,
-  staticPropertyRecords,
   type PropertyRecord,
 } from "../../../../../db/properties";
 import {
@@ -67,9 +66,9 @@ export async function GET(
     return NextResponse.json({ property: item, destinations });
   }
   const [propertyResult, destinationResult] = await Promise.allSettled([
-    withTimeout(getProperty(Number(id)), 6500, "property query"),
+    withTimeout(getProperty(Number(id)), 9000, "property query"),
     includeDestinations
-      ? withTimeout(listDestinations(true), 6500, "destinations query")
+      ? withTimeout(listDestinations(true), 9000, "destinations query")
       : Promise.resolve([]),
   ]);
   if (propertyResult.status === "rejected")
@@ -79,27 +78,26 @@ export async function GET(
       "Failed to load destination options",
       destinationResult.reason,
     );
-  const fallback = staticPropertyRecords().find(
-    (item) => item.id === Number(id) || item.slug === id,
-  );
-  const item =
-    propertyResult.status === "fulfilled" ? propertyResult.value : fallback;
+  if (propertyResult.status === "rejected")
+    return NextResponse.json(
+      { error: "房源数据库暂时连接不上，请稍后重试。已有房源数据不会被覆盖。" },
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "Retry-After": "1" },
+      },
+    );
+  const item = propertyResult.value;
   if (!item)
     return NextResponse.json(
-      {
-        error:
-          propertyResult.status === "rejected"
-            ? "房源数据连接超时，请重试"
-            : "Not found",
-      },
-      { status: propertyResult.status === "rejected" ? 503 : 404 },
+      { error: "Not found" },
+      { status: 404, headers: { "Cache-Control": "no-store" } },
     );
-  const usedFallback =
-    propertyResult.status === "rejected" ||
-    destinationResult.status === "rejected";
-  const options = usedFallback
-    ? { headers: { "x-admin-data-source": "partial-fallback" } }
-    : undefined;
+  const options = {
+    headers: {
+      "Cache-Control": "no-store",
+      "x-admin-data-source": destinationResult.status === "rejected" ? "database-with-destination-fallback" : "database",
+    },
+  };
   if (!includeDestinations) return NextResponse.json(item, options);
   const destinations =
     destinationResult.status === "fulfilled"
