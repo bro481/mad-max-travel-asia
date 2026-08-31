@@ -355,12 +355,49 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
     });
   };
 
-  const deleteItem = async (item: PropertyRecord) => {
-    if (!window.confirm(`确认删除「${item.nameZh}」？删除后不可从前台恢复。`)) return;
-    setBusy("正在删除…");
-    await fetch(`/api/admin/properties/${item.id}`, { method: "DELETE" });
-    setItems((current) => current.filter((existing) => existing.id !== item.id));
+  const deleteProperties = async (targets: PropertyRecord[]) => {
+    const deletedIds: number[] = [];
+    const failedNames: string[] = [];
+    setBusy(targets.length === 1 ? "正在删除…" : `正在删除 ${targets.length} 个房源…`);
+
+    for (const item of targets) {
+      try {
+        const response = await fetch(`/api/admin/properties/${item.id}`, { method: "DELETE" });
+        const result = (await response.json().catch(() => ({}))) as { error?: string };
+        if (response.status === 401) {
+          location.href = `/admin/login?next=${encodeURIComponent(location.pathname)}`;
+          return;
+        }
+        if (!response.ok) throw new Error(result.error || "删除失败");
+        deletedIds.push(item.id);
+      } catch {
+        failedNames.push(item.nameZh);
+      }
+    }
+
+    if (deletedIds.length) {
+      const deletedSet = new Set(deletedIds);
+      setItems((current) => current.filter((item) => !deletedSet.has(item.id)));
+      setSelected((current) => current.filter((id) => !deletedSet.has(id)));
+    }
     setBusy("");
+
+    if (failedNames.length) {
+      window.alert(`以下房源删除失败，数据已保留：\n${failedNames.join("、")}`);
+    }
+  };
+
+  const deleteItem = async (item: PropertyRecord) => {
+    if (!window.confirm(`确认永久删除「${item.nameZh}」？\n\n删除后无法恢复，房源图片和已填写的信息也将不再显示。`)) return;
+    await deleteProperties([item]);
+  };
+
+  const batchDelete = async () => {
+    if (!selectedItems.length) return;
+    const names = selectedItems.slice(0, 5).map((item) => `• ${item.nameZh}`).join("\n");
+    const remaining = selectedItems.length > 5 ? `\n• 以及另外 ${selectedItems.length - 5} 个房源` : "";
+    if (!window.confirm(`确认永久删除已选择的 ${selectedItems.length} 个房源？\n\n${names}${remaining}\n\n删除后无法恢复，请确认其中确实是重复或不再需要的房源。`)) return;
+    await deleteProperties(selectedItems);
   };
 
   const createCopy = async () => {
@@ -515,10 +552,11 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
       {selected.length > 0 && (
         <div className="bulk-toolbar">
           <strong>已选择 {selected.length} 个房源</strong>
-          <button onClick={() => { setSyncSourceId(selected[0]); setSyncOpen(true); }} disabled={selected.length < 2}>同步信息</button>
-          <button onClick={() => setBulkOpen(true)}>批量修改</button>
-          <button onClick={batchHide}>批量隐藏</button>
-          <button onClick={() => setSelected([])}>取消选择</button>
+          <button onClick={() => { setSyncSourceId(selected[0]); setSyncOpen(true); }} disabled={selected.length < 2 || Boolean(busy)}>同步信息</button>
+          <button onClick={() => setBulkOpen(true)} disabled={Boolean(busy)}>批量修改</button>
+          <button onClick={batchHide} disabled={Boolean(busy)}>批量隐藏</button>
+          <button className="danger-action" onClick={batchDelete} disabled={Boolean(busy)}>批量删除</button>
+          <button onClick={() => setSelected([])} disabled={Boolean(busy)}>取消选择</button>
           {busy && <span>{busy}</span>}
         </div>
       )}
@@ -551,7 +589,7 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
                     <button>更多</button>
                     <span>
                       <button onClick={() => update(item, item.status === "published" ? "hidden" : "published")}>{item.status === "published" ? "隐藏" : "上线"}</button>
-                      <button onClick={() => deleteItem(item)}>删除</button>
+                      <button className="danger-action" onClick={() => deleteItem(item)} disabled={Boolean(busy)}>删除房源</button>
                     </span>
                   </div>
                 </div>

@@ -563,7 +563,13 @@
   padding: 9px 12px;
 }
 .bulk-toolbar button:disabled {
+  cursor: not-allowed;
   opacity: .45;
+}
+.bulk-toolbar button.danger-action {
+  background: #fff8f7;
+  border-color: #e6c1bc;
+  color: #a3473d;
 }
 .bulk-toolbar span {
   color: var(--a-muted);
@@ -726,10 +732,11 @@
   padding: 8px;
   position: absolute;
   right: 0;
-  top: 20px;
+  bottom: 20px;
   z-index: 4;
 }
-.more-actions:hover span {
+.more-actions:hover span,
+.more-actions:focus-within span {
   display: grid;
   gap: 8px;
 }
@@ -737,7 +744,7 @@
   color: var(--a-muted);
   text-align: left;
 }
-.more-actions span button:last-child {
+.more-actions span button.danger-action {
   color: #a65b51;
 }
 .editor-page {
