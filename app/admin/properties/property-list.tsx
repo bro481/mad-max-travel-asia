@@ -341,7 +341,12 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
   }, [destinations, items]);
   const cities = ["全部", ...propertyDestinations];
   const layouts = useMemo(() => ["全部房型", ...Array.from(new Set(items.map(layoutOf))).sort()], [items]);
-  const shown = items.filter((item) => (city === "全部" || item.city === city) && (layout === "全部房型" || layoutOf(item) === layout));
+  const shown = items
+    .filter((item) => (city === "全部" || item.city === city) && (layout === "全部房型" || layoutOf(item) === layout))
+    .sort((a, b) => {
+      const cityOrder = city === "全部" ? propertyDestinations.indexOf(a.city) - propertyDestinations.indexOf(b.city) : 0;
+      return cityOrder || Number(a.spaceConfig?.sortOrder ?? 0) - Number(b.spaceConfig?.sortOrder ?? 0) || a.id - b.id;
+    });
   const selectedItems = items.filter((item) => selected.includes(item.id));
   const syncSource = selectedItems.find((item) => item.id === syncSourceId) || selectedItems[0];
   const syncTargets = selectedItems.filter((item) => item.id !== syncSource?.id);
@@ -399,6 +404,61 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
     const remaining = selectedItems.length > 5 ? `\n• 以及另外 ${selectedItems.length - 5} 个房源` : "";
     if (!window.confirm(`确认永久删除已选择的 ${selectedItems.length} 个房源？\n\n${names}${remaining}\n\n删除后无法恢复，请确认其中确实是重复或不再需要的房源。`)) return;
     await deleteProperties(selectedItems);
+  };
+
+  const movePropertiesToFront = async (targets: PropertyRecord[]) => {
+    if (!targets.length) return;
+    const targetIds = new Set(targets.map((item) => item.id));
+    const orderedTargets = [...items]
+      .filter((item) => targetIds.has(item.id))
+      .sort((a, b) => Number(a.spaceConfig?.sortOrder ?? 0) - Number(b.spaceConfig?.sortOrder ?? 0) || a.id - b.id);
+    const grouped = new Map<string, PropertyRecord[]>();
+    orderedTargets.forEach((item) => grouped.set(item.city, [...(grouped.get(item.city) || []), item]));
+    const updated: PropertyRecord[] = [];
+    grouped.forEach((group, cityName) => {
+      const cityOrders = items.filter((item) => item.city === cityName).map((item) => Number(item.spaceConfig?.sortOrder ?? 0));
+      const firstOrder = Math.min(0, ...cityOrders) - group.length;
+      group.forEach((item, index) => updated.push({
+        ...item,
+        spaceConfig: { ...(item.spaceConfig || {}), sortOrder: firstOrder + index },
+      }));
+    });
+
+    setBusy(updated.length === 1 ? "正在置顶…" : `正在置顶 0 / ${updated.length}`);
+    const succeeded: PropertyRecord[] = [];
+    const failed: PropertyRecord[] = [];
+    for (let index = 0; index < updated.length; index += 3) {
+      const batch = updated.slice(index, index + 3);
+      await Promise.all(batch.map(async (item) => {
+        try {
+          const response = await fetch(`/api/admin/properties/${item.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item),
+          });
+          if (response.status === 401) {
+            location.href = `/admin/login?next=${encodeURIComponent(location.pathname)}`;
+            throw new Error("登录已过期");
+          }
+          if (!response.ok) throw new Error("置顶失败");
+          succeeded.push(item);
+        } catch {
+          failed.push(item);
+        } finally {
+          setBusy(updated.length === 1 ? "正在置顶…" : `正在置顶 ${succeeded.length + failed.length} / ${updated.length}`);
+        }
+      }));
+    }
+    if (succeeded.length) setItems((current) => current.map((item) => succeeded.find((next) => next.id === item.id) || item));
+    setBusy("");
+    setSelected(failed.map((item) => item.id));
+    if (failed.length) window.alert(`${succeeded.length} 个房源已置顶，${failed.length} 个失败且保持原顺序，请重试。`);
+  };
+
+  const batchMoveToFront = async () => {
+    if (!selectedItems.length) return;
+    if (!window.confirm(`确认把选中的 ${selectedItems.length} 个房源移到各自目的地的最前面展示？`)) return;
+    await movePropertiesToFront(selectedItems);
   };
 
   const createCopy = async () => {
@@ -587,6 +647,7 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
           <strong>已选择 {selected.length} 个房源</strong>
           <button onClick={() => { setSyncSourceId(selected[0]); setSyncOpen(true); }} disabled={selected.length < 2 || Boolean(busy)}>同步信息</button>
           <button onClick={() => setBulkOpen(true)} disabled={Boolean(busy)}>批量修改</button>
+          <button onClick={batchMoveToFront} disabled={Boolean(busy)}>批量置顶</button>
           <button onClick={batchHide} disabled={Boolean(busy)}>批量隐藏</button>
           <button className="danger-action" onClick={batchDelete} disabled={Boolean(busy)}>批量删除</button>
           <button onClick={() => setSelected([])} disabled={Boolean(busy)}>取消选择</button>
@@ -621,6 +682,7 @@ export function PropertyList({ initialItems, destinations = [] }: { initialItems
                   <div className="more-actions">
                     <button>更多</button>
                     <span>
+                      <button onClick={() => movePropertiesToFront([item])} disabled={Boolean(busy)}>置顶展示</button>
                       <button onClick={() => update(item, item.status === "published" ? "hidden" : "published")}>{item.status === "published" ? "隐藏" : "上线"}</button>
                       <button className="danger-action" onClick={() => deleteItem(item)} disabled={Boolean(busy)}>删除房源</button>
                     </span>

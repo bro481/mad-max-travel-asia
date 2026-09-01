@@ -81,7 +81,7 @@ export function useLocalProperties() {
 }
 
 export function listLocalProperties() {
-  return items;
+  return [...items].sort((a, b) => Number(a.spaceConfig?.sortOrder ?? 0) - Number(b.spaceConfig?.sortOrder ?? 0) || a.id - b.id);
 }
 
 export function getLocalProperty(id: number) {

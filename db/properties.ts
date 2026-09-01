@@ -66,7 +66,7 @@ async function readWithSchemaFallback<T>(read:()=>Promise<T>){
     return read();
   }
 }
-export async function listProperties(){return readWithSchemaFallback(async()=>{const result=await env.DB.prepare("SELECT * FROM properties ORDER BY CASE city WHEN '吉隆坡' THEN 1 WHEN '亚庇' THEN 2 ELSE 3 END, id").all();return result.results.map(x=>mapProperty(x as Record<string,unknown>));});}
+export async function listProperties(){return readWithSchemaFallback(async()=>{const result=await env.DB.prepare("SELECT * FROM properties").all();return result.results.map(x=>mapProperty(x as Record<string,unknown>)).sort((a,b)=>{const cityRank=(name:string)=>name==="吉隆坡"?1:name==="亚庇"?2:3;return cityRank(a.city)-cityRank(b.city)||a.city.localeCompare(b.city,"zh-CN")||Number(a.spaceConfig?.sortOrder??0)-Number(b.spaceConfig?.sortOrder??0)||a.id-b.id;});});}
 export async function getProperty(id:number){return readWithSchemaFallback(async()=>{const row=await env.DB.prepare("SELECT * FROM properties WHERE id=?").bind(id).first();return row?mapProperty(row as Record<string,unknown>):null;});}
 export async function getPublishedPropertyBySlug(slug:string){return readWithSchemaFallback(async()=>{const row=await env.DB.prepare("SELECT * FROM properties WHERE slug=? AND status='published'").bind(slug).first();return row?mapProperty(row as Record<string,unknown>):null;});}
 
@@ -97,6 +97,7 @@ export function staticPropertyRecords(): PropertyRecord[] {
     spaceConfig: {
       layout: `${room.bedrooms}室${room.bedrooms > 1 ? 2 : 1}厅${room.bathrooms}卫`,
       ...(room.spaceConfig || {}),
+      sortOrder: index,
     },
     sleepingArrangements: room.sleepingArrangements || [],
     nearby: room.nearbyPlaces.map((place) => ({
