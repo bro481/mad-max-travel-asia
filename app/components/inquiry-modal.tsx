@@ -77,7 +77,7 @@ export function InquiryModal({ kind, title, maxGuests = 14, onClose }: InquiryMo
   const Stepper = ({ label, field, max }: { label: string; field: "adults" | "children" | "luggage" | "quantity"; max?: number }) => <div><span>{label}</span><div className="inquiry-stepper"><button type="button" onClick={() => set(field, Math.max(field === "children" || field === "luggage" ? 0 : 1, form[field] - 1))}>−</button><b>{form[field]}</b><button type="button" onClick={() => set(field, Math.min(max || 99, form[field] + 1))}>+</button></div></div>;
   const DateField = ({ label, field, placeholder }: { label: string; field: "date" | "endDate"; placeholder: string }) => {
     const value = form[field];
-    return <label className="inquiry-date-field"><span>{label}</span><DateInput value={value} name={kind === "accommodation" ? `stay-${field}` : undefined} label={label} placeholder={placeholder} preventAutofill={kind === "accommodation"} onChange={(nextValue) => set(field, nextValue)} /></label>;
+    return <label className="inquiry-date-field"><span>{label}</span><DateInput value={value} name={kind === "accommodation" ? `stay-${field}` : undefined} label={label} placeholder={placeholder} preventAutofill={kind === "accommodation"} explicitSelection={kind === "accommodation"} onChange={(nextValue) => set(field, nextValue)} /></label>;
   };
 
   return <div className="inquiry-layer" role="dialog" aria-modal="true" aria-label={info.heading} onMouseDown={(event) => event.stopPropagation()} onClick={onClose}>
