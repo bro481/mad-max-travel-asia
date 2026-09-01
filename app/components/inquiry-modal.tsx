@@ -77,7 +77,7 @@ export function InquiryModal({ kind, title, maxGuests = 14, onClose }: InquiryMo
   const Stepper = ({ label, field, max }: { label: string; field: "adults" | "children" | "luggage" | "quantity"; max?: number }) => <div><span>{label}</span><div className="inquiry-stepper"><button type="button" onClick={() => set(field, Math.max(field === "children" || field === "luggage" ? 0 : 1, form[field] - 1))}>−</button><b>{form[field]}</b><button type="button" onClick={() => set(field, Math.min(max || 99, form[field] + 1))}>+</button></div></div>;
   const DateField = ({ label, field, placeholder }: { label: string; field: "date" | "endDate"; placeholder: string }) => {
     const value = form[field];
-    return <label className="inquiry-date-field"><span>{label}</span><DateInput value={value} label={label} placeholder={placeholder} onChange={(nextValue) => set(field, nextValue)} /></label>;
+    return <label className="inquiry-date-field"><span>{label}</span><DateInput value={value} name={kind === "accommodation" ? `stay-${field}` : undefined} label={label} placeholder={placeholder} preventAutofill={kind === "accommodation"} onChange={(nextValue) => set(field, nextValue)} /></label>;
   };
 
   return <div className="inquiry-layer" role="dialog" aria-modal="true" aria-label={info.heading} onMouseDown={(event) => event.stopPropagation()} onClick={onClose}>
@@ -89,7 +89,7 @@ export function InquiryModal({ kind, title, maxGuests = 14, onClose }: InquiryMo
         <div className="inquiry-actions"><button className="primary" onClick={async () => { await copyText(requestText); setCopied(true); }}>{copied ? "需求已复制，请添加微信" : globalSettings.completion.copyButton}</button></div>
         <button className="inquiry-back" onClick={() => setGenerated(false)}>{globalSettings.completion.backButton}</button>
         {globalSettings.contacts.wechatEnabled && <div className="inquiry-wechat"><span>微信号</span><b>{globalSettings.contacts.wechatId}</b><small>{globalSettings.completion.footerHint}</small></div>}
-      </section> : <form onSubmit={submit}>
+      </section> : <form onSubmit={submit} autoComplete={kind === "accommodation" ? "off" : undefined}>
         <p className="eyebrow">{info.eyebrow}</p><h2>{info.heading}</h2><p>填好后自动整理需求，再添加微信发送给我们。</p>
         {title && <div className="inquiry-selected"><span>{kind === "accommodation" ? "正在咨询" : kind === "private-charter" ? "已选择路线" : kind === "gift" ? "商品" : "已选择"}</span><b>{title}</b></div>}
         {kind === "airport-transfer" && <><label><span>接送方向</span><div className="inquiry-options">{["机场 → 酒店", "酒店 → 机场"].map((x) => <button type="button" className={form.direction === x ? "active" : ""} onClick={() => set("direction", x)} key={x}>{x}</button>)}</div></label><div className="inquiry-grid inquiry-grid-fields"><DateField label="日期" field="date" placeholder="请选择接送日期"/><label><span>航班号（可稍后补）</span><input placeholder="例如 MH123" value={form.flight} onChange={(e) => set("flight", e.target.value)} /></label></div><label><span>接送地点</span><input placeholder="酒店名称 / 地址" value={form.place} onChange={(e) => set("place", e.target.value)} /></label><div className="inquiry-grid inquiry-grid-compact"><Stepper label="人数" field="adults" max={maxGuests}/><Stepper label="行李" field="luggage" /></div></>}
