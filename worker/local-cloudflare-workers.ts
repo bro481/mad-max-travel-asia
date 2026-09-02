@@ -96,7 +96,10 @@ async function queryRows(sqlText: string, values: BoundValue[]) {
 
   let query = translatePlaceholders(translateSchemaSql(sqlText));
   const isInsert = /^\s*INSERT\b/i.test(query);
-  if (isInsert && !/\bRETURNING\b/i.test(query)) query = `${query} RETURNING id`;
+  // Some tables (for example site_settings) use a text key instead of an id.
+  // Returning the inserted row keeps last_row_id working for id-based tables
+  // without making key-based inserts fail with "column id does not exist".
+  if (isInsert && !/\bRETURNING\b/i.test(query)) query = `${query} RETURNING *`;
   return getClient().unsafe(query, params);
 }
 
