@@ -105,9 +105,9 @@ export async function PUT(
         b.introZh,
         b.introEn,
         JSON.stringify(
-          b.coverImage !== undefined || Array.isArray(b.gallery)
-            ? [b.coverImage || "", ...(b.gallery || [])].filter(Boolean)
-            : b.images || [],
+          Array.isArray(b.images)
+            ? b.images.filter(Boolean)
+            : [b.coverImage || "", ...(b.gallery || [])].filter(Boolean),
         ),
         JSON.stringify(b.tags || []),
         JSON.stringify(b.steps || []),
