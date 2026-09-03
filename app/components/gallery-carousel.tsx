@@ -7,13 +7,16 @@ export function GalleryCarousel({
   images,
   alt,
   compact = false,
+  preserveImageQuality = false,
 }: {
   images: string[];
   alt: string;
   compact?: boolean;
+  preserveImageQuality?: boolean;
 }) {
   const clean = useMemo(() => images.filter(Boolean), [images]);
   const [index, setIndex] = useState(0);
+  const [lowResolution, setLowResolution] = useState(false);
   const start = useRef<number | null>(null);
   const multi = clean.length > 1;
   const imageKey = clean.join("\0");
@@ -25,6 +28,7 @@ export function GalleryCarousel({
 
   useEffect(() => {
     setIndex(0);
+    setLowResolution(false);
   }, [imageKey]);
 
   useEffect(() => {
@@ -41,7 +45,7 @@ export function GalleryCarousel({
 
   return (
     <div
-      className={`gallery-carousel${compact ? " compact-gallery-carousel" : ""}`}
+      className={`gallery-carousel${compact ? " compact-gallery-carousel" : ""}${preserveImageQuality ? " preserve-image-quality" : ""}${lowResolution ? " has-low-resolution" : ""}`}
       onTouchStart={(e) => {
         start.current = e.touches[0].clientX;
       }}
@@ -62,7 +66,21 @@ export function GalleryCarousel({
             aria-hidden="true"
           />
         )}
-        <img key={`${clean[index]}-${index}`} src={clean[index]} alt={`${alt} ${index + 1}`} />
+        <img
+          key={`${clean[index]}-${index}`}
+          className={preserveImageQuality && lowResolution ? "gallery-main-image low-resolution" : "gallery-main-image"}
+          src={clean[index]}
+          alt={`${alt} ${index + 1}`}
+          onLoad={(event) => {
+            if (!preserveImageQuality) return;
+            const image = event.currentTarget;
+            const targetWidth = image.parentElement?.clientWidth || image.clientWidth;
+            const targetHeight = image.parentElement?.clientHeight || image.clientHeight;
+            setLowResolution(
+              image.naturalWidth < targetWidth * 1.35 || image.naturalHeight < targetHeight * 1.35,
+            );
+          }}
+        />
         {multi && (
           <>
             <button

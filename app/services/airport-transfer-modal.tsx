@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GalleryCarousel } from "../components/gallery-carousel";
 import { InquiryModal } from "../components/inquiry-modal";
 import { DateInput } from "../components/date-input";
@@ -47,6 +47,8 @@ export function AirportTransferModal({
   const [generated, setGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
   const [wechatCopied, setWechatCopied] = useState(false);
+  const vehicleTrackRef = useRef<HTMLDivElement>(null);
+  const [vehicleScroll, setVehicleScroll] = useState({ left: false, right: false });
   const [request, setRequest] = useState<TransferRequest>({
     direction: "机场 → 酒店",
     date: "",
@@ -102,6 +104,32 @@ export function AirportTransferModal({
     }
     setWechatCopied(true);
   };
+  const updateVehicleScroll = useCallback(() => {
+    const track = vehicleTrackRef.current;
+    if (!track) return;
+    const maxScrollLeft = Math.max(0, track.scrollWidth - track.clientWidth);
+    setVehicleScroll({
+      left: track.scrollLeft > 2,
+      right: track.scrollLeft < maxScrollLeft - 2,
+    });
+  }, []);
+  const scrollVehicles = (direction: -1 | 1) => {
+    const track = vehicleTrackRef.current;
+    if (!track) return;
+    track.scrollBy({ left: direction * Math.max(220, track.clientWidth * 0.78), behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const track = vehicleTrackRef.current;
+    if (!track) return;
+    const frame = window.requestAnimationFrame(updateVehicleScroll);
+    const observer = new ResizeObserver(updateVehicleScroll);
+    observer.observe(track);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [data.vehicles.length, updateVehicleScroll]);
 
   return (
     <div
@@ -116,7 +144,7 @@ export function AirportTransferModal({
           ×
         </button>
         <div className={`quick-modal-visual ${images.length > 1 ? "has-gallery" : ""}`}>
-          <GalleryCarousel images={images} alt={data.title} compact />
+          <GalleryCarousel images={images} alt={data.title} compact preserveImageQuality />
           <p className="airport-visual-eyebrow">MAD MAX · LOCAL SERVICE</p>
           <div className="airport-visual-copy">
             <span>专属安排</span>
@@ -143,28 +171,32 @@ export function AirportTransferModal({
             </div>
           </div>
           <div className="airport-vehicles-heading">
-            <h3>可安排车型</h3>
+            <h3>可安排车型 <small>{data.vehicles.length} 种</small></h3>
+            {data.vehicles.length > 1 && (
+              <div className="airport-vehicle-controls" aria-label="车型列表控制">
+                <button type="button" onClick={() => scrollVehicles(-1)} disabled={!vehicleScroll.left} aria-label="查看前面的车型">‹</button>
+                <button type="button" onClick={() => scrollVehicles(1)} disabled={!vehicleScroll.right} aria-label="查看更多车型">›</button>
+              </div>
+            )}
           </div>
-          <div className="airport-vehicle-grid">
-            {data.vehicles.slice(0, 4).map((v, i) => (
+          <div
+            className={`airport-vehicle-grid${vehicleScroll.left ? " can-scroll-left" : ""}${vehicleScroll.right ? " can-scroll-right" : ""}`}
+            ref={vehicleTrackRef}
+            onScroll={updateVehicleScroll}
+          >
+            {data.vehicles.map((v, i) => (
               <article key={v.name + i}>
                 {v.image && <img src={v.image} alt={v.name} />}
                 <b>{v.name}</b>
-                <span>
-                  {[
-                    "1–3人 · 少量行李",
-                    "4–6人 · 家庭出行",
-                    "7–10人 · 多人出行",
-                    "最高14人 · 按需安排",
-                  ][i] || `${v.people}${v.luggage ? ` · ${v.luggage}` : ""}`}
-                </span>
+                <span>{v.people}{v.luggage ? ` · ${v.luggage}` : ""}</span>
+                {v.note && <small>{v.note}</small>}
               </article>
             ))}
           </div>
           <div className="quick-modal-info airport-modal-info">
             <h3>咨询时告诉我们</h3>
             <ul>
-              {data.questions.slice(0, 4).map((x) => (
+              {data.questions.map((x) => (
                 <li key={x}>{x}</li>
               ))}
             </ul>

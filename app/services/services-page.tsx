@@ -996,7 +996,7 @@ export function ServicesPage({
       : undefined;
   const displayedAirportVehicles: AirportVehicle[] =
     managedAirport?.routes.length
-      ? managedAirport.routes.slice(0, 4).map((vehicle) => ({
+      ? managedAirport.routes.map((vehicle) => ({
           name: [vehicle.name || vehicle.nameZh || "车型", vehicle.name || vehicle.nameZh || "Vehicle"],
           people: [vehicle.duration || "按人数匹配", vehicle.duration || "Matched to group size"],
           note: [
