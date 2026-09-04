@@ -4,16 +4,15 @@ import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
 import type {
   ServiceItem,
-  ServiceRouteNode,
-  ServiceRoutePlan,
 } from "../../db/service-items";
 import { GalleryCarousel } from "../components/gallery-carousel";
 import { InquiryModal, type InquiryKind } from "../components/inquiry-modal";
 import {
   PrivateRouteDetailModal,
   type PrivateRouteDetailData,
-  type PrivateRouteDetailStop,
 } from "../components/private-route-detail-modal";
+import { PrivateRoutePlanCard } from "../components/private-route-plan-card";
+import { routePlanToPrivateRoute } from "../components/private-route-plan-data";
 import { LocalServiceOfferCard } from "../components/local-service-offer-card";
 import { ServiceMenu } from "../service-menu";
 import { AirportTransferModal } from "./airport-transfer-modal";
@@ -268,58 +267,6 @@ const getExperienceDetail = (offer: Offer): ExperienceDetail => {
           { title: ["自由体验", "Free time"], note: ["按当天安排体验与停留", "Enjoy the experience at a comfortable pace"], image: img("photo-1500530855697-b586d89ba3ee"), featured: true },
           { title: ["返回酒店", "Return to hotel"], note: ["送回酒店", "Transfer back to your hotel"], image: img("photo-1549317661-bd32c8ce0db2"), compact: true },
         ],
-  };
-};
-const textPair = (
-  zh?: string,
-  en?: string,
-  fallback = "",
-): [string, string] => [zh || fallback, en || zh || fallback];
-const routePlanTitle = (route: ServiceRoutePlan, fallback: string) =>
-  route.nameZh || route.name || fallback;
-const routePlanDescription = (route: ServiceRoutePlan, fallback: string) =>
-  route.descriptionZh || route.description || fallback;
-const routePlanTags = (route: ServiceRoutePlan) => {
-  const tags = route.tags?.length
-    ? route.tags
-    : [route.duration, route.tag].filter(Boolean);
-  return tags.filter(Boolean).slice(0, 3).map((tag) => [tag, tag] as [string, string]);
-};
-const routePlanNodes = (
-  route: ServiceRoutePlan,
-): PrivateRouteDetailStop[] => {
-  const nodes = route.nodes?.length
-    ? route.nodes
-    : (route.stops || "")
-        .split(/[·、,，]/)
-        .map((name) => name.trim())
-        .filter(Boolean)
-        .map((name) => ({ nameZh: name } as ServiceRouteNode));
-  return nodes.map((node, index) => ({
-    title: textPair(node.nameZh || node.title, node.nameEn, `路线节点 ${index + 1}`),
-    note: textPair(
-      node.descriptionZh || node.description,
-      node.descriptionEn,
-      index === 0 ? "从酒店或约定地点出发" : "可根据当天时间灵活调整停留",
-    ),
-    time: node.stayTime || node.time || "",
-    image: node.image || "",
-  }));
-};
-const routePlanToPrivateRoute = (
-  route: ServiceRoutePlan,
-  service: ServiceItem,
-  index: number,
-): PrivateRouteDetailData => {
-  const titleZh = routePlanTitle(route, `${service.city}推荐路线 ${index + 1}`);
-  const descZh = routePlanDescription(route, "路线仅作参考，可根据您的时间与兴趣灵活调整。");
-  return {
-    title: textPair(titleZh, route.nameEn, titleZh),
-    desc: textPair(descZh, route.descriptionEn, descZh),
-    duration: textPair(route.duration || "时间灵活", route.duration || "Flexible duration"),
-    tags: routePlanTags(route),
-    image: route.coverImage || route.image || "",
-    stops: routePlanNodes(route),
   };
 };
 const airportVehicles: AirportVehicle[] = [
@@ -1514,26 +1461,15 @@ export function ServicesPage({
                 <div className="private-route-grid">
                   {privateCarRoutes.length ? (
                     privateCarRoutes.map((route, index) => (
-                      <article key={`${route.title[0]}-${index}`}>
-                        <img src={route.image} alt="" />
-                        <div>
-                          <div>
-                            <span>{route.duration[l]}</span>
-                            {route.tags[0] && <span>{route.tags[0][l]}</span>}
-                          </div>
-                          <h4>{route.title[l]}</h4>
-                          <p>{route.desc[l]}</p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedOffer(null);
-                              setSelectedPrivateRoute(route);
-                            }}
-                          >
-                            {lang === "zh" ? "查看路线 →" : "View route →"}
-                          </button>
-                        </div>
-                      </article>
+                      <PrivateRoutePlanCard
+                        route={route}
+                        lang={lang}
+                        onOpen={() => {
+                          setSelectedOffer(null);
+                          setSelectedPrivateRoute(route);
+                        }}
+                        key={`${route.title[0]}-${index}`}
+                      />
                     ))
                   ) : (
                     <p className="private-route-empty">

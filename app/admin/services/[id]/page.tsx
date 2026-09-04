@@ -8,7 +8,8 @@ import {
   PrivateRouteDetailModal,
   type PrivateRouteDetailData,
 } from "../../../components/private-route-detail-modal";
-import { PrivateRouteCard } from "../../../components/private-route-card";
+import { PrivateRoutePlanCard } from "../../../components/private-route-plan-card";
+import { routePlanToPrivateRoute } from "../../../components/private-route-plan-data";
 import { LocalServiceOfferCard } from "../../../components/local-service-offer-card";
 import type { DestinationRecord } from "../../../../db/destinations";
 import type { ServiceCategory } from "../../../../db/services";
@@ -432,6 +433,7 @@ export default function ServiceEditor() {
               />
               <RoutePlansEditor
                 items={d.routes}
+                service={d}
                 frontendHref={frontendHref}
                 onUpload={(files, done) => upload(files, done)}
                 onChange={(x) => set("routes", x)}
@@ -967,11 +969,13 @@ function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRout
 
 function RoutePlansEditor({
   items,
+  service,
   frontendHref,
   onUpload,
   onChange,
 }: {
   items: ServiceRoutePlan[];
+  service: ServiceItem;
   frontendHref: string;
   onUpload: (files: FileList | null, done: (urls: string[]) => void) => void;
   onChange: (x: ServiceRoutePlan[]) => void;
@@ -1013,29 +1017,7 @@ function RoutePlansEditor({
   const cleanRouteTags = (route: ServiceRoutePlan) =>
     routePlanTags(route).filter((tag) => !/^约?\s*\d+(?:[–—-]\d+)?\s*(?:小时|分钟|天)$/.test(tag));
   const previewRoute: PrivateRouteDetailData | null = activeRoute
-    ? {
-        title: [routePlanName(activeRoute), activeRoute.nameEn || routePlanName(activeRoute)],
-        desc: [
-          routePlanDescription(activeRoute) || "路线仅作参考，可根据您的时间与兴趣灵活调整。",
-          activeRoute.descriptionEn || routePlanDescription(activeRoute) || "Route details can be adjusted around your plans.",
-        ],
-        duration: [activeRoute.duration || "时间灵活", activeRoute.duration || "Flexible duration"],
-        tags: cleanRouteTags(activeRoute).map((tag) => [tag, tag]),
-        image: activeRoute.coverImage || activeRoute.image || "",
-        stops: activeNodes.map((node, index) => ({
-          title: [
-            node.nameZh || node.title || `路线节点 ${index + 1}`,
-            node.nameEn || node.nameZh || node.title || `Route stop ${index + 1}`,
-          ],
-          note: [
-            node.descriptionZh || node.description || "可根据当天时间灵活调整停留。",
-            node.descriptionEn || node.descriptionZh || node.description || "Timing can be adjusted on the day.",
-          ],
-          image: node.image || "",
-          time: node.stayTime || node.time || "",
-          type: node.type || guessNodeType(node.nameZh || node.title || ""),
-        })),
-      }
+    ? routePlanToPrivateRoute(activeRoute, service, editingRouteIndex || 0)
     : null;
   const setRouteTags = (tags: string[]) =>
     update(editingRouteIndex!, { tags, tag: tags[0] || "" });
@@ -1360,20 +1342,15 @@ function RoutePlansEditor({
                   </Field>
                 </div>
                 <aside className="route-card-preview">
-                  <small>前台路线卡预览</small>
-                  <PrivateRouteCard
-                    route={{
-                      title: [routePlanName(activeRoute), activeRoute.nameEn || routePlanName(activeRoute)],
-                      duration: [activeRoute.duration || "约 8 小时", activeRoute.duration || "About 8 hours"],
-                      summary: [
-                        routePlanDescription(activeRoute) || "路线简介会显示在这里",
-                        activeRoute.descriptionEn || routePlanDescription(activeRoute) || "Route summary",
-                      ],
-                      tags: cleanRouteTags(activeRoute).map((tag) => [tag, tag] as [string, string]),
-                      image: activeRoute.coverImage || activeRoute.image || "",
-                    }}
-                    onOpen={() => setRoutePreview({ focusStopIndex: null })}
-                  />
+                  <small>前端同款路线卡片</small>
+                  {previewRoute ? (
+                    <div className="private-route-grid admin-exact-route-card-preview">
+                      <PrivateRoutePlanCard
+                        route={previewRoute}
+                        onOpen={() => setRoutePreview({ focusStopIndex: null })}
+                      />
+                    </div>
+                  ) : null}
                 </aside>
               </div>
             )}
@@ -1529,7 +1506,11 @@ function RoutePlansEditor({
               <button onClick={closeRouteEditor}>保存路线</button>
             </footer>
             {routePreview && previewRoute ? (
-              <RouteDetailPreview route={previewRoute} focusStopIndex={routePreview.focusStopIndex} onClose={() => setRoutePreview(null)} />
+              <PrivateRouteDetailModal
+                route={previewRoute}
+                focusStopIndex={routePreview.focusStopIndex}
+                onClose={() => setRoutePreview(null)}
+              />
             ) : null}
           </div>
         </div>
@@ -1616,10 +1597,6 @@ function ServiceCardPreview({ data, category, frontendHref }: { data: ServiceIte
       />
     </div>
   );
-}
-
-function RouteDetailPreview({ route, focusStopIndex, onClose }: { route: PrivateRouteDetailData; focusStopIndex: number | null; onClose: () => void }) {
-  return <PrivateRouteDetailModal route={route} focusStopIndex={focusStopIndex} onClose={onClose} />;
 }
 
 function normalizeInquiryConfig(fields: string[], required: string[]) {

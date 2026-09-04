@@ -534,7 +534,7 @@
 .route-switch-row{background:#f6f8f7;border:1px solid var(--a-line);border-radius:12px;display:flex;gap:26px;margin:14px 0;padding:14px}
 .route-card-preview{background:#f4efe7;border-radius:16px;height:max-content;padding:18px;position:sticky;top:0}
 .route-card-preview>small{color:#9a6a3d;font-weight:900}
-.route-card-preview .route-card{margin-top:12px;width:100%}
+.admin-exact-route-card-preview{display:block!important;margin-top:12px}.admin-exact-route-card-preview>article{width:100%}
 .route-node-workspace{display:grid;gap:22px;grid-template-columns:minmax(0,3fr) minmax(360px,2fr);overflow:hidden}
 .route-node-workspace>div:first-child{display:flex;flex-direction:column;min-height:0}
 .route-node-toolbar{align-items:center;display:flex;justify-content:space-between;margin-bottom:14px}
