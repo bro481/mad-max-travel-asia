@@ -20,7 +20,7 @@ import type {
 import { TransferEditor } from "./transfer-editor";
 
 const defaultTabs = ["基础信息", "图片", "内容", "行程／路线", "咨询", "发布"];
-const routeTabs = ["基础信息", "图片", "车型与价格", "路线方案", "咨询设置", "发布"];
+const routeTabs = ["页面内容", "车型价格", "热门路线"];
 const inquiryFieldOptions = ["日期", "同行人数", "出发地点", "想去的地方", "接送地点", "儿童人数", "行李数量", "特殊需求"];
 
 export default function ServiceEditor() {
@@ -32,6 +32,7 @@ export default function ServiceEditor() {
   const [loadError, setLoadError] = useState("");
   const [notice, setNotice] = useState("");
   const [dragServiceImageIndex, setDragServiceImageIndex] = useState<number | null>(null);
+  const [publishReviewOpen, setPublishReviewOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -199,7 +200,7 @@ export default function ServiceEditor() {
           <button className="admin-secondary" onClick={() => save()}>
             保存草稿
           </button>
-          <button className="admin-primary" onClick={() => save("published")}>
+          <button className="admin-primary" onClick={() => isCar ? setPublishReviewOpen(true) : save("published")}>
             发布服务
           </button>
         </div>
@@ -214,7 +215,7 @@ export default function ServiceEditor() {
           )}
         </p>
       )}
-      <div className={`service-editor-layout ${tab === 0 || tab === 1 ? "" : "without-preview"}`}>
+      <div className={`service-editor-layout ${isCar ? (tab === 0 ? "" : "without-preview") : (tab === 0 || tab === 1 ? "" : "without-preview")}`}>
         <aside>
           {activeTabs.map((x, i) => (
             <button className={tab === i ? "active" : ""} onClick={() => setTab(i)} key={x}>
@@ -226,8 +227,11 @@ export default function ServiceEditor() {
         <main className="editor-form">
           {tab === 0 && (
             <>
-              <Head title="基础信息" text="控制服务归属、前台卡片文案和详情顶部基础内容。" />
-              <div className="service-belonging-card">
+              <Head
+                title={isCar ? "页面内容" : "基础信息"}
+                text={isCar ? "前端显示位置：包车详情页顶部 Hero、服务亮点与咨询入口。" : "控制服务归属、前台卡片文案和详情顶部基础内容。"}
+              />
+              {!isCar && <div className="service-belonging-card">
                 <div>
                   <small>目的地</small>
                   <strong>{currentDestination?.nameZh || d.city}</strong>
@@ -241,8 +245,8 @@ export default function ServiceEditor() {
                   <strong>{templateLabel(d.templateType)}</strong>
                   <em>已锁定</em>
                 </div>
-              </div>
-              <div className="field-row">
+              </div>}
+              {!isCar && <div className="field-row">
                 <Field n="目的地">
                   <select
                     value={d.city}
@@ -277,13 +281,13 @@ export default function ServiceEditor() {
                     ))}
                   </select>
                 </Field>
-              </div>
-              <Field n="当前编辑模板">
+              </div>}
+              {!isCar && <Field n="当前编辑模板">
                 <input value={templateLabel(d.templateType)} readOnly />
                 <small className="field-help">
                   模板控制后台字段结构，默认不随意更换；如果要换结构，建议新建对应类型服务。
                 </small>
-              </Field>
+              </Field>}
               <div className="field-row">
                 <Field n={isCar ? "中文服务名称" : "中文标题"}>
                   <input value={d.nameZh} onChange={(e) => set("nameZh", e.target.value)} />
@@ -292,14 +296,14 @@ export default function ServiceEditor() {
                   <input value={d.nameEn} onChange={(e) => set("nameEn", e.target.value)} />
                 </Field>
               </div>
-              <div className="field-row">
+              {!isCar && <div className="field-row">
                 <Field n={isCar ? "中文服务短介绍" : "中文副标题"}>
                   <input value={d.subtitleZh} onChange={(e) => set("subtitleZh", e.target.value)} />
                 </Field>
                 <Field n={isCar ? "英文服务短介绍" : "英文副标题"}>
                   <input value={d.subtitleEn} onChange={(e) => set("subtitleEn", e.target.value)} />
                 </Field>
-              </div>
+              </div>}
               <Field n={isCar ? "服务标签（最多 3 个）" : "标签（用顿号分隔）"}>
                 <input
                   value={d.tags.join("、")}
@@ -318,7 +322,7 @@ export default function ServiceEditor() {
                 {isCar && <small className="field-help">这里就是前台服务卡片下面的小胶囊卖点。</small>}
               </Field>
               <div className="field-row">
-                <Field n={isCar ? "中文服务详细介绍" : "中文简短介绍"}>
+                <Field n={isCar ? "中文简介" : "中文简短介绍"}>
                   <textarea
                     rows={3}
                     value={d.introZh}
@@ -326,14 +330,37 @@ export default function ServiceEditor() {
                     placeholder="半日 / 全天包车，可根据时间和兴趣自由安排路线。"
                   />
                 </Field>
-                <Field n={isCar ? "英文服务详细介绍" : "英文简短介绍"}>
+                <Field n={isCar ? "英文简介" : "英文简短介绍"}>
                   <textarea rows={3} value={d.introEn} onChange={(e) => set("introEn", e.target.value)} />
                 </Field>
               </div>
-              {isCar && <ServiceHighlights items={d.steps} onChange={(x) => set("steps", x)} />}
+              {isCar && (
+                <>
+                  <PageCoverEditor
+                    value={d.images[0] || ""}
+                    count={d.images.length}
+                    onUpload={(files) => upload(files, (urls) => {
+                      if (urls[0]) set("images", [urls[0], ...d.images.slice(1)]);
+                    })}
+                  />
+                  <ServiceHighlights items={d.steps} onChange={(x) => set("steps", x)} />
+                  <details className="car-inquiry-summary">
+                    <summary>
+                      <span><b>咨询表单</b><small>前端显示位置：点击“咨询这项服务”后的表单</small></span>
+                      <em>当前启用：{normalizeInquiryConfig(d.inquiryFields, d.inquiryRequired).fields.join("、") || "未设置"}</em>
+                      <strong>编辑字段</strong>
+                    </summary>
+                    <InquiryPicker
+                      fields={d.inquiryFields}
+                      required={d.inquiryRequired}
+                      onChange={(fields, required) => setMany({ inquiryFields: fields, inquiryRequired: required })}
+                    />
+                  </details>
+                </>
+              )}
             </>
           )}
-          {tab === 1 && (
+          {tab === 1 && !isCar && (
             <>
               <Head title={isCar ? "服务图片" : "图片"} text={isCar ? `这里管理${d.nameZh}服务本身的图片，不管理具体路线或景点图片。第一张用于服务卡和详情主图。` : "第一张图片作为服务封面，可批量上传并调整顺序。"} />
               <label className="service-upload">
@@ -367,14 +394,14 @@ export default function ServiceEditor() {
               </div>
             </>
           )}
-          {tab === 2 &&
-            (isCar ? (
+          {tab === 1 && isCar && (
               <VehiclePricingEditor
                 items={d.vehicles}
                 onUpload={(files, done) => upload(files, done)}
                 onChange={(x) => set("vehicles", x)}
               />
-            ) : (
+          )}
+          {tab === 2 && !isCar && (
               <>
                 <Head title="内容" text="服务简介和前台说明。" />
                 <Field n="中文介绍">
@@ -384,35 +411,36 @@ export default function ServiceEditor() {
                   <textarea rows={7} value={d.introEn} onChange={(e) => set("introEn", e.target.value)} />
                 </Field>
               </>
-            ))}
-          {tab === 3 && (
+          )}
+          {tab === 2 && isCar && (
             <>
-              {isCar ? (
-                <>
-                  <Head title="路线方案" text="管理私人包车详情页中的“热门包车方案”。Route 属于当前 Service，不是独立服务。" />
-                  <RouteSectionCopy
-                    eyebrow={d.routes[0]?.sectionEyebrowZh || ""}
-                    eyebrowEn={d.routes[0]?.sectionEyebrowEn || ""}
-                    title={d.routeSectionTitleZh}
-                    intro={d.routeSectionIntroZh}
-                    onEyebrowChange={(value) => {
-                      const routes = d.routes.length ? d.routes : [emptyRoutePlan(0)];
-                      set("routes", routes.map((route, index) => index === 0 ? { ...route, sectionEyebrowZh: value } : route));
-                    }}
-                    onEyebrowEnChange={(value) => {
-                      const routes = d.routes.length ? d.routes : [emptyRoutePlan(0)];
-                      set("routes", routes.map((route, index) => index === 0 ? { ...route, sectionEyebrowEn: value } : route));
-                    }}
-                    onChange={(patch) => setMany(patch)}
-                  />
-                  <RoutePlansEditor
-                    items={d.routes}
-                    frontendHref={frontendHref}
-                    onUpload={(files, done) => upload(files, done)}
-                    onChange={(x) => set("routes", x)}
-                  />
-                </>
-              ) : hasTimeline ? (
+              <Head title="热门路线" text="前端显示位置：包车详情页 → 热门包车方案；点击路线后进入路线详情弹窗。" />
+              <RouteSectionCopy
+                eyebrow={d.routes[0]?.sectionEyebrowZh || ""}
+                eyebrowEn={d.routes[0]?.sectionEyebrowEn || ""}
+                title={d.routeSectionTitleZh}
+                intro={d.routeSectionIntroZh}
+                onEyebrowChange={(value) => {
+                  const routes = d.routes.length ? d.routes : [emptyRoutePlan(0)];
+                  set("routes", routes.map((route, index) => index === 0 ? { ...route, sectionEyebrowZh: value } : route));
+                }}
+                onEyebrowEnChange={(value) => {
+                  const routes = d.routes.length ? d.routes : [emptyRoutePlan(0)];
+                  set("routes", routes.map((route, index) => index === 0 ? { ...route, sectionEyebrowEn: value } : route));
+                }}
+                onChange={(patch) => setMany(patch)}
+              />
+              <RoutePlansEditor
+                items={d.routes}
+                frontendHref={frontendHref}
+                onUpload={(files, done) => upload(files, done)}
+                onChange={(x) => set("routes", x)}
+              />
+            </>
+          )}
+          {tab === 3 && !isCar && (
+            <>
+              {hasTimeline ? (
                 <>
                   <Head title="行程安排" text="体验类服务使用时间线编辑器。" />
                   <Repeat
@@ -437,7 +465,7 @@ export default function ServiceEditor() {
               )}
             </>
           )}
-          {tab === 4 && (
+          {tab === 4 && !isCar && (
             <>
               <Head title="咨询设置" text="设置前台咨询表单显示哪些字段，以及哪些字段必填。" />
               <InquiryPicker
@@ -447,7 +475,7 @@ export default function ServiceEditor() {
               />
             </>
           )}
-          {tab === 5 && (
+          {tab === 5 && !isCar && (
             <>
               <Head title="发布" text="这里只检查当前服务是否具备发布条件，不编辑业务内容。" />
               <div className="publish-check">
@@ -467,12 +495,33 @@ export default function ServiceEditor() {
             </>
           )}
         </main>
-        {(tab === 0 || tab === 1) && (
+        {(isCar ? tab === 0 : tab === 0 || tab === 1) && (
           <aside className="service-live-preview">
-            <ServiceCardPreview data={d} category={currentCategory} />
+            <ServiceCardPreview data={d} category={currentCategory} frontendHref={frontendHref} />
           </aside>
         )}
       </div>
+      {isCar && publishReviewOpen && (
+        <div className="publish-review-backdrop" role="dialog" aria-modal="true" aria-labelledby="publish-review-title">
+          <div className="publish-review-modal">
+            <header>
+              <div><small>发布检查</small><h2 id="publish-review-title">确认包车页面可以上线</h2></div>
+              <button onClick={() => setPublishReviewOpen(false)} aria-label="关闭">×</button>
+            </header>
+            <ul>
+              {checks.map((check) => (
+                <li className={check.ok ? "ok" : "warning"} key={check.label}>
+                  <span>{check.ok ? "✓" : "⚠"}</span>{check.label}
+                </li>
+              ))}
+            </ul>
+            <footer>
+              <button className="admin-secondary" onClick={() => setPublishReviewOpen(false)}>返回修改</button>
+              <button className="admin-primary" onClick={() => { setPublishReviewOpen(false); void save("published"); }}>继续发布</button>
+            </footer>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -529,6 +578,33 @@ function Field({ n, children }: { n: string; children: ReactNode }) {
   );
 }
 
+function PageCoverEditor({
+  value,
+  count,
+  onUpload,
+}: {
+  value: string;
+  count: number;
+  onUpload: (files: FileList | null) => void;
+}) {
+  return (
+    <section className="car-cover-editor">
+      <div className="car-section-heading">
+        <div>
+          <h3>页面封面图</h3>
+          <p>前端显示位置：包车详情页最顶部 Hero。</p>
+        </div>
+        {count > 1 && <small>原有图库共 {count} 张，其他图片保持不变</small>}
+      </div>
+      <label className="car-cover-image">
+        {value ? <img src={value} alt="当前页面封面" /> : <span>暂未上传页面封面</span>}
+        <strong>更换</strong>
+        <input type="file" accept="image/*" onChange={(event) => onUpload(event.target.files)} />
+      </label>
+    </section>
+  );
+}
+
 function ServiceHighlights({
   items,
   onChange,
@@ -536,6 +612,7 @@ function ServiceHighlights({
   items: ServiceItem["steps"];
   onChange: (x: ServiceItem["steps"]) => void;
 }) {
+  const [editing, setEditing] = useState<number | null>(null);
   const highlights = items.length
     ? items
     : [
@@ -544,31 +621,28 @@ function ServiceHighlights({
         { title: "酒店接送", description: "减少交通衔接麻烦" },
       ];
   return (
-    <div className="service-repeat compact">
-      <h3>服务亮点</h3>
+    <section className="car-highlights-editor">
+      <div className="car-section-heading">
+        <div><h3>服务亮点</h3><p>前端显示位置：包车详情页 Hero 下方的亮点信息。</p></div>
+        <button onClick={() => { onChange([...highlights, { title: "新亮点", description: "" }]); setEditing(highlights.length); }}>＋ 添加亮点</button>
+      </div>
+      <div className="car-highlight-list">
       {highlights.map((item, index) => (
-        <div key={`${item.title}-${index}`}>
-          <Field n="亮点">
-            <input
-              value={item.title}
-              onChange={(e) =>
-                onChange(highlights.map((x, i) => (i === index ? { ...x, title: e.target.value } : x)))
-              }
-            />
-          </Field>
-          <Field n="说明">
-            <input
-              value={item.description}
-              onChange={(e) =>
-                onChange(highlights.map((x, i) => (i === index ? { ...x, description: e.target.value } : x)))
-              }
-            />
-          </Field>
-          <button onClick={() => onChange(highlights.filter((_, i) => i !== index))}>删除</button>
-        </div>
+        <article key={`${item.title}-${index}`}>
+          <div className="car-highlight-summary">
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <p><b>{item.title || "未命名亮点"}</b><small>{item.description || "说明未填写"}</small></p>
+            <button onClick={() => setEditing(editing === index ? null : index)}>编辑</button>
+          </div>
+          {editing === index && <div className="car-highlight-form">
+            <Field n="亮点标题"><input value={item.title} onChange={(e) => onChange(highlights.map((x, i) => i === index ? { ...x, title: e.target.value } : x))} /></Field>
+            <Field n="一句话说明"><input value={item.description} onChange={(e) => onChange(highlights.map((x, i) => i === index ? { ...x, description: e.target.value } : x))} /></Field>
+            <button className="danger" onClick={() => { onChange(highlights.filter((_, i) => i !== index)); setEditing(null); }}>删除这条亮点</button>
+          </div>}
+        </article>
       ))}
-      <button onClick={() => onChange([...highlights, { title: "新亮点", description: "" }])}>＋ 添加亮点</button>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -589,28 +663,17 @@ function RouteSectionCopy({
   onEyebrowEnChange: (value: string) => void;
   onChange: (patch: Partial<ServiceItem>) => void;
 }) {
-  const [custom, setCustom] = useState(Boolean(title || intro));
   const defaultTitle = "热门包车方案";
   const defaultIntro = "以下路线仅作参考，可根据您的时间与兴趣灵活调整。";
   return (
     <details className="route-section-copy route-section-collapsed">
-      <summary>板块设置</summary>
-      <label className="route-inline-check">
-        <input type="checkbox" checked={custom} onChange={(e) => setCustom(e.target.checked)} />
-        <span>使用自定义板块文案</span>
-      </label>
-      {!custom ? (
-        <div className="route-copy-default">
-          <b>{defaultTitle}</b>
-          <p>{defaultIntro}</p>
-        </div>
-      ) : (
-        <>
+      <summary><span><b>热门路线区域</b><small>{title || defaultTitle} · {intro || defaultIntro}</small></span><strong>编辑标题文案</strong></summary>
+      <div className="route-section-copy-fields">
           <div className="field-row">
-            <Field n="中文板块小标题 / 眉题">
+            <Field n="小眉题">
               <input value={eyebrow || "轻松选择"} onChange={(e) => onEyebrowChange(e.target.value)} placeholder="轻松选择" />
             </Field>
-            <Field n="英文板块小标题 / 眉题">
+            <Field n="英文小眉题">
               <input value={eyebrowEn || "EASY TO CHOOSE"} onChange={(e) => onEyebrowEnChange(e.target.value)} placeholder="EASY TO CHOOSE" />
             </Field>
           </div>
@@ -629,8 +692,7 @@ function RouteSectionCopy({
               placeholder={defaultIntro}
             />
           </Field>
-        </>
-      )}
+      </div>
     </details>
   );
 }
@@ -661,17 +723,18 @@ function VehiclePricingEditor({
   onUpload: (files: FileList | null, done: (urls: string[]) => void) => void;
   onChange: (x: ServiceItem["vehicles"]) => void;
 }) {
-  const [editing, setEditing] = useState(0);
+  const [editing, setEditing] = useState<number | null>(null);
   const vehicles = items.length ? items : [emptyVehicle(0)];
   const update = (index: number, patch: Partial<ServiceItem["vehicles"][number]>) =>
     onChange(vehicles.map((item, i) => (i === index ? { ...item, ...patch } : item)));
+  const activeVehicle = editing === null ? null : vehicles[editing] || null;
   return (
     <div className="vehicle-price-editor">
-      <Head title="车型与价格" text="包车服务的核心设置：车型、人数、行李与半日/全天价格。" />
+      <Head title="车型价格" text="前端显示位置：包车详情页 → 车型选择与价格。" />
       <div className="route-plan-head">
         <div>
           <h3>可安排车型</h3>
-          <p>价格不固定时可设为“咨询报价”，前台就不会显示 ¥0。</p>
+          <p>默认只展示客户需要比较的信息，点击编辑后再修改完整内容。</p>
         </div>
         <button onClick={() => { onChange([...vehicles, emptyVehicle(vehicles.length)]); setEditing(vehicles.length); }}>
           ＋ 添加车型
@@ -679,7 +742,7 @@ function VehiclePricingEditor({
       </div>
       <div className="vehicle-price-list">
         {vehicles.map((vehicle, index) => (
-          <article className={editing === index ? "vehicle-price-card editing" : "vehicle-price-card"} key={`${vehicle.nameZh}-${index}`}>
+          <article className="vehicle-price-card" key={`${vehicle.nameZh}-${index}`}>
             <div className="vehicle-price-summary">
               <div className="route-plan-thumb">
                 {vehicle.image ? <img src={vehicle.image} alt="" /> : <span>车辆</span>}
@@ -690,89 +753,63 @@ function VehiclePricingEditor({
                 <p>
                   {vehicle.people || "人数未填"} · {vehicle.luggage || "行李未填"}
                 </p>
-                <b>
-                  {vehicle.priceMode === "咨询报价"
-                    ? "价格咨询"
-                    : `半日 ¥${vehicle.halfDayPrice || vehicle.price || 0} 起 · 全天 ¥${vehicle.fullDayPrice || 0} 起`}
-                </b>
+                <b>{vehiclePriceSummary(vehicle)}</b>
+                <em className={vehicle.visible === false ? "vehicle-hidden" : "vehicle-visible"}>
+                  {vehicle.visible === false ? "已隐藏" : "已显示"}
+                </em>
               </div>
               <nav>
-                <button onClick={() => setEditing(editing === index ? -1 : index)}>编辑</button>
+                <button onClick={() => setEditing(index)}>编辑</button>
                 <button onClick={() => update(index, { visible: vehicle.visible === false })}>
                   {vehicle.visible === false ? "显示" : "隐藏"}
                 </button>
-                <button className="danger" onClick={() => onChange(vehicles.filter((_, i) => i !== index))}>
-                  删除
-                </button>
+                <details className="route-actions-menu"><summary aria-label="更多车型操作">•••</summary><div>
+                  <button className="danger" onClick={() => onChange(vehicles.filter((_, i) => i !== index))}>删除车型</button>
+                </div></details>
               </nav>
             </div>
-            {editing === index && (
-              <div className="vehicle-price-form">
-                <div className="field-row">
-                  <Field n="中文车型名">
-                    <input value={vehicle.nameZh} onChange={(e) => update(index, { nameZh: e.target.value })} />
-                  </Field>
-                  <Field n="英文车型名">
-                    <input value={vehicle.nameEn} onChange={(e) => update(index, { nameEn: e.target.value })} />
-                  </Field>
-                </div>
-                <div className="field-row">
-                  <Field n="建议人数">
-                    <input value={vehicle.people} onChange={(e) => update(index, { people: e.target.value })} />
-                  </Field>
-                  <Field n="建议行李">
-                    <input value={vehicle.luggage} onChange={(e) => update(index, { luggage: e.target.value })} />
-                  </Field>
-                </div>
-                <Field n="适用说明">
-                  <input value={vehicle.description} onChange={(e) => update(index, { description: e.target.value })} />
-                </Field>
-                <Field n="车辆图片">
-                  <ImageChooser
-                    value={vehicle.image}
-                    images={[]}
-                    onUpload={(files) => onUpload(files, (urls) => update(index, { image: urls[0] || vehicle.image }))}
-                    onChange={(url) => update(index, { image: url })}
-                  />
-                </Field>
-                <div className="field-row">
-                  <Field n="价格模式">
-                    <select value={vehicle.priceMode || "起价"} onChange={(e) => update(index, { priceMode: e.target.value })}>
-                      <option>起价</option>
-                      <option>固定价格</option>
-                      <option>咨询报价</option>
-                    </select>
-                  </Field>
-                  <Field n="半日价格 ¥">
-                    <input
-                      type="number"
-                      value={vehicle.halfDayPrice || ""}
-                      onChange={(e) => update(index, { halfDayPrice: Number(e.target.value), price: Number(e.target.value) })}
-                    />
-                  </Field>
-                </div>
-                <Field n="全天价格 ¥">
-                  <input
-                    type="number"
-                    value={vehicle.fullDayPrice || ""}
-                    onChange={(e) => update(index, { fullDayPrice: Number(e.target.value) })}
-                  />
-                </Field>
-                <label className="route-inline-check">
-                  <input
-                    type="checkbox"
-                    checked={vehicle.visible !== false}
-                    onChange={(e) => update(index, { visible: e.target.checked })}
-                  />
-                  <span>前台显示</span>
-                </label>
-              </div>
-            )}
           </article>
         ))}
       </div>
+      {activeVehicle && editing !== null && (
+        <div className="vehicle-editor-backdrop" role="dialog" aria-modal="true" aria-labelledby="vehicle-editor-title">
+          <div className="vehicle-editor-modal">
+            <header><div><small>编辑车型</small><h2 id="vehicle-editor-title">{activeVehicle.nameZh || "未命名车型"}</h2><p>前端显示位置：包车详情页 → 车型价格卡片。</p></div><button onClick={() => setEditing(null)} aria-label="关闭">×</button></header>
+            <div className="vehicle-editor-body">
+              <div className="field-row">
+                <Field n="车型中文名"><input value={activeVehicle.nameZh} onChange={(e) => update(editing, { nameZh: e.target.value })} /></Field>
+                <Field n="英文名"><input value={activeVehicle.nameEn} onChange={(e) => update(editing, { nameEn: e.target.value })} /></Field>
+              </div>
+              <div className="field-row">
+                <Field n="建议人数"><input value={activeVehicle.people} onChange={(e) => update(editing, { people: e.target.value })} /></Field>
+                <Field n="建议行李"><input value={activeVehicle.luggage} onChange={(e) => update(editing, { luggage: e.target.value })} /></Field>
+              </div>
+              <Field n="适用说明"><input value={activeVehicle.description} onChange={(e) => update(editing, { description: e.target.value })} /></Field>
+              <Field n="车型图片">
+                <small className="field-location-help">显示位置：车型与价格卡片</small>
+                <ImageChooser value={activeVehicle.image} images={[]} onUpload={(files) => onUpload(files, (urls) => update(editing, { image: urls[0] || activeVehicle.image }))} onChange={(url) => update(editing, { image: url })} />
+              </Field>
+              <fieldset className="vehicle-price-mode"><legend>价格显示方式</legend>
+                {["固定价格", "起价", "咨询报价"].map((mode) => <label key={mode}><input type="radio" name={`vehicle-price-mode-${editing}`} checked={(activeVehicle.priceMode || "起价") === mode} onChange={() => update(editing, { priceMode: mode })} /><span>{mode === "起价" ? "xx 起" : mode}</span></label>)}
+              </fieldset>
+              {activeVehicle.priceMode !== "咨询报价" && <div className="field-row">
+                <Field n="半日价格 ¥"><input type="number" value={activeVehicle.halfDayPrice || ""} onChange={(e) => update(editing, { halfDayPrice: Number(e.target.value), price: Number(e.target.value) })} /></Field>
+                <Field n="全天价格 ¥"><input type="number" value={activeVehicle.fullDayPrice || ""} onChange={(e) => update(editing, { fullDayPrice: Number(e.target.value) })} /></Field>
+              </div>}
+              <label className="route-inline-check"><input type="checkbox" checked={activeVehicle.visible !== false} onChange={(e) => update(editing, { visible: e.target.checked })} /><span>前台显示</span></label>
+            </div>
+            <footer><button className="admin-primary" onClick={() => setEditing(null)}>完成</button></footer>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function vehiclePriceSummary(vehicle: ServiceItem["vehicles"][number]) {
+  if (vehicle.priceMode === "咨询报价") return "咨询报价";
+  const suffix = vehicle.priceMode === "固定价格" ? "" : " 起";
+  return `半日 ¥${vehicle.halfDayPrice || vehicle.price || 0}${suffix} · 全天 ¥${vehicle.fullDayPrice || 0}${suffix}`;
 }
 
 function InquiryPicker({
@@ -1124,8 +1161,8 @@ function RoutePlansEditor({
     <div className="route-plan-editor">
       <div className="route-plan-head">
         <div>
-          <h3>热门路线</h3>
-          <p>管理“私人包车”下的推荐路线。路线不是独立服务，点编辑后再维护单条路线和节点。</p>
+          <h3>路线列表</h3>
+          <p>前端显示位置：包车详情页 → 热门包车方案。</p>
         </div>
         <button
           onClick={() => {
@@ -1205,8 +1242,8 @@ function RoutePlansEditor({
             </header>
             <div className="route-editor-tabs">
               {[
-                ["basic", "基本信息"],
-                ["nodes", "路线节点"],
+                ["basic", "路线信息"],
+                ["nodes", "行程节点"],
               ].map(([key, label]) => (
                 <button
                   key={key}
@@ -1239,7 +1276,7 @@ function RoutePlansEditor({
                       />
                     </Field>
                   </div>
-                  <Field n="路线副标题 / 简介">
+                  <Field n="路线简短说明">
                     <input
                       value={routePlanDescription(activeRoute)}
                       onChange={(e) =>
@@ -1304,8 +1341,9 @@ function RoutePlansEditor({
                       <span>前台显示</span>
                     </label>
                   </div>
-                  <Field n="路线封面">
+                  <Field n="路线封面图">
                     <div className="route-cover-compact">
+                      <small className="field-location-help">显示位置：热门路线卡片 + 路线详情主图</small>
                       <ImageChooser
                         value={activeRoute.coverImage || activeRoute.image || ""}
                         images={[]}
@@ -1344,8 +1382,8 @@ function RoutePlansEditor({
                 <div>
                   <div className="route-node-toolbar">
                     <div>
-                      <h4>路线节点</h4>
-                      <p>每个节点对应前端路线弹窗里的一个行程点；拖拽整行调整顺序。</p>
+                      <h4>行程节点</h4>
+                      <p>前端显示位置：点击“查看路线” → 路线详情弹窗；拖拽整行调整顺序。</p>
                     </div>
                     <div className="route-node-toolbar-actions">
                       <a className="secondary" href={`${frontendHref}&route=${editingRouteIndex}`} target="_blank" rel="noreferrer">查看前台</a>
@@ -1390,12 +1428,10 @@ function RoutePlansEditor({
                             {node.descriptionZh || node.description || "暂无说明"}
                           </p>
                         </div>
-                        <nav>
-                          <button onClick={(event) => { event.stopPropagation(); copyNode(editingRouteIndex, nodeIndex); }}>复制</button>
-                          <button className="danger" onClick={(event) => { event.stopPropagation(); removeNode(editingRouteIndex, nodeIndex); }}>
-                            删除
-                          </button>
-                        </nav>
+                        <nav><span>编辑</span><details className="route-actions-menu" onClick={(event) => event.stopPropagation()}><summary aria-label="更多节点操作">•••</summary><div>
+                          <button onClick={() => copyNode(editingRouteIndex, nodeIndex)}>复制节点</button>
+                          <button className="danger" onClick={() => removeNode(editingRouteIndex, nodeIndex)}>删除节点</button>
+                        </div></details></nav>
                       </article>
                     ))}
                   </div>
@@ -1433,6 +1469,7 @@ function RoutePlansEditor({
                             value={activeNode.type || guessNodeType(activeNode.nameZh || activeNode.title || "")}
                             onChange={(e) => updateNode(editingRouteIndex, editingNodeIndex, { type: e.target.value })}
                           >
+                            <option>酒店接送</option>
                             <option>接送</option>
                             <option>景点</option>
                             <option>餐饮</option>
@@ -1464,7 +1501,8 @@ function RoutePlansEditor({
                           }
                         />
                       </Field>
-                      <Field n="节点图片">
+                      <Field n="景点图片">
+                        <small className="field-location-help">显示位置：路线详情弹窗左侧图库</small>
                         <ImageChooser
                           value={activeNode.image || ""}
                           images={[]}
@@ -1547,6 +1585,7 @@ function guessNodeType(name: string) {
 function publishChecks(d: ServiceItem, isCar: boolean) {
   const visibleRoutes = (d.routes || []).filter((route) => route.visible !== false);
   const visibleVehicles = (d.vehicles || []).filter((vehicle) => vehicle.visible !== false);
+  const routesMissingNodeImages = visibleRoutes.filter((route) => routePlanNodes(route).some((node) => !node.image)).length;
   return [
     { label: "服务名称", ok: Boolean(d.nameZh) },
     { label: "目的地与分类", ok: Boolean(d.city && d.categoryId) },
@@ -1555,17 +1594,18 @@ function publishChecks(d: ServiceItem, isCar: boolean) {
       ? [
           { label: "至少 1 个车型，或允许咨询报价", ok: visibleVehicles.length > 0 || d.priceMode === "咨询报价" },
           { label: "至少 1 条前台显示路线", ok: visibleRoutes.length > 0 },
+          { label: routesMissingNodeImages ? `${routesMissingNodeImages} 条路线存在未上传图片的节点` : "路线节点图片", ok: routesMissingNodeImages === 0 },
         ]
       : []),
     { label: "咨询字段", ok: Boolean(d.inquiryFields.length) },
   ];
 }
 
-function ServiceCardPreview({ data, category }: { data: ServiceItem; category?: ServiceCategory }) {
+function ServiceCardPreview({ data, category, frontendHref }: { data: ServiceItem; category?: ServiceCategory; frontendHref: string }) {
   const descriptionZh = [data.city && `${data.city} · ${category?.nameZh || data.category}`, data.subtitleZh || data.introZh].filter(Boolean).join("\n");
   return (
     <div className="typed-preview">
-      <small>服务卡片预览</small>
+      <div className="typed-preview-heading"><small>前台效果预览</small><a href={frontendHref} target="_blank" rel="noreferrer">查看完整页面 ↗</a></div>
       <LocalServiceOfferCard
         data={{
           title: [data.nameZh, data.nameEn || data.nameZh],
