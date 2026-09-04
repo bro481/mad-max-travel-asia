@@ -1970,10 +1970,11 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .private-route-grid button{margin-top:8px;padding:0;border:0;background:transparent;color:#b4763c;font-weight:800;font-size:10px;cursor:pointer}
 .private-route-empty{padding:18px;border:1px dashed #e6d7c7;border-radius:13px;background:#fff;color:#7a858d}
 .private-route-detail-modal .modal-gallery{min-height:560px}
-.private-route-detail-modal .modal-gallery>.gallery-carousel{height:100%}
+.private-route-detail-modal .modal-gallery>.gallery-carousel{display:block;height:100%;margin-top:0}
 .private-route-detail-modal .modal-gallery .gallery-stage{height:100%}
-.private-route-detail-modal .modal-gallery .gallery-stage>img{border-radius:14px}
+.private-route-detail-modal .modal-gallery .gallery-stage>img{display:block;height:100%;width:100%;border-radius:14px}
 .private-route-detail-modal .modal-gallery .gallery-stage>img{object-fit:cover;object-position:center}
+.private-route-detail-modal .modal-gallery .gallery-thumbnails img{height:100%;width:100%}
 .private-route-detail-modal .modal-gallery .gallery-thumbnails{bottom:18px}
 .private-route-detail-modal .modal-gallery .gallery-count{bottom:86px}
 .private-route-timeline>div{grid-template-columns:50px 10px 1fr 66px}
