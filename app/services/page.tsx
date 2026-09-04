@@ -1,9 +1,51 @@
 import { ServicesPage } from "./services-page";
+import { unstable_cache } from "next/cache";
 import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
 import type { ServiceItem } from "../../db/service-items";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs = 8000) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("Public services query timed out")), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+const loadPublicServices = unstable_cache(
+  async () => {
+    const { listServices, staticServiceCategories } = await import("../../db/services");
+    const { listDestinations, staticDestinations } = await import("../../db/destinations");
+    const { listServiceItems } = await import("../../db/service-items");
+    const [servicesResult, destinationsResult, managedResult] = await Promise.allSettled([
+      withTimeout(listServices()),
+      withTimeout(listDestinations(true)),
+      withTimeout(listServiceItems()),
+    ]);
+    return {
+      services:
+        servicesResult.status === "fulfilled"
+          ? servicesResult.value
+          : staticServiceCategories(),
+      destinationSettings:
+        destinationsResult.status === "fulfilled"
+          ? destinationsResult.value
+          : staticDestinations,
+      managed:
+        managedResult.status === "fulfilled" ? managedResult.value : [],
+    } satisfies {
+      services: ServiceCategory[];
+      destinationSettings: DestinationRecord[];
+      managed: ServiceItem[];
+    };
+  },
+  ["public-services-page-data"],
+  { revalidate: 300 },
+);
 
 export default async function Page() {
   if (process.env.NODE_ENV === "development") {
@@ -18,18 +60,6 @@ export default async function Page() {
     return <ServicesPage services={staticServiceCategories()} managed={[]} destinationSettings={staticDestinations} />;
   }
 
-  let services: ServiceCategory[] = [];
-  let managed: ServiceItem[] = [];
-  const { listServices, staticServiceCategories } = await import("../../db/services");
-  const { listDestinations, staticDestinations } = await import("../../db/destinations");
-  const { listServiceItems } = await import("../../db/service-items");
-  const [servicesResult, destinationsResult, managedResult] = await Promise.allSettled([
-    listServices(),
-    listDestinations(true),
-    listServiceItems(),
-  ]);
-  services = servicesResult.status === "fulfilled" ? servicesResult.value : staticServiceCategories();
-  const destinationSettings: DestinationRecord[] = destinationsResult.status === "fulfilled" ? destinationsResult.value : staticDestinations;
-  managed = managedResult.status === "fulfilled" ? managedResult.value : [];
+  const { services, managed, destinationSettings } = await loadPublicServices();
   return <ServicesPage services={services} managed={managed} destinationSettings={destinationSettings} />;
 }
