@@ -597,6 +597,7 @@
 .route-image-preview img{height:100%;object-fit:cover;width:100%}
 .route-image-upload{align-items:center;background:#fff;border:1px dashed #b9c8c3;border-radius:9px;color:var(--a-green);cursor:pointer;display:flex!important;font-weight:800;justify-content:center;padding:10px}
 .route-image-upload input{display:none}
+.route-upload-progress{margin-top:10px}.route-upload-progress>div{height:8px;overflow:hidden;border-radius:999px;background:#dfe8e5}.route-upload-progress>div span{display:block;height:100%;border-radius:inherit;background:var(--a-green);transition:width .18s ease}.route-upload-progress p{margin:7px 0 0;color:var(--a-green);font-size:12px;font-weight:700}.route-upload-progress.failed>div span{background:#b7574f}.route-upload-progress.failed p{color:#a4453e}
 .route-gallery-picks{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .route-gallery-picks button{background:#fff;border:2px solid transparent;border-radius:9px;cursor:pointer;flex:0 0 74px;height:58px;overflow:hidden;padding:0}
 .route-gallery-picks button.active{border-color:#d2a167}

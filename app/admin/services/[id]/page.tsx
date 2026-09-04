@@ -32,6 +32,9 @@ export default function ServiceEditor() {
   const [tab, setTab] = useState(0);
   const [loadError, setLoadError] = useState("");
   const [notice, setNotice] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [uploadFailed, setUploadFailed] = useState(false);
   const [dragServiceImageIndex, setDragServiceImageIndex] = useState<number | null>(null);
   const [publishReviewOpen, setPublishReviewOpen] = useState(false);
 
@@ -160,26 +163,60 @@ export default function ServiceEditor() {
 
   const upload = async (files: FileList | null, onUrls?: (urls: string[]) => void) => {
     if (!files?.length) return;
-    const form = new FormData();
-    [...files].slice(0, 50).forEach((x) => form.append("files", x));
     setNotice("图片上传中…");
+    setUploadProgress(0);
+    setUploadMessage("正在检查并优化图片…");
+    setUploadFailed(false);
+    const form = new FormData();
     try {
-      const r = await fetch("/api/admin/uploads", { method: "POST", body: form });
-      const text = await r.text();
-      const x = text ? JSON.parse(text) : { urls: [] };
-      if (r.ok) {
-        if (onUrls) {
-          onUrls(x.urls);
-        } else {
-          set("images", [...d.images, ...x.urls]);
-        }
-        setNotice(`已上传 ${x.urls.length} 张图片`);
-      } else {
-        setNotice(x?.error || "图片上传失败");
-      }
+      const prepared = await Promise.all([...files].slice(0, 50).map(prepareAdminImage));
+      prepared.forEach((file) => form.append("files", file));
     } catch (error) {
-      setNotice(`图片上传失败：${error instanceof Error ? error.message : "请求没有返回"}`);
+      const message = `图片处理失败：${error instanceof Error ? error.message : "无法读取图片"}`;
+      setNotice(message);
+      setUploadMessage(message);
+      setUploadFailed(true);
+      return;
     }
+    await new Promise<void>((resolve) => {
+      const request = new XMLHttpRequest();
+      request.open("POST", "/api/admin/uploads");
+      request.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
+        const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+        setUploadProgress(percent);
+        setUploadMessage(percent >= 100 ? "图片已传完，服务器正在保存…" : `正在上传 ${percent}%`);
+      };
+      request.onerror = () => {
+        const message = "图片上传失败：网络连接中断，请重试";
+        setNotice(message);
+        setUploadMessage(message);
+        setUploadFailed(true);
+        resolve();
+      };
+      request.onload = () => {
+        let result: { urls?: string[]; error?: string } = {};
+        try {
+          result = request.responseText ? JSON.parse(request.responseText) : {};
+        } catch {}
+        if (request.status >= 200 && request.status < 300 && result.urls?.length) {
+          if (onUrls) onUrls(result.urls);
+          else set("images", [...d.images, ...result.urls]);
+          const message = `✓ 已上传 ${result.urls.length} 张图片，请保存路线`;
+          setNotice(message);
+          setUploadProgress(100);
+          setUploadMessage(message);
+          setUploadFailed(false);
+        } else {
+          const message = result.error || `图片上传失败（${request.status || "服务器无响应"}）`;
+          setNotice(message);
+          setUploadMessage(message);
+          setUploadFailed(true);
+        }
+        resolve();
+      };
+      request.send(form);
+    });
   };
 
   const checks = publishChecks(d, isCar);
@@ -435,6 +472,9 @@ export default function ServiceEditor() {
                 items={d.routes}
                 service={d}
                 frontendHref={frontendHref}
+                uploadProgress={uploadProgress}
+                uploadMessage={uploadMessage}
+                uploadFailed={uploadFailed}
                 onUpload={(files, done) => upload(files, done)}
                 onChange={(x) => set("routes", x)}
               />
@@ -971,12 +1011,18 @@ function RoutePlansEditor({
   items,
   service,
   frontendHref,
+  uploadProgress,
+  uploadMessage,
+  uploadFailed,
   onUpload,
   onChange,
 }: {
   items: ServiceRoutePlan[];
   service: ServiceItem;
   frontendHref: string;
+  uploadProgress: number | null;
+  uploadMessage: string;
+  uploadFailed: boolean;
   onUpload: (files: FileList | null, done: (urls: string[]) => void) => void;
   onChange: (x: ServiceRoutePlan[]) => void;
 }) {
@@ -1329,6 +1375,9 @@ function RoutePlansEditor({
                       <ImageChooser
                         value={activeRoute.coverImage || activeRoute.image || ""}
                         images={[]}
+                        uploadProgress={uploadProgress}
+                        uploadMessage={uploadMessage}
+                        uploadFailed={uploadFailed}
                         onUpload={(files) =>
                           onUpload(files, (urls) => update(editingRouteIndex, { coverImage: urls[0] || activeRoute.coverImage || activeRoute.image }))
                         }
@@ -1483,6 +1532,9 @@ function RoutePlansEditor({
                         <ImageChooser
                           value={activeNode.image || ""}
                           images={[]}
+                          uploadProgress={uploadProgress}
+                          uploadMessage={uploadMessage}
+                          uploadFailed={uploadFailed}
                           onUpload={(files) =>
                             onUpload(files, (urls) =>
                               updateNode(editingRouteIndex, editingNodeIndex, { image: urls[0] || activeNode.image }),
@@ -1519,14 +1571,47 @@ function RoutePlansEditor({
   );
 }
 
+async function prepareAdminImage(file: File) {
+  const directUploadLimit = 3.8 * 1024 * 1024;
+  if (file.size <= directUploadLimit) return file;
+  if (!file.type.startsWith("image/")) throw new Error(`${file.name} 不是有效图片`);
+
+  const bitmap = await createImageBitmap(file);
+  const maxSide = 2400;
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) {
+    bitmap.close();
+    throw new Error("浏览器无法处理这张图片");
+  }
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+  if (!blob) throw new Error(`${file.name} 压缩失败`);
+  if (blob.size > directUploadLimit) throw new Error(`${file.name} 处理后仍然过大，请先缩小图片`);
+  return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", {
+    type: "image/jpeg",
+    lastModified: file.lastModified,
+  });
+}
+
 function ImageChooser({
   value,
   images,
+  uploadProgress = null,
+  uploadMessage = "",
+  uploadFailed = false,
   onUpload,
   onChange,
 }: {
   value: string;
   images: string[];
+  uploadProgress?: number | null;
+  uploadMessage?: string;
+  uploadFailed?: boolean;
   onUpload: (files: FileList | null) => void;
   onChange: (url: string) => void;
 }) {
@@ -1534,9 +1619,22 @@ function ImageChooser({
     <div className="route-image-chooser">
       <div className="route-image-preview">{value ? <img src={value} alt="" /> : <span>未选择图片</span>}</div>
       <label className="route-image-upload">
-        上传图片
-        <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files)} />
+        {uploadProgress !== null && uploadProgress < 100 && !uploadFailed ? "上传中…" : "上传图片"}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          onChange={(e) => {
+            onUpload(e.target.files);
+            e.currentTarget.value = "";
+          }}
+        />
       </label>
+      {uploadProgress !== null ? (
+        <div className={`route-upload-progress${uploadFailed ? " failed" : ""}`} role="status" aria-live="polite">
+          <div><span style={{ width: `${uploadProgress}%` }} /></div>
+          <p>{uploadMessage}</p>
+        </div>
+      ) : null}
       {images.length ? (
         <div className="route-gallery-picks">
           {images.slice(0, 8).map((image, index) => (
