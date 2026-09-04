@@ -1,11 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { InquiryModal } from "../../components/inquiry-modal";
-import {
-  PrivateRouteDetailModal,
-  type PrivateRouteDetailData,
-} from "../../components/private-route-detail-modal";
-import { PrivateRoutePlanCard } from "../../components/private-route-plan-card";
+import { PrivateRouteCard } from "../../components/private-route-card";
 import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem, ServiceRouteNode, ServiceRoutePlan } from "../../../db/service-items";
 import { ServiceMenu } from "../../service-menu";
@@ -259,6 +255,8 @@ export function ServiceDetail({
   const [lang, setLang] = useState<Lang>("zh"),
     [selected, setSelected] = useState<Route | null>(null),
     [inquiryTitle, setInquiryTitle] = useState<string | null>(null),
+    [stopIndex, setStopIndex] = useState(0),
+    [stopPhotoIndex, setStopPhotoIndex] = useState(0),
     [menu, setMenu] = useState(false);
   const zh = lang === "zh",
     l = zh ? 0 : 1;
@@ -905,21 +903,34 @@ export function ServiceDetail({
       route.title = [plans[index].nameZh || plans[index].name || item.nameZh, plans[index].nameEn || plans[index].nameZh || plans[index].name || item.nameEn || item.nameZh];
       route.summary = [plans[index].descriptionZh || plans[index].description || item.subtitleZh, plans[index].descriptionEn || plans[index].descriptionZh || plans[index].description || item.subtitleEn || item.subtitleZh];
     }
+    setStopIndex(0);
+    setStopPhotoIndex(0);
     setSelected(route);
   }, [previewService, previewRoute]);
-  const toRouteDetail = (route: Route): PrivateRouteDetailData => ({
-    title: route.title,
-    desc: route.summary,
-    duration: route.duration,
-    tags: route.tags,
-    image: route.image,
-    stops: route.stops.map((stop) => ({
-      title: stop.title,
-      note: stop.note,
-      time: stop.time,
-      image: stop.image || stop.images?.[0] || "",
-    })),
-  });
+  const modalStops = selected
+    ? selected.stops.map((stop) => ({
+        ...stop,
+        image: stop.image || stop.images?.[0] || selected.image,
+        images:
+          stop.images && stop.images.length
+            ? stop.images
+            : [stop.image || selected.image],
+      }))
+    : [];
+  const activeStop = modalStops[stopIndex] || modalStops[0];
+  const activeStopImages = activeStop?.images?.length
+    ? activeStop.images
+    : [activeStop?.image || selected?.image || ""].filter(Boolean);
+  const activeImage =
+    activeStopImages[stopPhotoIndex] ||
+    activeStopImages[0] ||
+    activeStop?.image ||
+    selected?.image;
+  const modalStopCount = modalStops.length || 1;
+  const moveModalStop = (step: number) => {
+    setStopIndex((current) => (current + step + modalStopCount) % modalStopCount);
+    setStopPhotoIndex(0);
+  };
   return (
     <>
       <header>
@@ -984,12 +995,16 @@ export function ServiceDetail({
                 : activeManagedService?.routeSectionIntroEn || activeManagedService?.routeSectionIntroZh || "These routes are examples and can be adjusted around your time and interests."}
             </p>
           </div>
-          <div className="route-grid private-route-grid">
+          <div className="route-grid">
             {displayRoutes.map((route) => (
-              <PrivateRoutePlanCard
-                route={toRouteDetail(route)}
+              <PrivateRouteCard
+                route={route}
                 lang={lang}
-                onOpen={() => setSelected(route)}
+                onOpen={() => {
+                  setStopIndex(0);
+                  setStopPhotoIndex(0);
+                  setSelected(route);
+                }}
                 key={route.title[0]}
               />
             ))}
@@ -1055,12 +1070,113 @@ export function ServiceDetail({
         </section>
       </main>
       {selected && (
-        <PrivateRouteDetailModal
-          route={toRouteDetail(selected)}
-          lang={lang}
-          onClose={() => setSelected(null)}
-          onInquire={() => setInquiryTitle(selected.title[0])}
-        />
+        <div
+          className="route-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={selected.title[l]}
+          onClick={() => setSelected(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelected(null)}>
+              ×
+            </button>
+            <div className="modal-gallery">
+              <div className="modal-gallery-main">
+                <img
+                  src={activeImage || selected.image}
+                  alt={activeStop?.title[l] || selected.title[l]}
+                />
+                <button
+                  onClick={() => moveModalStop(-1)}
+                  disabled={modalStopCount <= 1}
+                  aria-label={zh ? "上一张图片" : "Previous photo"}
+                >
+                  ‹
+                </button>
+                <button
+                  onClick={() => moveModalStop(1)}
+                  disabled={modalStopCount <= 1}
+                  aria-label={zh ? "下一张图片" : "Next photo"}
+                >
+                  ›
+                </button>
+                <span>
+                  {stopIndex + 1}/{modalStopCount}
+                </span>
+              </div>
+              <div className="modal-gallery-thumbs">
+                {modalStops.map((stop, i) => (
+                  <button
+                    className={i === stopIndex ? "active" : ""}
+                    onClick={() => {
+                      setStopIndex(i);
+                      setStopPhotoIndex(0);
+                    }}
+                    key={`${stop.title[0]}-${i}`}
+                  >
+                    <img
+                      src={stop.image || stop.images?.[0] || selected.image}
+                      alt=""
+                    />
+                    <span>{stop.title[l]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="modal-route">
+              <p className="eyebrow">MAD MAX · PRIVATE ROUTE</p>
+              <h2>{selected.title[l]}</h2>
+              <div className="modal-tags">
+                <span>{selected.duration[l]}</span>
+                <span>{zh ? "私人包车" : "Private car"}</span>
+                <span>{zh ? "行程可调整" : "Flexible route"}</span>
+              </div>
+              <p className="modal-itinerary-title">
+                {zh
+                  ? `建议行程 · ${selected.duration[0]}`
+                  : `Suggested route · ${selected.duration[1]}`}
+              </p>
+              <div className="timeline">
+                {modalStops.map((stop, i) => (
+                  <button
+                    type="button"
+                    className={i === stopIndex ? "active" : ""}
+                    onClick={() => {
+                      setStopIndex(i);
+                      setStopPhotoIndex(0);
+                    }}
+                    key={`${stop.title[0]}-${i}`}
+                  >
+                    <time>{String(i + 1).padStart(2, "0")}</time>
+                    <i />
+                    <p>
+                      <b>{stop.title[l]}</b>
+                      <small>{stop.note[l]}</small>
+                    </p>
+                  </button>
+                ))}
+              </div>
+              <p className="modal-flex-note">
+                {zh
+                  ? "行程顺序及停留时间可根据当天情况与个人喜好灵活调整。"
+                  : "Route order and time at each stop can be adjusted around the day and your preferences."}
+              </p>
+              <p className="modal-best-for">
+                <b>{zh ? "适合" : "Best for"}</b>
+                <span>
+                  {selected.bestFor?.[l] ||
+                    (zh
+                      ? "家庭出行 / 自由安排 / 想轻松看多个景点"
+                      : "Families / Flexible plans / Seeing several highlights comfortably")}
+                </span>
+              </p>
+              <button className="button" type="button" onClick={() => setInquiryTitle(selected.title[0])}>
+                {zh ? "咨询这条路线" : "Ask about this route"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {inquiryTitle && <InquiryModal kind="private-charter" title={inquiryTitle} onClose={() => setInquiryTitle(null)} />}
     </>
