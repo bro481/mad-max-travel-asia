@@ -1058,6 +1058,7 @@ function RoutePlansEditor({
   const [routeTab, setRouteTab] = useState<"basic" | "nodes">("basic");
   const [tagDraft, setTagDraft] = useState("");
   const [editingNodeIndex, setEditingNodeIndex] = useState<number | null>(null);
+  const [imageLibraryOpen, setImageLibraryOpen] = useState(false);
   const [dragRouteIndex, setDragRouteIndex] = useState<number | null>(null);
   const [dragNodeIndex, setDragNodeIndex] = useState<number | null>(null);
   const [routePreview, setRoutePreview] = useState<{ focusStopIndex: number | null } | null>(null);
@@ -1083,12 +1084,14 @@ function RoutePlansEditor({
     setRoutePreview(null);
     setEditingRouteIndex(null);
     setEditingNodeIndex(null);
+    setImageLibraryOpen(false);
     setRouteTab("basic");
   };
   const openRouteEditor = (index: number, tab: "basic" | "nodes" = "basic", nodeIndex: number | null = null) => {
     setEditingRouteIndex(index);
     setRouteTab(tab);
     setEditingNodeIndex(nodeIndex);
+    setImageLibraryOpen(false);
     setTagDraft("");
   };
   const cleanRouteTags = (route: ServiceRoutePlan) =>
@@ -1448,36 +1451,42 @@ function RoutePlansEditor({
                       <button onClick={() => addNode(editingRouteIndex)}>＋ 添加节点</button>
                     </div>
                   </div>
-                  <div className="route-node-image-library">
+                  <div className={`route-node-image-library${imageLibraryOpen ? " open" : " collapsed"}`}>
                     <div className="route-node-library-head">
                       <div>
                         <h5>本路线图片库</h5>
-                        <p>一次上传多张；先选中下方节点，再点图片即可对应进去。</p>
+                        <p>{routeImageLibrary.length ? `已有 ${routeImageLibrary.length} 张图片 · 先选节点，再点图片分配` : "可一次选择多张上传"}</p>
                       </div>
-                      <label className="route-batch-upload">
-                        {uploadProgress !== null && uploadProgress < 100 && !uploadFailed ? "批量上传中…" : "＋ 批量上传图片"}
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/jpeg,image/png,image/webp,image/avif"
-                          onChange={(event) => {
-                            onUpload(event.target.files, (urls) => {
-                              update(editingRouteIndex, {
-                                imageLibrary: Array.from(new Set([...(activeRoute.imageLibrary || []), ...urls])),
+                      <div className="route-node-library-actions">
+                        <button type="button" className="route-library-toggle" onClick={() => setImageLibraryOpen((open) => !open)}>
+                          {imageLibraryOpen ? "收起图库" : `展开图库${routeImageLibrary.length ? `（${routeImageLibrary.length}）` : ""}`}
+                        </button>
+                        <label className="route-batch-upload">
+                          {uploadProgress !== null && uploadProgress < 100 && !uploadFailed ? "批量上传中…" : "＋ 批量上传"}
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/jpeg,image/png,image/webp,image/avif"
+                            onChange={(event) => {
+                              setImageLibraryOpen(true);
+                              onUpload(event.target.files, (urls) => {
+                                update(editingRouteIndex, {
+                                  imageLibrary: Array.from(new Set([...(activeRoute.imageLibrary || []), ...urls])),
+                                });
                               });
-                            });
-                            event.currentTarget.value = "";
-                          }}
-                        />
-                      </label>
+                              event.currentTarget.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
                     </div>
-                    {uploadProgress !== null ? (
+                    {imageLibraryOpen && uploadProgress !== null ? (
                       <div className={`route-upload-progress${uploadFailed ? " failed" : ""}`} role="status" aria-live="polite">
                         <div><span style={{ width: `${uploadProgress}%` }} /></div>
                         <p>{uploadMessage}</p>
                       </div>
                     ) : null}
-                    {routeImageLibrary.length ? (
+                    {imageLibraryOpen && routeImageLibrary.length ? (
                       <div className="route-node-library-grid">
                         {routeImageLibrary.map((image, imageIndex) => {
                           const assignedNode = activeNodes.findIndex((node) => node.image === image);
@@ -1498,7 +1507,7 @@ function RoutePlansEditor({
                           );
                         })}
                       </div>
-                    ) : <p className="route-node-library-empty">还没有批量图片，可一次选择多张上传。</p>}
+                    ) : imageLibraryOpen ? <p className="route-node-library-empty">还没有批量图片，可一次选择多张上传。</p> : null}
                   </div>
                   <div className="route-node-list compact">
                     {activeNodes.map((node, nodeIndex) => (
