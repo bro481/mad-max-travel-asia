@@ -5,6 +5,7 @@ import {
   defaultInquirySettings,
 } from "../../../../db/site-settings";
 import { readSiteSetting, writeSiteSetting } from "../../../../db/site-settings-store";
+import { revalidatePublicContent } from "../../../../lib/revalidate-public-content";
 
 const defaults = { about: defaultAboutSettings, inquiry: defaultInquirySettings };
 
@@ -26,6 +27,7 @@ export async function PUT(request: Request) {
   try {
     const value = await request.json();
     await writeSiteSetting(key, value);
+    revalidatePublicContent("settings");
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Failed to save site settings", error);

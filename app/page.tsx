@@ -2,7 +2,7 @@ import { HomePage } from "./home-page";
 import type { Room } from "./data";
 import type { DestinationRecord } from "../db/destinations";
 
-export const dynamic="force-dynamic";
+export const revalidate = 300;
 export default async function Page() {
   if (
     process.env.LOCAL_BROWSER_PREVIEW === "1" ||

@@ -3,7 +3,7 @@ import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
 import type { ServiceItem } from "../../db/service-items";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function Page() {
   if (process.env.NODE_ENV === "development") {

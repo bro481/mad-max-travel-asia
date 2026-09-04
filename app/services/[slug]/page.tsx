@@ -3,7 +3,7 @@ import { ServiceDetail } from "./service-detail";
 import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem } from "../../../db/service-items";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const staticServices: ServiceCategory[] = [
   {

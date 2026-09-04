@@ -1148,6 +1148,8 @@ export function ServicesPage({
             srcSet="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=760&q=76 760w, https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=82 1200w, https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1900&q=88 1900w"
             sizes="100vw"
             alt="Malaysia coastal journey"
+            fetchPriority="high"
+            decoding="async"
           />
           <div>
             <p className="eyebrow">{t.eyebrow}</p>

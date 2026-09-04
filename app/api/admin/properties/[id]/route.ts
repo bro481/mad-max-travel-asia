@@ -21,6 +21,7 @@ import {
   listLocalDestinations,
   useLocalDestinations,
 } from "../../destinations/local-dev-store";
+import { revalidatePublicContent } from "../../../../../lib/revalidate-public-content";
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -116,6 +117,7 @@ export async function PUT(
   const b = (await request.json()) as Record<string, unknown>;
   if (useLocalProperties()) {
     updateLocalProperty(Number(id), b as PropertyRecord);
+    revalidatePublicContent("properties");
     return NextResponse.json({ ok: true });
   }
 
@@ -155,6 +157,7 @@ export async function PUT(
         Number(id),
       )
       .run();
+    revalidatePublicContent("properties");
     return NextResponse.json({ ok: true });
   } catch (error) {
     return dbError(error);
@@ -170,12 +173,14 @@ export async function DELETE(
   const { id } = await params;
   if (useLocalProperties()) {
     deleteLocalProperty(Number(id));
+    revalidatePublicContent("properties");
     return NextResponse.json({ ok: true });
   }
   try {
     await env.DB.prepare("DELETE FROM properties WHERE id=?")
       .bind(Number(id))
       .run();
+    revalidatePublicContent("properties");
     return NextResponse.json({ ok: true });
   } catch (error) {
     return dbError(error);

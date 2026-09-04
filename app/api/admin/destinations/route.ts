@@ -18,6 +18,7 @@ import {
   listLocalDestinations,
   useLocalDestinations,
 } from "./local-dev-store";
+import { revalidatePublicContent } from "../../../../lib/revalidate-public-content";
 
 export type DestinationWithCounts = DestinationRecord & {
   propertyCount: number;
@@ -97,8 +98,10 @@ export async function POST(request: Request) {
   const body = await request.json();
   if (useLocalDestinations()) {
     const item = createLocalDestination(body);
+    revalidatePublicContent("destinations");
     return NextResponse.json(item, { status: 201 });
   }
   const result = await createDestination(body);
+  revalidatePublicContent("destinations");
   return NextResponse.json(result, { status: 201 });
 }

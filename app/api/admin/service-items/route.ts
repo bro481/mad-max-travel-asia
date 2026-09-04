@@ -12,6 +12,7 @@ import {
   listLocalServiceItems,
   useLocalServiceItems,
 } from "./local-dev-store";
+import { revalidatePublicContent } from "../../../../lib/revalidate-public-content";
 
 function databaseWriteError(error: unknown) {
   console.error("Failed to write service item to database", error);
@@ -47,6 +48,7 @@ export async function POST(r: Request) {
   if (useLocalServiceItems()) {
     const destination = staticDestinations.find((item) => item.id === destinationId);
     const item = createLocalServiceItem({ ...b, destinationId, city: destination?.nameZh || b.city });
+    revalidatePublicContent("services");
     return NextResponse.json({ id: item.id, slug: item.slug }, { status: 201 });
   }
   try {
@@ -123,6 +125,7 @@ export async function POST(r: Request) {
         "draft",
       )
       .run();
+    revalidatePublicContent("services");
     return NextResponse.json({ id: x.meta.last_row_id, slug }, { status: 201 });
   } catch (error) {
     return databaseWriteError(error);

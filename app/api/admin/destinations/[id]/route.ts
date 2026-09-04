@@ -12,6 +12,7 @@ import {
   updateLocalDestination,
   useLocalDestinations,
 } from "../local-dev-store";
+import { revalidatePublicContent } from "../../../../../lib/revalidate-public-content";
 
 async function associationCounts(nameZh: string) {
   if (useLocalProperties() || useLocalServiceItems()) {
@@ -35,10 +36,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (useLocalDestinations()) {
     const item = updateLocalDestination(Number(id), body);
     if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    revalidatePublicContent("destinations");
     return NextResponse.json(item);
   }
   const item = await updateDestination(Number(id), body);
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  revalidatePublicContent("destinations");
   return NextResponse.json(item);
 }
 
@@ -64,5 +67,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
   if (useLocalDestinations()) deleteLocalDestination(Number(id));
   else await deleteDestination(Number(id));
+  revalidatePublicContent("destinations");
   return NextResponse.json({ ok: true });
 }

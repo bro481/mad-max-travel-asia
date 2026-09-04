@@ -29,9 +29,11 @@ export async function GET(request: Request) {
   let properties: Awaited<ReturnType<typeof listProperties>>;
   let services: Awaited<ReturnType<typeof listServiceItems>>;
   try {
-    destinations = useLocalDestinations() ? listLocalDestinations() : await listDestinations(true);
-    properties = useLocalProperties() ? listLocalProperties() : await listProperties();
-    services = useLocalServiceItems() ? listLocalServiceItems() : await listServiceItems();
+    [destinations, properties, services] = await Promise.all([
+      useLocalDestinations() ? Promise.resolve(listLocalDestinations()) : listDestinations(true),
+      useLocalProperties() ? Promise.resolve(listLocalProperties()) : listProperties(),
+      useLocalServiceItems() ? Promise.resolve(listLocalServiceItems()) : listServiceItems(),
+    ]);
   } catch (error) {
     console.error("Failed to load destination filters from database", error);
     destinations = staticDestinations;
@@ -40,5 +42,7 @@ export async function GET(request: Request) {
   }
   const propertyCities = properties.filter((item) => item.status === "published").map((item) => item.city);
   const serviceCities = services.filter((item) => item.status === "published").map((item) => item.city);
-  return NextResponse.json(filterDestinations(destinations, surface, propertyCities, serviceCities));
+  return NextResponse.json(filterDestinations(destinations, surface, propertyCities, serviceCities), {
+    headers: { "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=86400" },
+  });
 }

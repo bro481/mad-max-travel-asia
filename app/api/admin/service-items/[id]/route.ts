@@ -13,6 +13,7 @@ import {
   updateLocalServiceItem,
   useLocalServiceItems,
 } from "../local-dev-store";
+import { revalidatePublicContent } from "../../../../../lib/revalidate-public-content";
 
 function dbError(error: unknown) {
   console.error("Admin service item database operation failed", error);
@@ -78,6 +79,7 @@ export async function PUT(
     if (!current)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     updateLocalServiceItem(current.id, b);
+    revalidatePublicContent("services");
     return NextResponse.json({ ok: true });
   }
   try {
@@ -136,6 +138,7 @@ export async function PUT(
         current.id,
       )
       .run();
+    revalidatePublicContent("services");
     return NextResponse.json({ ok: true });
   } catch (error) {
     return dbError(error);

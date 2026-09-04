@@ -671,6 +671,8 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
             srcSet="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=760&q=76 760w, https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1200&q=82 1200w, https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1800&q=88 1800w"
             sizes="100vw"
             alt="Warm Malaysian apartment"
+            fetchPriority="high"
+            decoding="async"
           />
           <div className="hero-copy">
             <p className="eyebrow">{t.heroTag}</p>
@@ -803,7 +805,7 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
             {services.map((s, i) => (
               <article className="service-card" key={s.name.en}>
                 <div className="service-image">
-                  <img src={s.image} alt={s.name[lang]} />
+                  <img src={s.image} alt={s.name[lang]} loading="lazy" decoding="async" />
                   <span>{["✈", "↗", "≈", "◎"][i]}</span>
                 </div>
                 <div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { RoomDetail } from "./room-detail";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateStaticParams() {
   const { rooms } = await import("../../data");

@@ -13,6 +13,7 @@ import {
 } from "./local-dev-store";
 import { listDestinations, staticDestinations } from "../../../../db/destinations";
 import { listLocalDestinations, useLocalDestinations } from "../destinations/local-dev-store";
+import { revalidatePublicContent } from "../../../../lib/revalidate-public-content";
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -101,6 +102,7 @@ export async function POST(request: Request) {
   const b = (await request.json()) as Record<string, unknown>;
   if (useLocalProperties()) {
     const item = createLocalProperty(b);
+    revalidatePublicContent("properties");
     return NextResponse.json({ id: item.id, slug: item.slug }, { status: 201 });
   }
   try {
@@ -129,6 +131,7 @@ export async function POST(request: Request) {
         "draft",
       )
       .run();
+    revalidatePublicContent("properties");
     return NextResponse.json(
       { id: result.meta.last_row_id, slug },
       { status: 201 },
