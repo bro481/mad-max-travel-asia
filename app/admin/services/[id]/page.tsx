@@ -163,14 +163,14 @@ export default function ServiceEditor() {
 
   const upload = async (files: FileList | null, onUrls?: (urls: string[]) => void) => {
     if (!files?.length) return;
+    const selected = [...files].slice(0, 30);
     setNotice("图片上传中…");
     setUploadProgress(0);
-    setUploadMessage("正在检查并优化图片…");
+    setUploadMessage(`正在检查并优化 ${selected.length} 张图片…`);
     setUploadFailed(false);
-    const form = new FormData();
+    let prepared: File[];
     try {
-      const prepared = await Promise.all([...files].slice(0, 50).map(prepareAdminImage));
-      prepared.forEach((file) => form.append("files", file));
+      prepared = await Promise.all(selected.map(prepareAdminImage));
     } catch (error) {
       const message = `图片处理失败：${error instanceof Error ? error.message : "无法读取图片"}`;
       setNotice(message);
@@ -178,45 +178,71 @@ export default function ServiceEditor() {
       setUploadFailed(true);
       return;
     }
-    await new Promise<void>((resolve) => {
+    const loaded = prepared.map(() => 0);
+    const totalBytes = prepared.reduce((sum, file) => sum + file.size, 0) || 1;
+    let finished = 0;
+    const uploadOne = (file: File, index: number) => new Promise<string>((resolve, reject) => {
+      const form = new FormData();
+      form.append("files", file);
       const request = new XMLHttpRequest();
       request.open("POST", "/api/admin/uploads");
       request.upload.onprogress = (event) => {
         if (!event.lengthComputable) return;
-        const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+        loaded[index] = event.loaded;
+        const percent = Math.min(99, Math.round((loaded.reduce((sum, value) => sum + value, 0) / totalBytes) * 100));
         setUploadProgress(percent);
-        setUploadMessage(percent >= 100 ? "图片已传完，服务器正在保存…" : `正在上传 ${percent}%`);
+        setUploadMessage(`正在上传 ${finished}/${prepared.length} 张 · ${percent}%`);
       };
-      request.onerror = () => {
-        const message = "图片上传失败：网络连接中断，请重试";
-        setNotice(message);
-        setUploadMessage(message);
-        setUploadFailed(true);
-        resolve();
-      };
+      request.onerror = () => reject(new Error(`${file.name}：网络连接中断`));
       request.onload = () => {
         let result: { urls?: string[]; error?: string } = {};
         try {
           result = request.responseText ? JSON.parse(request.responseText) : {};
         } catch {}
-        if (request.status >= 200 && request.status < 300 && result.urls?.length) {
-          if (onUrls) onUrls(result.urls);
-          else set("images", [...d.images, ...result.urls]);
-          const message = `✓ 已上传 ${result.urls.length} 张图片，请保存路线`;
-          setNotice(message);
-          setUploadProgress(100);
-          setUploadMessage(message);
-          setUploadFailed(false);
+        if (request.status >= 200 && request.status < 300 && result.urls?.[0]) {
+          loaded[index] = file.size;
+          finished += 1;
+          const percent = Math.min(99, Math.round((loaded.reduce((sum, value) => sum + value, 0) / totalBytes) * 100));
+          setUploadProgress(percent);
+          setUploadMessage(`已完成 ${finished}/${prepared.length} 张`);
+          resolve(result.urls[0]);
         } else {
-          const message = result.error || `图片上传失败（${request.status || "服务器无响应"}）`;
-          setNotice(message);
-          setUploadMessage(message);
-          setUploadFailed(true);
+          reject(new Error(result.error || `${file.name}：上传失败（${request.status || "服务器无响应"}）`));
         }
-        resolve();
       };
       request.send(form);
     });
+
+    const urls: string[] = [];
+    const errors: string[] = [];
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < prepared.length) {
+        const index = cursor++;
+        try {
+          urls.push(await uploadOne(prepared[index], index));
+        } catch (error) {
+          errors.push(error instanceof Error ? error.message : `第 ${index + 1} 张上传失败`);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, prepared.length) }, worker));
+    if (urls.length) {
+      if (onUrls) onUrls(urls);
+      else set("images", [...d.images, ...urls]);
+    }
+    setUploadProgress(100);
+    if (errors.length) {
+      const message = `已上传 ${urls.length}/${prepared.length} 张，${errors.length} 张失败：${errors[0]}`;
+      setNotice(message);
+      setUploadMessage(message);
+      setUploadFailed(true);
+    } else {
+      const message = `✓ 已上传 ${urls.length} 张图片，请选择对应节点后保存路线`;
+      setNotice(message);
+      setUploadMessage(message);
+      setUploadFailed(false);
+    }
   };
 
   const checks = publishChecks(d, isCar);
@@ -991,6 +1017,7 @@ function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRout
   const tags = routePlanTags(route);
   const nodes = routePlanNodes(route).map((node) => ({ ...node, type: node.type || guessNodeType(node.nameZh || node.title || "") }));
   const coverImage = route.coverImage || route.image || "";
+  const imageLibrary = Array.from(new Set([...(route.imageLibrary || []), ...nodes.map((node) => node.image || "").filter(Boolean)]));
   return {
     ...route,
     name: route.name || route.nameZh || `路线 ${index + 1}`,
@@ -1004,6 +1031,7 @@ function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRout
     sortOrder: route.sortOrder || index + 1,
     stops: route.stops || nodes.map((node) => node.nameZh || node.title || "").filter(Boolean).join(" · "),
     nodes,
+    imageLibrary,
   };
 }
 
@@ -1048,6 +1076,9 @@ function RoutePlansEditor({
   const activeNodes = activeRoute ? routePlanNodes(activeRoute) : [];
   const activeNode =
     editingNodeIndex === null ? null : activeNodes[Math.min(editingNodeIndex, Math.max(activeNodes.length - 1, 0))] || null;
+  const routeImageLibrary = activeRoute
+    ? Array.from(new Set([...(activeRoute.imageLibrary || []), ...activeNodes.map((node) => node.image || "").filter(Boolean)]))
+    : [];
   const closeRouteEditor = () => {
     setRoutePreview(null);
     setEditingRouteIndex(null);
@@ -1417,6 +1448,58 @@ function RoutePlansEditor({
                       <button onClick={() => addNode(editingRouteIndex)}>＋ 添加节点</button>
                     </div>
                   </div>
+                  <div className="route-node-image-library">
+                    <div className="route-node-library-head">
+                      <div>
+                        <h5>本路线图片库</h5>
+                        <p>一次上传多张；先选中下方节点，再点图片即可对应进去。</p>
+                      </div>
+                      <label className="route-batch-upload">
+                        {uploadProgress !== null && uploadProgress < 100 && !uploadFailed ? "批量上传中…" : "＋ 批量上传图片"}
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/jpeg,image/png,image/webp,image/avif"
+                          onChange={(event) => {
+                            onUpload(event.target.files, (urls) => {
+                              update(editingRouteIndex, {
+                                imageLibrary: Array.from(new Set([...(activeRoute.imageLibrary || []), ...urls])),
+                              });
+                            });
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {uploadProgress !== null ? (
+                      <div className={`route-upload-progress${uploadFailed ? " failed" : ""}`} role="status" aria-live="polite">
+                        <div><span style={{ width: `${uploadProgress}%` }} /></div>
+                        <p>{uploadMessage}</p>
+                      </div>
+                    ) : null}
+                    {routeImageLibrary.length ? (
+                      <div className="route-node-library-grid">
+                        {routeImageLibrary.map((image, imageIndex) => {
+                          const assignedNode = activeNodes.findIndex((node) => node.image === image);
+                          return (
+                            <button
+                              type="button"
+                              className={activeNode?.image === image ? "active" : ""}
+                              disabled={editingNodeIndex === null}
+                              onClick={() => {
+                                if (editingNodeIndex !== null) updateNode(editingRouteIndex, editingNodeIndex, { image });
+                              }}
+                              key={`${image}-${imageIndex}`}
+                              title={editingNodeIndex === null ? "请先选择一个行程节点" : "用于当前节点"}
+                            >
+                              <img src={image} alt="" />
+                              <span>{assignedNode >= 0 ? `已用于 ${String(assignedNode + 1).padStart(2, "0")}` : "点击分配"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : <p className="route-node-library-empty">还没有批量图片，可一次选择多张上传。</p>}
+                  </div>
                   <div className="route-node-list compact">
                     {activeNodes.map((node, nodeIndex) => (
                       <article
@@ -1531,7 +1614,7 @@ function RoutePlansEditor({
                         <small className="field-location-help">显示位置：路线详情弹窗左侧图库</small>
                         <ImageChooser
                           value={activeNode.image || ""}
-                          images={[]}
+                          images={routeImageLibrary}
                           uploadProgress={uploadProgress}
                           uploadMessage={uploadMessage}
                           uploadFailed={uploadFailed}

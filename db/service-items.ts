@@ -80,6 +80,8 @@ export type ServiceRoutePlan = {
   sortOrder?: number;
   stops?: string;
   nodes?: ServiceRouteNode[];
+  /** Uploaded once, then assigned to individual route nodes from the editor. */
+  imageLibrary?: string[];
 };
 const sql = `CREATE TABLE IF NOT EXISTS service_items(id INTEGER PRIMARY KEY AUTOINCREMENT,slug TEXT NOT NULL UNIQUE,type TEXT NOT NULL,city TEXT NOT NULL,category TEXT NOT NULL,name_zh TEXT NOT NULL,name_en TEXT NOT NULL DEFAULT '',subtitle_zh TEXT NOT NULL DEFAULT '',subtitle_en TEXT NOT NULL DEFAULT '',intro_zh TEXT NOT NULL DEFAULT '',intro_en TEXT NOT NULL DEFAULT '',images TEXT NOT NULL DEFAULT '[]',tags TEXT NOT NULL DEFAULT '[]',steps TEXT NOT NULL DEFAULT '[]',routes TEXT NOT NULL DEFAULT '[]',timeline TEXT NOT NULL DEFAULT '[]',inquiry_fields TEXT NOT NULL DEFAULT '[]',price_mode TEXT NOT NULL DEFAULT '咨询报价',price REAL NOT NULL DEFAULT 0,price_unit TEXT NOT NULL DEFAULT '每次',price_note TEXT NOT NULL DEFAULT '',status TEXT NOT NULL DEFAULT 'draft',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`;
 const seeds = [
