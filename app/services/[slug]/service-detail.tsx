@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InquiryModal } from "../../components/inquiry-modal";
 import { PrivateRouteCard } from "../../components/private-route-card";
 import type { ServiceCategory } from "../../../db/services";
@@ -258,6 +258,7 @@ export function ServiceDetail({
     [stopIndex, setStopIndex] = useState(0),
     [stopPhotoIndex, setStopPhotoIndex] = useState(0),
     [menu, setMenu] = useState(false);
+  const modalThumbsRef = useRef<HTMLDivElement>(null);
   const zh = lang === "zh",
     l = zh ? 0 : 1;
   const cityInfo =
@@ -927,6 +928,14 @@ export function ServiceDetail({
     activeStop?.image ||
     selected?.image;
   const modalStopCount = modalStops.length || 1;
+  useEffect(() => {
+    const container = modalThumbsRef.current;
+    if (!selected || !container || !window.matchMedia("(max-width: 700px)").matches) return;
+    const activeThumb = container.children[stopIndex] as HTMLElement | undefined;
+    if (!activeThumb) return;
+    const targetLeft = activeThumb.offsetLeft - (container.clientWidth - activeThumb.offsetWidth) / 2;
+    container.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
+  }, [selected, stopIndex]);
   const moveModalStop = (step: number) => {
     setStopIndex((current) => (current + step + modalStopCount) % modalStopCount);
     setStopPhotoIndex(0);
@@ -1105,7 +1114,7 @@ export function ServiceDetail({
                   {stopIndex + 1}/{modalStopCount}
                 </span>
               </div>
-              <div className="modal-gallery-thumbs">
+              <div className="modal-gallery-thumbs route-stop-thumbs" ref={modalThumbsRef}>
                 {modalStops.map((stop, i) => (
                   <button
                     className={i === stopIndex ? "active" : ""}
