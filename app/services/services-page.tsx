@@ -1152,8 +1152,11 @@ export function ServicesPage({
                           data={{ title: item.title, description: item.desc, tags: item.tags, image: item.image }}
                           lang={lang}
                           onOpen={() => {
-                            if (hasFullPage && !item.serviceId) {
-                              window.location.href = `/services/private-car?city=${place.key}`;
+                            if (hasFullPage) {
+                              const search = new URLSearchParams({ city: place.key });
+                              const serviceQuery = item.serviceSlug || (item.serviceId ? String(item.serviceId) : "");
+                              if (serviceQuery) search.set("service", serviceQuery);
+                              window.location.href = `/services/private-car?${search.toString()}`;
                               return;
                             }
                             setExperienceIndex(0);
