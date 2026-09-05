@@ -2331,21 +2331,33 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 
 /* Final homepage-only mobile override: later legacy rules must not restore the old pale banner. */
 @media(max-width:700px){
-  main>.hero{height:350px;max-height:none;background:#202a31}
-  main>.hero>img{inset:0;width:100%;height:100%;object-position:46% 58%}
-  main>.hero:after{background:linear-gradient(90deg,rgba(20,28,34,.58) 0%,rgba(20,28,34,.31) 47%,rgba(20,28,34,.06) 80%,rgba(20,28,34,0) 100%),linear-gradient(0deg,rgba(16,22,27,.12) 0%,rgba(16,22,27,0) 42%)}
-  main>.hero>.hero-copy{left:24px;right:22px;top:29px;bottom:auto;max-width:330px;color:#fff}
+  main>.hero{height:332px;max-height:none;background:#202a31}
+  main>.hero>img{inset:0;width:100%;height:100%;object-position:43% 58%}
+  main>.hero:after{background:linear-gradient(90deg,rgba(20,28,34,.5) 0%,rgba(20,28,34,.25) 48%,rgba(20,28,34,.04) 80%,rgba(20,28,34,0) 100%),linear-gradient(0deg,rgba(16,22,27,.08) 0%,rgba(16,22,27,0) 40%)}
+  main>.hero>.hero-copy{left:24px;right:22px;top:31px;bottom:auto;max-width:330px;color:#fff}
   main>.hero>.hero-copy>.eyebrow{margin-bottom:11px!important;color:#f0c38f;font-size:10px!important}
   main>.hero h1{max-width:270px;margin-bottom:13px;color:#fff;font-size:38px;line-height:1.04;letter-spacing:-.04em}
   main>.hero>.hero-copy>p:not(.eyebrow){display:block;max-width:268px;overflow:visible;color:rgba(255,255,255,.92);font-size:13px;line-height:1.55;-webkit-line-clamp:unset}
   main>.hero .hero-actions{margin-top:16px;gap:8px}
   main>.hero .hero-actions .button{min-width:104px;min-height:40px;padding:0 14px;border-radius:10px;font-size:11px}
-  main>.home-quick-links{position:relative;inset:auto;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;width:calc(100% - 40px);height:81px;min-height:81px;margin:-16px 20px 0;padding:8px 9px;gap:3px;border:1px solid rgba(222,207,190,.62);border-radius:26px;transform:none;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;box-shadow:0 5px 16px rgba(48,36,25,.055)}
+  main>.home-quick-links{position:relative;inset:auto;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;width:calc(100% - 28px);height:81px;min-height:81px;margin:-15px 14px 0;padding:8px 7px;gap:0;border:1px solid rgba(222,207,190,.62);border-radius:25px;transform:none;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;box-shadow:0 5px 16px rgba(48,36,25,.055)}
   main>.home-quick-links::-webkit-scrollbar{display:none}
-  main>.home-quick-links a{flex:0 0 calc((100% - 12px)/5.25);min-width:calc((100% - 12px)/5.25);padding:0;border:0;gap:5px;scroll-snap-align:start}
+  main>.home-quick-links a{flex:0 0 calc(100%/6);min-width:calc(100%/6);padding:0;border:0;gap:5px;scroll-snap-align:start}
   main>.home-quick-links i{width:39px;height:39px}
   main>.home-quick-links svg{width:25px;height:25px;stroke-width:1.9}
   main>.home-quick-links span{font-size:10.5px;font-weight:700}
-  main>.home-quick-links+.stays{padding-top:30px}
+  main>.home-quick-links+.stays{padding-top:18px}
   main>.home-quick-links+.stays .section-heading{display:none}
+  main>.home-quick-links+.stays .filter-row{padding:6px 0 11px}
+  main>.home-quick-links+.stays .filter-row>strong{margin-bottom:8px;color:#35414a;font-size:13px}
+  main>.home-quick-links+.stays .filter-options{gap:7px}
+  main>.home-quick-links+.stays .filter-options button{min-height:37px;padding:8px 13px;border:1px solid #eee3d7;background:rgba(255,255,255,.78);box-shadow:0 3px 12px rgba(64,48,31,.035)}
+  main>.home-quick-links+.stays .filter-options button.active{border-color:#d2a46f;background:#d2a46f;color:#fff;box-shadow:none}
+  main>.home-quick-links+.stays .filter-row:nth-child(2) .filter-options button{min-height:36px;padding:8px 12px;font-size:11px}
+  main>.home-quick-links+.stays .destination-filter-scroll .filter-options{padding-right:0}
+  main>.home-quick-links+.stays .destination-filter-scroll:after,
+  main>.home-quick-links+.stays .destination-filter-scroll .mobile-scroll-more,
+  main>.home-quick-links+.stays .destination-filter-scroll .mobile-scroll-previous{display:none}
+  main>.home-quick-links+.stays .stay-filters{margin-bottom:14px}
+  main>.home-quick-links+.stays .stay-results-heading{margin-bottom:12px}
 }
