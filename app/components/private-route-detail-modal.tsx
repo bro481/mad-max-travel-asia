@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GalleryCarousel } from "./gallery-carousel";
 
 export type PrivateRouteDetailStop = {
@@ -34,15 +34,32 @@ export function PrivateRouteDetailModal({
   onInquire?: () => void;
 }) {
   const languageIndex = lang === "zh" ? 0 : 1;
-  const stopRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const images = [route.image, ...route.stops.map((stop) => stop.image)].filter(Boolean);
+  const stopRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const imageEntries = useMemo(
+    () => [
+      ...(route.image ? [{ image: route.image, stopIndex: null as number | null }] : []),
+      ...route.stops.flatMap((stop, stopIndex) =>
+        stop.image ? [{ image: stop.image, stopIndex }] : [],
+      ),
+    ],
+    [route],
+  );
+  const images = imageEntries.map((entry) => entry.image);
+  const activeStopIndex = imageEntries[activeImageIndex]?.stopIndex;
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [route]);
 
   useEffect(() => {
     if (focusStopIndex === null || focusStopIndex === undefined) return;
+    const linkedImageIndex = imageEntries.findIndex((entry) => entry.stopIndex === focusStopIndex);
+    if (linkedImageIndex >= 0) setActiveImageIndex(linkedImageIndex);
     requestAnimationFrame(() => {
       stopRefs.current[focusStopIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-  }, [focusStopIndex]);
+  }, [focusStopIndex, imageEntries]);
 
   return (
     <div
@@ -58,7 +75,12 @@ export function PrivateRouteDetailModal({
         </button>
         <div className="modal-gallery experience-gallery">
           {images.length ? (
-            <GalleryCarousel images={images} alt={route.title[languageIndex]} />
+            <GalleryCarousel
+              images={images}
+              alt={route.title[languageIndex]}
+              activeIndex={activeImageIndex}
+              onActiveIndexChange={setActiveImageIndex}
+            />
           ) : (
             <div className="private-route-no-image">{lang === "zh" ? "暂未设置路线图片" : "No route images yet"}</div>
           )}
@@ -75,25 +97,37 @@ export function PrivateRouteDetailModal({
           </div>
           <p className="modal-itinerary-title">{lang === "zh" ? "路线节点" : "Route stops"}</p>
           <div className="timeline experience-timeline private-route-timeline">
-            {route.stops.map((stop, index) => (
-              <div
-                className={focusStopIndex === index ? "preview-focused-stop" : ""}
-                key={`${stop.title[0]}-${index}`}
-                ref={(element) => {
-                  stopRefs.current[index] = element;
-                }}
-              >
-                <time>{String(index + 1).padStart(2, "0")}</time>
-                <i />
-                <p>
-                  <b>{stop.title[languageIndex]}</b>
-                  <small>
-                    {[stop.type, stop.time, stop.note[languageIndex]].filter(Boolean).join(" · ")}
-                  </small>
-                </p>
-                {stop.image ? <img src={stop.image} alt="" /> : <span className="private-route-stop-no-image">暂无图片</span>}
-              </div>
-            ))}
+            {route.stops.map((stop, index) => {
+              const linkedImageIndex = imageEntries.findIndex((entry) => entry.stopIndex === index);
+              const selected = activeStopIndex === index || focusStopIndex === index;
+              return (
+                <button
+                  type="button"
+                  className={selected ? "preview-focused-stop" : ""}
+                  key={`${stop.title[0]}-${index}`}
+                  ref={(element) => {
+                    stopRefs.current[index] = element;
+                  }}
+                  onClick={() => {
+                    if (linkedImageIndex >= 0) setActiveImageIndex(linkedImageIndex);
+                  }}
+                  aria-pressed={activeStopIndex === index}
+                  aria-label={linkedImageIndex >= 0
+                    ? `${stop.title[languageIndex]} · ${lang === "zh" ? "查看对应图片" : "View linked image"}`
+                    : stop.title[languageIndex]}
+                >
+                  <time>{String(index + 1).padStart(2, "0")}</time>
+                  <i />
+                  <p>
+                    <b>{stop.title[languageIndex]}</b>
+                    <small>
+                      {[stop.type, stop.time, stop.note[languageIndex]].filter(Boolean).join(" · ")}
+                    </small>
+                  </p>
+                  {stop.image ? <img src={stop.image} alt="" /> : <span className="private-route-stop-no-image">暂无图片</span>}
+                </button>
+              );
+            })}
           </div>
           <p className="modal-flex-note">
             {lang === "zh"
