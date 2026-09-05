@@ -1153,7 +1153,15 @@ export function ServicesPage({
                           lang={lang}
                           onOpen={() => {
                             if (hasFullPage) {
-                              const search = new URLSearchParams({ city: place.key });
+                              const privateCarCity =
+                                place.name[0] === "吉隆坡"
+                                  ? "kl"
+                                  : place.name[0] === "马六甲"
+                                    ? "melaka"
+                                    : place.name[0] === "亚庇"
+                                      ? "kk"
+                                      : place.key;
+                              const search = new URLSearchParams({ city: privateCarCity });
                               const serviceQuery = item.serviceSlug || (item.serviceId ? String(item.serviceId) : "");
                               if (serviceQuery) search.set("service", serviceQuery);
                               window.location.href = `/services/private-car?${search.toString()}`;
