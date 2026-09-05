@@ -705,7 +705,7 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
           {[
             { icon: "stay" as const, zh: "住宿", en: "Stays", href: "#stays" },
             { icon: "transfer" as const, zh: "接送机", en: "Transfer", href: "/services?service=%E5%90%89%E9%9A%86%E5%9D%A1%E6%9C%BA%E5%9C%BA%E6%8E%A5%E9%80%81" },
-            { icon: "package" as const, zh: "套餐组合", en: "Packages", href: "/services/custom-trip" },
+            { icon: "package" as const, zh: "省心套餐", en: "Packages", href: "/services/custom-trip" },
             { icon: "car" as const, zh: "包车玩乐", en: "Car & Tours", href: "/services" },
             { icon: "picks" as const, zh: "大马特产", en: "Malaysia Picks", href: "/picks" },
             { icon: "guide" as const, zh: "旅行攻略", en: "Travel Guide", href: "/services/custom-trip" },
