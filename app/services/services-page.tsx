@@ -1152,16 +1152,6 @@ export function ServicesPage({
                           data={{ title: item.title, description: item.desc, tags: item.tags, image: item.image }}
                           lang={lang}
                           onOpen={() => {
-                            const useFullPrivateCarPage =
-                              item.detail === "private-car" &&
-                              window.matchMedia("(max-width: 700px)").matches;
-                            if (useFullPrivateCarPage) {
-                              const serviceQuery = item.serviceSlug || (item.serviceId ? String(item.serviceId) : "");
-                              const search = new URLSearchParams({ city: place.key });
-                              if (serviceQuery) search.set("service", serviceQuery);
-                              window.location.href = `/services/private-car?${search.toString()}`;
-                              return;
-                            }
                             if (hasFullPage && !item.serviceId) {
                               window.location.href = `/services/private-car?city=${place.key}`;
                               return;
