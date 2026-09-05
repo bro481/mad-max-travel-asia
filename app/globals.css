@@ -1876,6 +1876,137 @@ footer > small {
   .services-page+footer>small{padding-top:14px}
 }
 
+/* Mobile homepage brand hero and its compact service shortcuts. Desktop is unchanged. */
+.home-quick-links{display:none}
+@media(max-width:700px){
+  .hero{
+    height:580px;
+    max-height:none;
+    background:#202a31;
+  }
+  .hero>img{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:63% center;
+    filter:saturate(.96) contrast(1.02);
+  }
+  .hero:after{
+    background:
+      linear-gradient(90deg,rgba(20,28,34,.72) 0%,rgba(20,28,34,.48) 45%,rgba(20,28,34,.12) 78%,rgba(20,28,34,.02) 100%),
+      linear-gradient(0deg,rgba(16,22,27,.30) 0%,rgba(16,22,27,0) 48%);
+  }
+  .hero-copy{
+    left:24px;
+    right:22px;
+    top:58px;
+    bottom:auto;
+    width:auto;
+    max-width:355px;
+    color:#fff;
+    transform:none;
+  }
+  .hero-copy>.eyebrow{
+    margin-bottom:16px!important;
+    color:#f0c38f;
+    font-size:12px!important;
+    letter-spacing:.18em;
+  }
+  .hero h1{
+    max-width:330px;
+    margin-bottom:20px;
+    color:#fff;
+    font-family:var(--sans);
+    font-size:clamp(48px,13.5vw,56px);
+    font-weight:800;
+    line-height:1.04;
+    letter-spacing:-.045em;
+    text-shadow:0 2px 22px rgba(8,14,18,.18);
+  }
+  .hero-copy>p:not(.eyebrow){
+    display:block;
+    max-width:338px;
+    overflow:visible;
+    color:rgba(255,255,255,.9);
+    font-size:16px;
+    line-height:1.65;
+    -webkit-line-clamp:unset;
+  }
+  .hero-actions{
+    display:flex;
+    gap:10px;
+    margin-top:27px;
+  }
+  .hero-actions .button{
+    min-width:128px;
+    min-height:50px;
+    padding:0 20px;
+    border-radius:12px;
+    font-size:14px;
+  }
+  .hero-actions .button.outline{
+    border-color:rgba(255,255,255,.86);
+    background:rgba(22,29,34,.12);
+    color:#fff;
+    backdrop-filter:blur(4px);
+  }
+  .home-quick-links{
+    position:relative;
+    z-index:4;
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    width:calc(100% - 24px);
+    min-height:108px;
+    margin:-27px auto 0;
+    padding:17px 7px 15px;
+    border:1px solid rgba(222,207,190,.72);
+    border-radius:22px;
+    background:rgba(255,253,249,.98);
+    box-shadow:0 12px 30px rgba(48,36,25,.11);
+  }
+  .home-quick-links a{
+    display:flex;
+    min-width:0;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:8px;
+    color:#34404a;
+    text-align:center;
+  }
+  .home-quick-links i{
+    display:grid;
+    place-items:center;
+    width:43px;
+    height:43px;
+    border-radius:50%;
+    background:#f6ecdf;
+    color:#b97839;
+    font-style:normal;
+  }
+  .home-quick-links svg{
+    width:23px;
+    height:23px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .home-quick-links span{
+    max-width:100%;
+    font-size:11px;
+    font-weight:750;
+    line-height:1.25;
+    white-space:nowrap;
+  }
+  .home-quick-links+.stays{
+    padding-top:43px;
+  }
+}
+
 /* Private car detail */
 .car-detail{background:#fbf8f4;color:var(--ink)}.car-hero{height:520px;position:relative;overflow:hidden}.car-hero>img{width:100%;height:100%;object-fit:cover;filter:saturate(.87) contrast(.94)}.car-hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(250,247,243,.97) 2%,rgba(250,247,243,.78) 43%,rgba(250,247,243,.05) 72%)}.car-hero-copy{position:absolute;z-index:1;left:max(5vw,42px);top:50%;transform:translateY(-50%);max-width:610px}.car-hero-copy>a{font-size:10px;color:var(--gold-dark)}.car-hero-copy h1{font:600 clamp(46px,5vw,70px)/1 var(--serif);margin:25px 0 13px}.car-hero-copy>p:not(.eyebrow){font-size:16px;color:#58646e}.car-hero-copy>div{display:flex;gap:9px;margin-top:25px}.car-hero-copy>div span,.modal-tags span{padding:7px 11px;background:rgba(255,253,249,.84);border:1px solid #eadfd2;border-radius:999px;color:#795b3d;font-size:9px}.car-hero>aside{position:absolute;z-index:2;right:max(5vw,42px);top:50%;transform:translateY(-50%);width:300px;padding:28px;background:rgba(255,253,250,.95);border:1px solid #eadfd3;border-radius:18px;box-shadow:0 16px 45px rgba(54,41,28,.12)}.car-hero>aside h2{font:600 25px var(--serif);margin:6px 0 9px}.car-hero>aside>p:not(.eyebrow){font-size:11px;line-height:1.7;color:var(--muted)}.car-hero>aside .button{width:100%;margin:12px 0 9px}.car-hero>aside>a:last-child{display:block;text-align:center;border:1px solid #ebe2d8;border-radius:8px;padding:10px;color:#795b3d;font-size:10px;font-weight:700}
 .route-section,.vehicle-section,.footage-section{max-width:1400px;margin:auto;padding:80px max(4vw,24px)}.detail-heading{text-align:center;margin-bottom:35px}.detail-heading.left{text-align:left}.detail-heading h2{font:600 38px var(--serif);margin:5px 0}.detail-heading>p:last-child{font-size:11px;color:var(--muted)}.route-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:20px}.route-card{display:flex;flex-direction:column;align-self:start;width:100%;height:auto;padding:0;text-align:left;border:1px solid #eee4da;border-radius:17px;background:#fffdfb;overflow:hidden;box-shadow:0 10px 30px rgba(67,50,33,.055);cursor:pointer;transition:.25s}.route-card:hover{transform:translateY(-4px);box-shadow:0 16px 38px rgba(67,50,33,.1)}.route-card:focus-visible{outline:2px solid var(--gold);outline-offset:3px}.route-card-media{position:relative;flex:0 0 auto;width:100%;aspect-ratio:1.75/1;overflow:hidden}.route-card-media img{position:absolute;inset:0;display:block;width:100%!important;height:100%!important;object-fit:cover;filter:saturate(.9) contrast(.95)}.route-card-media>span{align-items:center;background:#f0ece7;color:#8a8179;display:flex;height:100%;justify-content:center;width:100%}.route-card-body{flex:0 0 auto;width:100%;padding:18px 20px}.route-card h3{font:600 22px var(--serif);margin:0 0 9px}.route-card p{display:flex;gap:7px;margin:0 0 10px}.route-card p span{padding:5px 8px;border-radius:999px;background:#f5eee6;color:#806244;font-size:8px}.route-card-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}.route-card small{display:block;min-width:0;color:var(--muted);font-size:10px;line-height:1.55}.route-card b{flex:0 0 auto;color:var(--gold-dark);font-size:10px;white-space:nowrap}
@@ -2196,4 +2327,17 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .picks-delivery-options h3{margin-bottom:5px;font-size:19px}
   .picks-delivery-options p{margin-bottom:9px;font-size:12px;line-height:1.55}
   .picks-delivery-footer{padding-top:16px}
+}
+
+/* Final homepage-only mobile override: later legacy rules must not restore the old pale banner. */
+@media(max-width:700px){
+  main>.hero{height:580px;max-height:none;background:#202a31}
+  main>.hero>img{inset:0;width:100%;height:100%;object-position:63% center}
+  main>.hero:after{background:linear-gradient(90deg,rgba(20,28,34,.72) 0%,rgba(20,28,34,.48) 45%,rgba(20,28,34,.12) 78%,rgba(20,28,34,.02) 100%),linear-gradient(0deg,rgba(16,22,27,.30) 0%,rgba(16,22,27,0) 48%)}
+  main>.hero>.hero-copy{left:24px;right:22px;top:58px;bottom:auto;max-width:355px;color:#fff}
+  main>.hero>.hero-copy>.eyebrow{margin-bottom:16px!important;color:#f0c38f;font-size:12px!important}
+  main>.hero h1{max-width:330px;margin-bottom:20px;color:#fff;font-size:clamp(48px,13.5vw,56px);line-height:1.04}
+  main>.hero>.hero-copy>p:not(.eyebrow){display:block;max-width:338px;overflow:visible;color:rgba(255,255,255,.9);font-size:16px;line-height:1.65;-webkit-line-clamp:unset}
+  main>.hero .hero-actions{margin-top:27px;gap:10px}
+  main>.hero .hero-actions .button{min-height:50px;padding:0 20px}
 }
