@@ -30,7 +30,7 @@ const timeOptions = {
 };
 const MYR_TO_CNY = 1.7;
 type RoomIconName = "layout" | "area" | "floor" | "guests" | "bed" | "sofa" | "pin";
-type QuickLinkIconName = "stay" | "transfer" | "package" | "car" | "guide";
+type QuickLinkIconName = "stay" | "transfer" | "package" | "car" | "picks" | "guide";
 
 function roomPriceDisplay(room: Room, lang: Lang) {
   const space = room.spaceConfig as (Room["spaceConfig"] & Record<string, any>) | undefined;
@@ -71,6 +71,7 @@ function QuickLinkIcon({ name }: { name: QuickLinkIconName }) {
     transfer: <><path d="M5 16h14l-1.2-5.5A2 2 0 0 0 15.85 9h-7.7a2 2 0 0 0-1.95 1.5L5 16ZM7 9l1-3h8l1 3M6 16v2M18 16v2M8 13h.01M16 13h.01" /><path d="M3 16h18" /></>,
     package: <><path d="M4 9h16v11H4zM12 9v11M3 6.5h18V9H3zM12 6.5c-1.2-3.4-5.4-3.2-5.4-.7 0 1.5 1.6 1.7 5.4.7Zm0 0c1.2-3.4 5.4-3.2 5.4-.7 0 1.5-1.6 1.7-5.4.7Z" /></>,
     car: <><path d="M4.5 16h15l-1.35-5A2 2 0 0 0 16.2 9.5H7.8A2 2 0 0 0 5.85 11L4.5 16ZM7 9.5 8.3 6h7.4L17 9.5M5.5 16v2M18.5 16v2M8 13h.01M16 13h.01" /></>,
+    picks: <><path d="M5 8h14l-1 12H6L5 8Z" /><path d="M8.5 9V6.5a3.5 3.5 0 0 1 7 0V9M4 8h16" /></>,
     guide: <><path d="M6 4h9l3 3v13H6zM15 4v4h4M9 12h6M9 15h6M9 9h2" /></>,
   };
   return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
@@ -705,7 +706,8 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
             { icon: "stay" as const, zh: "住宿", en: "Stays", href: "#stays" },
             { icon: "transfer" as const, zh: "接送机", en: "Transfer", href: "/services?service=%E5%90%89%E9%9A%86%E5%9D%A1%E6%9C%BA%E5%9C%BA%E6%8E%A5%E9%80%81" },
             { icon: "package" as const, zh: "套餐组合", en: "Packages", href: "/services/custom-trip" },
-            { icon: "car" as const, zh: "当地服务", en: "Local Service", href: "/services" },
+            { icon: "car" as const, zh: "包车玩乐", en: "Car & Tours", href: "/services" },
+            { icon: "picks" as const, zh: "大马特产", en: "Malaysia Picks", href: "/picks" },
             { icon: "guide" as const, zh: "旅行攻略", en: "Travel Guide", href: "/services/custom-trip" },
           ].map((item) => (
             <a href={item.href} key={item.icon}>

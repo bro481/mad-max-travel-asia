@@ -2337,12 +2337,16 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   main>.hero>.hero-copy{left:24px;right:22px;top:29px;bottom:auto;max-width:330px;color:#fff}
   main>.hero>.hero-copy>.eyebrow{margin-bottom:11px!important;color:#f0c38f;font-size:10px!important}
   main>.hero h1{max-width:270px;margin-bottom:13px;color:#fff;font-size:38px;line-height:1.04;letter-spacing:-.04em}
-  main>.hero>.hero-copy>p:not(.eyebrow){display:block;max-width:310px;overflow:visible;color:rgba(255,255,255,.92);font-size:13px;line-height:1.55;-webkit-line-clamp:unset}
-  main>.hero .hero-actions{margin-top:18px;gap:9px}
-  main>.hero .hero-actions .button{min-width:112px;min-height:43px;padding:0 16px;border-radius:10px;font-size:12px}
-  main>.home-quick-links{width:calc(100% - 22px);min-height:96px;margin:0 auto -26px;padding:14px 6px 13px;border-radius:20px;transform:translateY(-27px);box-shadow:0 10px 25px rgba(48,36,25,.09)}
-  main>.home-quick-links i{width:42px;height:42px}
-  main>.home-quick-links svg{width:22px;height:22px;stroke-width:1.9}
-  main>.home-quick-links span{font-size:11px;font-weight:700}
-  main>.home-quick-links+.stays{padding-top:38px}
+  main>.hero>.hero-copy>p:not(.eyebrow){display:block;max-width:268px;overflow:visible;color:rgba(255,255,255,.92);font-size:13px;line-height:1.55;-webkit-line-clamp:unset}
+  main>.hero .hero-actions{margin-top:16px;gap:8px}
+  main>.hero .hero-actions .button{min-width:104px;min-height:40px;padding:0 14px;border-radius:10px;font-size:11px}
+  main>.home-quick-links{display:flex;width:calc(100% - 40px);min-height:88px;margin:-26px 20px 0;padding:12px 9px 11px;gap:3px;border-radius:26px;transform:none;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;box-shadow:0 10px 25px rgba(48,36,25,.09)}
+  main>.home-quick-links::-webkit-scrollbar{display:none}
+  main>.home-quick-links a{flex:0 0 70px;min-width:70px;gap:7px;scroll-snap-align:start}
+  main>.home-quick-links i{width:39px;height:39px}
+  main>.home-quick-links svg{width:25px;height:25px;stroke-width:1.9}
+  main>.home-quick-links span{font-size:10.5px;font-weight:700}
+  main>.home-quick-links+.stays{padding-top:40px}
+  main>.home-quick-links+.stays .section-heading>.eyebrow{display:block;margin:0 0 10px!important;color:var(--gold-dark);font-size:10px!important;letter-spacing:.16em}
+  main>.home-quick-links+.stays .section-heading h2{font-size:37px;line-height:1.08}
 }
