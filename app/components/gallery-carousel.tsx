@@ -8,15 +8,11 @@ export function GalleryCarousel({
   alt,
   compact = false,
   preserveImageQuality = false,
-  activeIndex,
-  onActiveIndexChange,
 }: {
   images: string[];
   alt: string;
   compact?: boolean;
   preserveImageQuality?: boolean;
-  activeIndex?: number;
-  onActiveIndexChange?: (index: number) => void;
 }) {
   const clean = useMemo(() => images.filter(Boolean), [images]);
   const [index, setIndex] = useState(0);
@@ -24,21 +20,11 @@ export function GalleryCarousel({
   const start = useRef<number | null>(null);
   const multi = clean.length > 1;
   const imageKey = clean.join("\0");
-  const displayedIndex = activeIndex === undefined
-    ? index
-    : Math.max(0, Math.min(clean.length - 1, activeIndex));
 
   const move = useCallback((step: number) => {
     if (!clean.length) return;
-    const next = (displayedIndex + step + clean.length) % clean.length;
-    if (activeIndex === undefined) setIndex(next);
-    onActiveIndexChange?.(next);
-  }, [activeIndex, clean.length, displayedIndex, onActiveIndexChange]);
-
-  const select = useCallback((next: number) => {
-    if (activeIndex === undefined) setIndex(next);
-    onActiveIndexChange?.(next);
-  }, [activeIndex, onActiveIndexChange]);
+    setIndex((current) => (current + step + clean.length) % clean.length);
+  }, [clean.length]);
 
   useEffect(() => {
     setIndex(0);
@@ -73,18 +59,18 @@ export function GalleryCarousel({
       <div className="gallery-stage">
         {compact && (
           <img
-            key={`${clean[displayedIndex]}-backdrop-${displayedIndex}`}
+            key={`${clean[index]}-backdrop-${index}`}
             className="gallery-backdrop"
-            src={clean[displayedIndex]}
+            src={clean[index]}
             alt=""
             aria-hidden="true"
           />
         )}
         <img
-          key={`${clean[displayedIndex]}-${displayedIndex}`}
+          key={`${clean[index]}-${index}`}
           className={preserveImageQuality && lowResolution ? "gallery-main-image low-resolution" : "gallery-main-image"}
-          src={clean[displayedIndex]}
-          alt={`${alt} ${displayedIndex + 1}`}
+          src={clean[index]}
+          alt={`${alt} ${index + 1}`}
           onLoad={(event) => {
             if (!preserveImageQuality) return;
             const image = event.currentTarget;
@@ -114,7 +100,7 @@ export function GalleryCarousel({
               ›
             </button>
             <span className="gallery-count">
-              {displayedIndex + 1} / {clean.length}
+              {index + 1} / {clean.length}
             </span>
           </>
         )}
@@ -125,9 +111,9 @@ export function GalleryCarousel({
             <button
               type="button"
               key={`${image}-${i}`}
-              className={i === displayedIndex ? "active" : ""}
+              className={i === index ? "active" : ""}
               aria-label={`查看第 ${i + 1} 张图片`}
-              onClick={() => select(i)}
+              onClick={() => setIndex(i)}
             >
               <img src={image} alt="" />
             </button>
@@ -140,9 +126,9 @@ export function GalleryCarousel({
             <button
               type="button"
               key={`${image}-dot-${i}`}
-              className={i === displayedIndex ? "active" : ""}
+              className={i === index ? "active" : ""}
               aria-label={`查看第 ${i + 1} 张图片`}
-              onClick={() => select(i)}
+              onClick={() => setIndex(i)}
             />
           ))}
         </div>
