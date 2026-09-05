@@ -2340,9 +2340,9 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   main>.hero>.hero-copy>p:not(.eyebrow){display:block;max-width:268px;overflow:visible;color:rgba(255,255,255,.92);font-size:13px;line-height:1.55;-webkit-line-clamp:unset}
   main>.hero .hero-actions{margin-top:16px;gap:8px}
   main>.hero .hero-actions .button{min-width:104px;min-height:40px;padding:0 14px;border-radius:10px;font-size:11px}
-  main>.home-quick-links{display:flex;width:calc(100% - 40px);min-height:88px;margin:-26px 20px 0;padding:12px 9px 11px;gap:3px;border-radius:26px;transform:none;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;box-shadow:0 10px 25px rgba(48,36,25,.09)}
+  main>.home-quick-links{position:relative;inset:auto;display:flex;flex-direction:row;align-items:flex-start;width:calc(100% - 40px);height:88px;min-height:88px;margin:-26px 20px 0;padding:12px 9px 11px;gap:3px;border-radius:26px;transform:none;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;box-shadow:0 10px 25px rgba(48,36,25,.09)}
   main>.home-quick-links::-webkit-scrollbar{display:none}
-  main>.home-quick-links a{flex:0 0 70px;min-width:70px;gap:7px;scroll-snap-align:start}
+  main>.home-quick-links a{flex:0 0 70px;min-width:70px;padding:0;border:0;gap:7px;scroll-snap-align:start}
   main>.home-quick-links i{width:39px;height:39px}
   main>.home-quick-links svg{width:25px;height:25px;stroke-width:1.9}
   main>.home-quick-links span{font-size:10.5px;font-weight:700}
