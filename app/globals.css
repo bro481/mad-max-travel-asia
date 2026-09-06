@@ -2361,3 +2361,24 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   main>.home-quick-links+.stays .stay-filters{margin-bottom:14px}
   main>.home-quick-links+.stays .stay-results-heading{margin-bottom:12px}
 }
+
+/* Route details: constrain the scroll panels, never crop the uploaded main image. */
+.private-car-route-modal>div,.private-route-detail-modal>div{height:90dvh;min-height:0}
+.private-car-route-modal .modal-gallery,.private-route-detail-modal .modal-gallery{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.private-car-route-modal .modal-route,.private-route-detail-modal .modal-route{min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.private-car-route-modal .modal-gallery>.modal-gallery-main{height:clamp(220px,55dvh,510px)}
+.private-car-route-modal .modal-gallery>.modal-gallery-main>img{object-fit:contain}
+.private-car-route-modal .timeline p,.private-route-detail-modal .timeline p{min-width:0;white-space:normal;overflow-wrap:anywhere}
+.private-car-route-modal .timeline small,.private-route-detail-modal .timeline small{white-space:pre-line;max-height:none;overflow:visible;-webkit-line-clamp:unset}
+.private-route-detail-modal .gallery-stage>img{object-fit:contain}
+.private-route-detail-modal .modal-gallery>.gallery-carousel{display:flex;flex-direction:column}
+.private-route-detail-modal .gallery-stage{flex:1;min-height:200px;height:auto}
+.private-route-detail-modal .gallery-thumbnails{position:static;flex-shrink:0;margin-top:10px}
+.private-route-detail-modal .gallery-count{bottom:14px}
+@media(max-width:950px){
+  .private-car-route-modal>div,.private-route-detail-modal>div{height:auto;max-height:90dvh;overflow-y:auto}
+  .private-car-route-modal .modal-gallery,.private-route-detail-modal .modal-gallery,
+  .private-car-route-modal .modal-route,.private-route-detail-modal .modal-route{overflow:visible}
+  .private-car-route-modal .modal-gallery>.modal-gallery-main{height:clamp(220px,40dvh,360px)}
+  .private-route-detail-modal .gallery-stage{flex:none;height:clamp(220px,40dvh,360px)}
+}

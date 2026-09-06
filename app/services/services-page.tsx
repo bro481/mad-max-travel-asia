@@ -1014,8 +1014,8 @@ export function ServicesPage({
       .filter((route) => route.visible !== false)
       .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
     const routeNumber = Number(routeParam);
-    const routeIndex = Number.isFinite(routeNumber)
-      ? routes.findIndex((_, index) => index === routeNumber || index + 1 === routeNumber)
+    const routeIndex = Number.isInteger(routeNumber) && routeNumber >= 0
+      ? routes.findIndex((_, index) => index === routeNumber)
       : -1;
     const normalizedRoute = slugLike(routeParam);
     const matchedIndex =

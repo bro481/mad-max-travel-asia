@@ -886,7 +886,8 @@ export function ServiceDetail({
       ? ["中文沟通", "路线灵活", "舒适安全"]
       : ["Chinese support", "Flexible route", "Safe & comfortable"];
   useEffect(() => {
-    if (!previewService) return;
+    // Selecting a service is not a request to open its first itinerary.
+    if (!previewService || previewRoute === undefined || previewRoute.trim() === "") return;
     const item = managedForCity.find(
       (candidate) =>
         candidate.slug === previewService || String(candidate.id) === previewService,
@@ -896,9 +897,8 @@ export function ServiceDetail({
       .filter((route) => route.visible !== false)
       .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
     const routeNumber = Number(previewRoute);
-    const index = previewRoute && Number.isFinite(routeNumber)
-      ? Math.max(0, Math.min(plans.length - 1, routeNumber))
-      : 0;
+    if (!Number.isInteger(routeNumber) || routeNumber < 0 || !plans[routeNumber]) return;
+    const index = routeNumber;
     const route = planToRoute(item, plans[index]);
     if (previewRoute && plans[index]) {
       route.title = [plans[index].nameZh || plans[index].name || item.nameZh, plans[index].nameEn || plans[index].nameZh || plans[index].name || item.nameEn || item.nameZh];
@@ -1080,7 +1080,7 @@ export function ServiceDetail({
       </main>
       {selected && (
         <div
-          className="route-modal"
+          className="route-modal private-car-route-modal"
           role="dialog"
           aria-modal="true"
           aria-label={selected.title[l]}
