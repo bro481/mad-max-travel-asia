@@ -144,7 +144,7 @@ export default function ServiceEditor() {
     setD((x) => (x ? { ...x, ...patch } : x));
 
   const save = async (status?: ServiceItem["status"]) => {
-    const inquiry = isCar ? normalizeInquiryConfig(d.inquiryFields, d.inquiryRequired) : null;
+    const inquiry = isPrivateCar ? normalizeInquiryConfig(d.inquiryFields, d.inquiryRequired) : null;
     const next = {
       ...d,
       coverImage: d.images[0] || "",
@@ -387,7 +387,7 @@ export default function ServiceEditor() {
                   <input value={d.subtitleEn} onChange={(e) => set("subtitleEn", e.target.value)} />
                 </Field>
               </div>}
-              <Field n={isCar ? "服务标签（最多 3 个）" : "标签（用顿号分隔）"}>
+              <Field n={isPrivateCar ? "服务标签（最多 3 个）" : "标签（用顿号分隔）"}>
                 <input
                   value={d.tags.join("、")}
                   onChange={(e) =>
