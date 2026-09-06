@@ -31,6 +31,7 @@ export default function ServiceEditor() {
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [tab, setTab] = useState(0);
   const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [notice, setNotice] = useState("");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadMessage, setUploadMessage] = useState("");
@@ -40,8 +41,17 @@ export default function ServiceEditor() {
 
   useEffect(() => {
     let active = true;
+    const controllers = new Set<AbortController>();
+    setLoadError("");
+    setD(null);
+    setDestinations([]);
+    setCategories([]);
     const readJson = async <T,>(url: string, fallback: T): Promise<T> => {
-      const r = await fetch(url, { cache: "no-store" });
+      const controller = new AbortController();
+      controllers.add(controller);
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+      const r = await fetch(url, { cache: "no-store", signal: controller.signal });
       const text = await r.text();
       if (!r.ok) {
         let message = text;
@@ -51,24 +61,17 @@ export default function ServiceEditor() {
         throw new Error(`${url} 返回 ${r.status}${message ? `：${message}` : ""}`);
       }
       return text ? JSON.parse(text) : fallback;
+      } catch (error) {
+        if (controller.signal.aborted) throw new Error("加载超时，请重试。已保存的服务资料不会受影响。");
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+        controllers.delete(controller);
+      }
     };
-    const load = async () => {
-      // The service record is the only data required to open the editor. Lookup
-      // lists are auxiliary and must not leave the whole screen unusable when one
-      // of their endpoints is temporarily slow.
-      const item = await readJson<ServiceItem | null>(`/api/admin/service-items/${id}`, null);
-      const [destinationsResult, categoriesResult] = await Promise.allSettled([
-        readJson<DestinationRecord[]>("/api/admin/destinations?view=options", []),
-        readJson<ServiceCategory[]>("/api/admin/services", []),
-      ]);
-      return {
-        item,
-        dests: destinationsResult.status === "fulfilled" ? destinationsResult.value : [],
-        cats: categoriesResult.status === "fulfilled" ? categoriesResult.value : [],
-      };
-    };
-    load()
-      .then(({ item, dests, cats }) => {
+    // Render the record immediately; auxiliary requests must never gate it.
+    readJson<ServiceItem | null>(`/api/admin/service-items/${id}`, null)
+      .then((item) => {
         if (!active) return;
         if (!item) {
           setLoadError(`找不到这个服务：${id}`);
@@ -78,23 +81,29 @@ export default function ServiceEditor() {
           ? item.images
           : [item.coverImage || "", ...(item.gallery || [])].filter(Boolean);
         setD({ ...item, coverImage: serviceImages[0] || "", gallery: serviceImages.slice(1), images: serviceImages });
-        setDestinations(dests);
-        setCategories(cats);
       })
       .catch((error: Error) => {
         if (!active) return;
         setLoadError(error.message || "服务编辑器加载失败。");
       });
+    readJson<DestinationRecord[]>("/api/admin/destinations?view=options", [])
+      .then((items) => { if (active) setDestinations(items); })
+      .catch(() => { if (active) setNotice("目的地选项加载失败，可重新打开页面重试；当前服务资料仍可编辑。"); });
+    readJson<ServiceCategory[]>("/api/admin/services", [])
+      .then((items) => { if (active) setCategories(items); })
+      .catch(() => { if (active) setNotice("分类选项加载失败，可重新打开页面重试；当前服务资料仍可编辑。"); });
     return () => {
       active = false;
+      controllers.forEach((controller) => controller.abort());
     };
-  }, [id]);
+  }, [id, loadAttempt]);
 
   if (loadError)
     return (
       <div className="admin-loading">
         <h2>服务编辑器打不开</h2>
         <p>{loadError}</p>
+        <button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>重新加载</button>
         <Link href="/admin/services">← 返回服务列表</Link>
       </div>
     );
