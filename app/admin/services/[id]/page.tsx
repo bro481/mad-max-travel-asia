@@ -118,11 +118,21 @@ export default function ServiceEditor() {
       />
     );
 
-  const isCar = d.templateType === "route" || d.type === "私人包车";
+  const isPrivateCar = d.templateType === "route" || d.type === "私人包车";
   const hasTimeline =
     d.templateType === "experience" ||
     ["当地体验", "城市体验", "一日路线", "海岛体验"].includes(d.type);
-  const activeTabs = isCar ? routeTabs : defaultTabs;
+  // Share the modern editor without changing the service's template or routing.
+  const isExperience = !isPrivateCar && hasTimeline;
+  const isCar = isPrivateCar || isExperience;
+  const activeTabs = isExperience ? ["页面内容", "服务图片", "行程／路线"] : isCar ? routeTabs : defaultTabs;
+  const experienceRoutes: ServiceRoutePlan[] = d.routes.length ? d.routes : [{
+    nameZh: d.nameZh, nameEn: d.nameEn, descriptionZh: d.introZh,
+    descriptionEn: d.introEn, coverImage: d.images[0] || "", visible: true,
+    nodes: d.timeline.map((node) => ({
+      nameZh: node.title, descriptionZh: node.description, stayTime: node.time,
+    })),
+  }];
   const currentCategory = categories.find((category) => category.id === d.categoryId);
   const currentDestination = destinations.find(
     (destination) => destination.id === d.destinationId || destination.nameZh === d.city,
@@ -139,7 +149,7 @@ export default function ServiceEditor() {
       ...d,
       coverImage: d.images[0] || "",
       gallery: d.images.slice(1),
-      routes: isCar
+      routes: isPrivateCar
         ? d.routes.map(({ image, ...route }) => ({ ...route, coverImage: route.coverImage || image || "" }))
         : d.routes,
       ...(inquiry
@@ -254,7 +264,7 @@ export default function ServiceEditor() {
     }
   };
 
-  const checks = publishChecks(d, isCar);
+  const checks = publishChecks(d, isPrivateCar);
 
   return (
     <>
@@ -302,7 +312,7 @@ export default function ServiceEditor() {
             <>
               <Head
                 title={isCar ? "页面内容" : "基础信息"}
-                text={isCar ? "前端显示位置：包车详情页顶部 Hero、服务亮点与咨询入口。" : "控制服务归属、前台卡片文案和详情顶部基础内容。"}
+                text={isExperience ? "管理体验页面内容、服务封面、亮点和咨询字段。" : isCar ? "前端显示位置：包车详情页顶部 Hero、服务亮点与咨询入口。" : "控制服务归属、前台卡片文案和详情顶部基础内容。"}
               />
               {!isCar && <div className="service-belonging-card">
                 <div>
@@ -319,7 +329,7 @@ export default function ServiceEditor() {
                   <em>已锁定</em>
                 </div>
               </div>}
-              {!isCar && <div className="field-row">
+              {(!isCar || isExperience) && <div className="field-row">
                 <Field n="目的地">
                   <select
                     value={d.city}
@@ -369,7 +379,7 @@ export default function ServiceEditor() {
                   <input value={d.nameEn} onChange={(e) => set("nameEn", e.target.value)} />
                 </Field>
               </div>
-              {!isCar && <div className="field-row">
+              {(!isCar || isExperience) && <div className="field-row">
                 <Field n={isCar ? "中文服务短介绍" : "中文副标题"}>
                   <input value={d.subtitleZh} onChange={(e) => set("subtitleZh", e.target.value)} />
                 </Field>
@@ -387,7 +397,7 @@ export default function ServiceEditor() {
                         .split(/[、,，]/)
                         .map((tag) => tag.trim())
                         .filter(Boolean)
-                        .slice(0, isCar ? 3 : 12),
+                        .slice(0, isPrivateCar ? 3 : 12),
                     )
                   }
                   placeholder={isCar ? "中文沟通、行程灵活、舒适安全" : ""}
@@ -400,7 +410,7 @@ export default function ServiceEditor() {
                     rows={3}
                     value={d.introZh}
                     onChange={(e) => set("introZh", e.target.value)}
-                    placeholder="半日 / 全天包车，可根据时间和兴趣自由安排路线。"
+                    placeholder={isExperience ? "介绍体验内容、特色及适合人群。" : "半日 / 全天包车，可根据时间和兴趣自由安排路线。"}
                   />
                 </Field>
                 <Field n={isCar ? "英文简介" : "英文简短介绍"}>
@@ -433,9 +443,9 @@ export default function ServiceEditor() {
               )}
             </>
           )}
-          {tab === 1 && !isCar && (
+          {tab === 1 && (!isCar || isExperience) && (
             <>
-              <Head title={isCar ? "服务图片" : "图片"} text={isCar ? `这里管理${d.nameZh}服务本身的图片，不管理具体路线或景点图片。第一张用于服务卡和详情主图。` : "第一张图片作为服务封面，可批量上传并调整顺序。"} />
+              <Head title="服务图片" text="第一张图片作为服务封面，可批量上传并拖拽调整顺序；行程节点图片在行程编辑器中分配。" />
               <label className="service-upload">
                 拖拽或选择多张服务图片
                 <input type="file" multiple accept="image/*" onChange={(e) => upload(e.target.files)} />
@@ -467,7 +477,7 @@ export default function ServiceEditor() {
               </div>
             </>
           )}
-          {tab === 1 && isCar && (
+          {tab === 1 && isPrivateCar && (
               <VehiclePricingEditor
                 items={d.vehicles}
                 onUpload={(files, done) => upload(files, done)}
@@ -487,8 +497,8 @@ export default function ServiceEditor() {
           )}
           {tab === 2 && isCar && (
             <>
-              <Head title="热门路线" text="前端显示位置：包车详情页 → 热门包车方案；点击路线后进入路线详情弹窗。" />
-              <RouteSectionCopy
+              <Head title={isExperience ? "体验行程" : "热门路线"} text={isExperience ? "使用与包车相同的路线和节点编辑器；原有行程会保留，可批量上传图片后分配到节点。" : "前端显示位置：包车详情页 → 热门包车方案；点击路线后进入路线详情弹窗。"} />
+              {!isExperience && <RouteSectionCopy
                 eyebrow={d.routes[0]?.sectionEyebrowZh || ""}
                 eyebrowEn={d.routes[0]?.sectionEyebrowEn || ""}
                 title={d.routeSectionTitleZh}
@@ -502,16 +512,25 @@ export default function ServiceEditor() {
                   set("routes", routes.map((route, index) => index === 0 ? { ...route, sectionEyebrowEn: value } : route));
                 }}
                 onChange={(patch) => setMany(patch)}
-              />
+              />}
               <RoutePlansEditor
-                items={d.routes}
+                items={isExperience ? experienceRoutes : d.routes}
+                experience={isExperience}
                 service={d}
                 frontendHref={frontendHref}
                 uploadProgress={uploadProgress}
                 uploadMessage={uploadMessage}
                 uploadFailed={uploadFailed}
                 onUpload={(files, done) => upload(files, done)}
-                onChange={(x) => set("routes", x)}
+                onChange={(x) => {
+                  if (!isExperience) { set("routes", x); return; }
+                  // Keep the existing experience frontend's timeline contract.
+                  setMany({ routes: x, timeline: routePlanNodes(x[0] || {}).map((node) => ({
+                    time: node.stayTime || node.time || "",
+                    title: node.nameZh || node.title || "",
+                    description: node.descriptionZh || node.description || "",
+                  })) });
+                }}
               />
             </>
           )}
@@ -582,7 +601,7 @@ export default function ServiceEditor() {
         <div className="publish-review-backdrop" role="dialog" aria-modal="true" aria-labelledby="publish-review-title">
           <div className="publish-review-modal">
             <header>
-              <div><small>发布检查</small><h2 id="publish-review-title">确认包车页面可以上线</h2></div>
+              <div><small>发布检查</small><h2 id="publish-review-title">{isExperience ? "确认体验内容可以上线" : "确认包车页面可以上线"}</h2></div>
               <button onClick={() => setPublishReviewOpen(false)} aria-label="关闭">×</button>
             </header>
             <ul>
@@ -1046,6 +1065,7 @@ function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRout
 
 function RoutePlansEditor({
   items,
+  experience = false,
   service,
   frontendHref,
   uploadProgress,
@@ -1055,6 +1075,7 @@ function RoutePlansEditor({
   onChange,
 }: {
   items: ServiceRoutePlan[];
+  experience?: boolean;
   service: ServiceItem;
   frontendHref: string;
   uploadProgress: number | null;
@@ -1232,8 +1253,8 @@ function RoutePlansEditor({
     <div className="route-plan-editor">
       <div className="route-plan-head">
         <div>
-          <h3>路线列表</h3>
-          <p>前端显示位置：包车详情页 → 热门包车方案。</p>
+          <h3>{experience ? "体验行程" : "路线列表"}</h3>
+          <p>{experience ? "编辑体验节点、排序和图片；第一条行程同步到现有体验时间线。" : "前端显示位置：包车详情页 → 热门包车方案。"}</p>
         </div>
         <button
           onClick={() => {
