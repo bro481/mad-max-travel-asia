@@ -36,11 +36,23 @@ function splitHero(text: string) {
 }
 
 function compactFeeItems(items: string[], type: "include" | "exclude") {
-  const blocked = type === "include" ? ["住宿与服务组合建议"] : ["旺季价格差额"];
-  return items
+  const aliases: Record<string, string> =
+    type === "include"
+      ? {
+          行程规划: "行程规划",
+          当地中文沟通协助: "中文沟通",
+          路线内接送安排建议: "行程内接送安排",
+        }
+      : {
+          "国际/国内机票": "机票",
+          个人消费: "个人消费",
+          景点门票及自费项目: "门票及自费项目",
+        };
+  const mapped = items
     .filter(Boolean)
-    .filter((item) => !blocked.some((word) => item.includes(word)))
-    .slice(0, 3);
+    .map((item) => aliases[item] || item)
+    .filter((item) => !/(住宿与服务组合建议|旺季价格差额)/.test(item));
+  return Array.from(new Set(mapped)).slice(0, 3);
 }
 
 function shouldShowScheduleImage(title: string) {
@@ -147,8 +159,8 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
                   </button>
                   <div className="package-day-panel" aria-hidden={!open}>
                     {(day.schedule || []).map((slot, slotIndex) => (
-                      <div className="package-schedule-row" key={`${slot.time}-${slotIndex}`}>
-                        <time>{slot.time}</time>
+                      <div className={slot.time ? "package-schedule-row" : "package-schedule-row no-time"} key={`${slot.time || ""}-${slotIndex}`}>
+                        {slot.time && <time>{slot.time}</time>}
                         <span />
                         <p>{zh ? slot.titleZh : slot.titleEn}</p>
                         {slot.image && shouldShowScheduleImage(zh ? slot.titleZh : slot.titleEn) && <img src={slot.image} alt="" />}
@@ -171,7 +183,6 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
       <footer className="package-fixed-consult">
         <div>
           <b>{item.days}天{item.nights}晚 · {zh ? item.cityComboZh : item.cityComboEn}</b>
-          <small>{zh ? "点击后整理套餐需求并添加微信咨询" : "Send us this package request"}</small>
         </div>
         <button type="button" onClick={() => setInquiryOpen(true)}>💬 {zh ? "咨询这个套餐" : "Inquire"} →</button>
       </footer>

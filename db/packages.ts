@@ -12,7 +12,7 @@ export type TravelPackageDay = {
 };
 
 export type TravelPackageSchedule = {
-  time: string;
+  time?: string;
   titleZh: string;
   titleEn: string;
   image?: string;
@@ -332,8 +332,8 @@ function normalizeItinerary(days: TravelPackageDay[], coverImage: string) {
     ...day,
     coverImage: day.coverImage || dayImages[index % dayImages.length] || coverImage,
     schedule: (day.schedule && day.schedule.length ? day.schedule : [
-      { time: index === 0 ? "14:00" : "09:00", titleZh: day.descriptionZh || day.titleZh, titleEn: day.descriptionEn || day.titleEn, image: day.coverImage || dayImages[index % dayImages.length], sortOrder: 1 },
-      { time: index === days.length - 1 ? "12:00" : "16:00", titleZh: index === days.length - 1 ? "根据航班时间送机" : "自由活动或返回酒店", titleEn: index === days.length - 1 ? "Airport transfer by flight time" : "Free time or return to hotel", sortOrder: 2 },
+      { titleZh: day.descriptionZh || day.titleZh, titleEn: day.descriptionEn || day.titleEn, image: day.coverImage || dayImages[index % dayImages.length], sortOrder: 1 },
+      { titleZh: index === days.length - 1 ? "根据航班时间安排送机" : "自由活动或返回酒店", titleEn: index === days.length - 1 ? "Airport transfer by flight time" : "Free time or return to hotel", sortOrder: 2 },
     ]).map((slot, slotIndex) => ({ ...slot, sortOrder: slot.sortOrder ?? slotIndex + 1 })),
   }));
 }
