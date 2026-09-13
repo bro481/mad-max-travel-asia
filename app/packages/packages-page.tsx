@@ -32,6 +32,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
   });
   const [selected, setSelected] = useState<TravelPackage | null>(null);
   const [inquiry, setInquiry] = useState<TravelPackage | null>(null);
+  const [customInquiry, setCustomInquiry] = useState(false);
   const zh = lang === "zh";
   const visiblePackages = packages.filter((item) => item.status === "published");
   const days = useMemo(() => {
@@ -127,12 +128,13 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
             ))}
           </div>
           <aside className="package-longer-card">
+            <span className="package-cta-icon">⌖</span>
             <div>
-              <b>{zh ? "想要更长的行程？" : "Need a longer route?"}</b>
-              <p>{zh ? "5天、6天、7天、8天更多选择，带你发现不一样的马来西亚。" : "Explore 5–8 day routes for a deeper Malaysia journey."}</p>
+              <b>{zh ? "还没找到合适的？" : "Still not the right fit?"}</b>
+              <p>{zh ? "告诉我们你的天数和想去的地方，我们帮你组合。" : "Tell us your days and places. We will shape the route for you."}</p>
             </div>
-            <button type="button" onClick={() => setActiveDays(days.find((day) => day > activeDays) || days[0])}>
-              {zh ? "查看其他行程" : "See more"} →
+            <button type="button" onClick={() => setCustomInquiry(true)}>
+              {zh ? "帮我推荐" : "Recommend for me"} →
             </button>
           </aside>
         </section>
@@ -184,6 +186,9 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
 
       {inquiry && (
         <InquiryModal kind="package" title={zh ? inquiry.nameZh : inquiry.nameEn} onClose={() => setInquiry(null)} />
+      )}
+      {customInquiry && (
+        <InquiryModal kind="package" title={zh ? "省心套餐推荐" : "Package Recommendation"} onClose={() => setCustomInquiry(false)} />
       )}
     </>
   );
