@@ -74,7 +74,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
       <main className="packages-page">
         <section className="packages-hero">
           <img
-            src="https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=1900&q=90"
+            src="https://images.unsplash.com/photo-1540202404-dcde146e05d9?auto=format&fit=crop&w=1900&q=90"
             alt="Malaysia island package"
           />
           <div>
@@ -105,10 +105,6 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
         </section>
 
         <section className="package-list-section">
-          <div className="package-list-title">
-            <h2>{activeDays}{zh ? `天 · ${current.length}个方案` : ` Days · ${current.length} routes`}</h2>
-            <p>{zh ? "不含机票 · 价格仅供参考" : "Flights not included · Prices are reference only"}</p>
-          </div>
           <div className="package-route-list">
             {current.map((item) => (
               <button className="package-route-row" key={item.id} type="button" onClick={() => setSelected(item)}>
