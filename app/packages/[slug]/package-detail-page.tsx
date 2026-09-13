@@ -176,13 +176,14 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
                     {(day.schedule || []).map((slot, slotIndex) => (
                       (() => {
                         const text = zh ? slot.titleZh : slot.titleEn;
+                        const description = zh ? slot.descriptionZh : slot.descriptionEn;
                         const showImage = Boolean(slot.image && shouldShowScheduleImage(text) && shownScheduleImages < 2);
                         if (showImage) shownScheduleImages += 1;
                         return (
                           <div className={slot.time ? "package-schedule-row" : "package-schedule-row no-time"} key={`${slot.time || ""}-${slotIndex}`}>
                             {slot.time && <time>{slot.time}</time>}
                             <span />
-                            <p>{text}</p>
+                            <p>{text}{description ? <small>{description}</small> : null}</p>
                             {showImage && <img src={slot.image} alt="" />}
                           </div>
                         );

@@ -15,8 +15,14 @@ export type TravelPackageSchedule = {
   time?: string;
   titleZh: string;
   titleEn: string;
+  descriptionZh?: string;
+  descriptionEn?: string;
   image?: string;
   sortOrder?: number;
+  nodeType?: "transport" | "stay" | "experience" | "food" | "flight" | "free" | "note";
+  sourceType?: "manual" | "property" | "service";
+  sourceId?: number | string;
+  sourceLabel?: string;
 };
 
 export type TravelPackage = {
