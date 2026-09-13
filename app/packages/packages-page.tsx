@@ -74,8 +74,9 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
       <main className="packages-page">
         <section className="packages-hero">
           <img
-            src="https://images.unsplash.com/photo-1540202404-dcde146e05d9?auto=format&fit=crop&w=1900&q=90"
-            alt="Malaysia island package"
+            src="https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=1900&q=90"
+            alt=""
+            aria-hidden="true"
           />
           <div>
             <p className="eyebrow">MALAYSIA TRAVEL PACKAGE</p>
