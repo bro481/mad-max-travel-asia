@@ -35,6 +35,18 @@ function splitHero(text: string) {
     .slice(0, 3);
 }
 
+function compactFeeItems(items: string[], type: "include" | "exclude") {
+  const blocked = type === "include" ? ["住宿与服务组合建议"] : ["旺季价格差额"];
+  return items
+    .filter(Boolean)
+    .filter((item) => !blocked.some((word) => item.includes(word)))
+    .slice(0, 3);
+}
+
+function shouldShowScheduleImage(title: string) {
+  return !/(接机|送机|机场|航班|酒店|入住|退房|返回|自由活动)/.test(title);
+}
+
 export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const [lang, setLang] = useState<Lang>("zh");
   const [menu, setMenu] = useState(false);
@@ -53,6 +65,9 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const heroImage = gallery[0] || fallbackHero;
   const title = zh ? item.nameZh : item.nameEn;
   const inquiryTitle = `${item.nameZh.replace(/\s+/g, "")}${item.days}天${item.nights}晚`;
+  const heroLine = (zh ? splitHero(item.heroTextZh) : splitHero(item.heroTextEn))[0] || "";
+  const includeItems = compactFeeItems(item.includes || [], "include");
+  const excludeItems = compactFeeItems(item.excludes || [], "exclude");
 
   return (
     <>
@@ -88,9 +103,8 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
         <section className="package-full-hero" onClick={() => setGalleryOpen(true)}>
           <img src={heroImage} alt={title} />
           <div className="package-full-hero-copy">
-            {(zh ? splitHero(item.heroTextZh) : splitHero(item.heroTextEn)).map((line) => <span key={line}>{line}</span>)}
+            {heroLine && <span>{heroLine}</span>}
           </div>
-          <span className="package-full-script">Same Places<br />A Deeper Journey</span>
           <button className="package-gallery-pill" type="button" onClick={(event) => { event.stopPropagation(); setGalleryOpen(true); }}>
             ▧ 1 / {gallery.length}
           </button>
@@ -137,7 +151,7 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
                         <time>{slot.time}</time>
                         <span />
                         <p>{zh ? slot.titleZh : slot.titleEn}</p>
-                        {slot.image && <img src={slot.image} alt="" />}
+                        {slot.image && shouldShowScheduleImage(zh ? slot.titleZh : slot.titleEn) && <img src={slot.image} alt="" />}
                       </div>
                     ))}
                   </div>
@@ -149,15 +163,15 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
 
         <section className="package-fee-line">
           <b>ⓘ {zh ? "费用说明" : "Price notes"}</b>
-          <p><span>{zh ? "包含" : "Included"}</span>{(item.includes || []).filter(Boolean).join(" · ")}</p>
-          <p><span>{zh ? "不含" : "Not included"}</span>{(item.excludes || []).filter(Boolean).join(" · ")}</p>
+          <p><span>{zh ? "包含" : "Included"}</span>{includeItems.join(" · ")}</p>
+          <p><span>{zh ? "不含" : "Not included"}</span>{excludeItems.join(" · ")}</p>
         </section>
       </main>
 
       <footer className="package-fixed-consult">
         <div>
-          <b>¥{money(item.startingPrice)} <span>{zh ? "起/人" : "from"}</span></b>
-          <small>{item.days}天{item.nights}晚 · {zh ? item.cityComboZh : item.cityComboEn}</small>
+          <b>{item.days}天{item.nights}晚 · {zh ? item.cityComboZh : item.cityComboEn}</b>
+          <small>{zh ? "点击后整理套餐需求并添加微信咨询" : "Send us this package request"}</small>
         </div>
         <button type="button" onClick={() => setInquiryOpen(true)}>💬 {zh ? "咨询这个套餐" : "Inquire"} →</button>
       </footer>
