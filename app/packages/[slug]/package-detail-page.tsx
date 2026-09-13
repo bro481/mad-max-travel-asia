@@ -156,7 +156,6 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
 
         <section className="package-full-itinerary">
           <header>
-            <h2>{zh ? "行程安排" : "Itinerary"}</h2>
             <p>{zh ? "参考行程 · 可按你的时间调整" : "Reference route · adjustable to your timing"}</p>
           </header>
           <div className="package-timeline">
