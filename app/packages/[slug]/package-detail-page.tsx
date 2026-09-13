@@ -155,9 +155,7 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
         </section>
 
         <section className="package-full-itinerary">
-          <header>
-            <p>{zh ? "参考行程 · 可按你的时间调整" : "Reference route · adjustable to your timing"}</p>
-          </header>
+          <p className="package-itinerary-note">{zh ? "参考行程 · 可按你的时间调整" : "Reference route · adjustable to your timing"}</p>
           <div className="package-timeline">
             {item.itinerary.map((day, index) => {
               const open = openDay === index;
