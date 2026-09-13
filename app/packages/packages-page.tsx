@@ -30,8 +30,6 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
     const first = packages.find((item) => item.status === "published") || packages[0];
     return first?.days || 4;
   });
-  const [selected, setSelected] = useState<TravelPackage | null>(null);
-  const [inquiry, setInquiry] = useState<TravelPackage | null>(null);
   const [customInquiry, setCustomInquiry] = useState(false);
   const zh = lang === "zh";
   const visiblePackages = packages.filter((item) => item.status === "published");
@@ -108,7 +106,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
         <section className="package-list-section">
           <div className="package-route-list">
             {current.map((item) => (
-              <button className="package-route-row" key={item.id} type="button" onClick={() => setSelected(item)}>
+              <a className="package-route-row" key={item.id} href={`/packages/${item.slug}`}>
                 <img src={item.coverImage} alt={zh ? item.nameZh : item.nameEn} />
                 <span className="package-row-copy">
                   <small>{zh ? item.cityComboEn.toUpperCase() : item.cityComboZh}</small>
@@ -121,7 +119,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
                   </i>
                 </span>
                 <span className="package-arrow">→</span>
-              </button>
+              </a>
             ))}
           </div>
           <aside className="package-longer-card">
@@ -137,75 +135,9 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
         </section>
       </main>
 
-      {selected && (
-        <div className="package-detail-layer" role="dialog" aria-modal="true" onClick={() => setSelected(null)}>
-          <article className="package-detail-card" onClick={(event) => event.stopPropagation()}>
-            <button className="package-detail-close" type="button" onClick={() => setSelected(null)}>×</button>
-            <div className="package-detail-hero">
-              <img src={selected.coverImage} alt={zh ? selected.nameZh : selected.nameEn} />
-              <div>
-                <p className="eyebrow">MAD MAX · TRAVEL PACKAGE</p>
-                <h2>{zh ? selected.nameZh : selected.nameEn}</h2>
-                <p>{selected.days}{zh ? "天" : " Days"}{selected.nights}{zh ? "晚" : " Nights"} · {zh ? selected.summaryZh : selected.summaryEn}</p>
-                <b>{zh ? "¥" : "RMB"} {money(selected.startingPrice)} {zh ? "/ 人起" : " / person from"}</b>
-              </div>
-            </div>
-            <section className="package-detail-body">
-              <div className="package-dayline">
-                <h3>{zh ? "详细行程" : "Day-by-day"}</h3>
-                {selected.itinerary.map((day, index) => (
-                  <div className="package-dayline-item" key={`${day.titleZh}-${index}`}>
-                    <span>DAY {String(index + 1).padStart(2, "0")}</span>
-                    <div>
-                      <b>{zh ? day.titleZh : day.titleEn}</b>
-                      <p>{zh ? day.descriptionZh : day.descriptionEn}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="package-detail-notes">
-                <PackageNote title={zh ? "套餐包含" : "Included"} items={selected.includes} />
-                <PackageNote title={zh ? "不包含" : "Not included"} items={selected.excludes} />
-                <InfoNote title={zh ? "住宿说明" : "Accommodation"} text={zh ? selected.accommodationNoteZh : selected.accommodationNoteEn} />
-                <InfoNote title={zh ? "接送安排" : "Transfers"} text={zh ? selected.transferNoteZh : selected.transferNoteEn} />
-                <InfoNote title={zh ? "注意事项" : "Notes"} text={zh ? selected.notesZh : selected.notesEn} />
-                <InfoNote title={zh ? "价格说明" : "Price note"} text={zh ? selected.priceNoteZh : selected.priceNoteEn} />
-              </div>
-            </section>
-            <footer className="package-detail-footer">
-              <button className="button" type="button" onClick={() => setInquiry(selected)}>
-                {zh ? "咨询这个套餐" : "Inquire about this package"} →
-              </button>
-            </footer>
-          </article>
-        </div>
-      )}
-
-      {inquiry && (
-        <InquiryModal kind="package" title={zh ? inquiry.nameZh : inquiry.nameEn} onClose={() => setInquiry(null)} />
-      )}
       {customInquiry && (
         <InquiryModal kind="package" title={zh ? "省心套餐推荐" : "Package Recommendation"} onClose={() => setCustomInquiry(false)} />
       )}
     </>
-  );
-}
-
-function PackageNote({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <h4>{title}</h4>
-      <ul>{items.filter(Boolean).map((item) => <li key={item}>{item}</li>)}</ul>
-    </div>
-  );
-}
-
-function InfoNote({ title, text }: { title: string; text: string }) {
-  if (!text) return null;
-  return (
-    <div>
-      <h4>{title}</h4>
-      <p>{text}</p>
-    </div>
   );
 }

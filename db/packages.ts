@@ -7,6 +7,16 @@ export type TravelPackageDay = {
   titleEn: string;
   descriptionZh: string;
   descriptionEn: string;
+  coverImage?: string;
+  schedule?: TravelPackageSchedule[];
+};
+
+export type TravelPackageSchedule = {
+  time: string;
+  titleZh: string;
+  titleEn: string;
+  image?: string;
+  sortOrder?: number;
 };
 
 export type TravelPackage = {
@@ -20,6 +30,12 @@ export type TravelPackage = {
   cityComboEn: string;
   summaryZh: string;
   summaryEn: string;
+  heroTextZh: string;
+  heroTextEn: string;
+  subtitleZh: string;
+  subtitleEn: string;
+  tags: string[];
+  galleryImages: string[];
   coverImage: string;
   startingPrice: number;
   peakPrice: number | null;
@@ -50,6 +66,12 @@ const createSql = `CREATE TABLE IF NOT EXISTS travel_packages (
  city_combo_en TEXT NOT NULL DEFAULT '',
  summary_zh TEXT NOT NULL DEFAULT '',
  summary_en TEXT NOT NULL DEFAULT '',
+ hero_text_zh TEXT NOT NULL DEFAULT '',
+ hero_text_en TEXT NOT NULL DEFAULT '',
+ subtitle_zh TEXT NOT NULL DEFAULT '',
+ subtitle_en TEXT NOT NULL DEFAULT '',
+ tags TEXT NOT NULL DEFAULT '[]',
+ gallery_images TEXT NOT NULL DEFAULT '[]',
  cover_image TEXT NOT NULL DEFAULT '',
  starting_price INTEGER NOT NULL DEFAULT 0,
  peak_price INTEGER,
@@ -68,6 +90,23 @@ const createSql = `CREATE TABLE IF NOT EXISTS travel_packages (
  sort_order INTEGER NOT NULL DEFAULT 0,
  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`;
+
+const packageMigrationSql = [
+  "ALTER TABLE travel_packages ADD COLUMN hero_text_zh TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE travel_packages ADD COLUMN hero_text_en TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE travel_packages ADD COLUMN subtitle_zh TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE travel_packages ADD COLUMN subtitle_en TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE travel_packages ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
+  "ALTER TABLE travel_packages ADD COLUMN gallery_images TEXT NOT NULL DEFAULT '[]'",
+];
+
+async function migrateTravelPackages() {
+  for (const sql of packageMigrationSql) {
+    try {
+      await env.DB.prepare(sql).run();
+    } catch {}
+  }
+}
 
 const packageSeeds = [
   {
@@ -267,6 +306,13 @@ const packageSeeds = [
 
 const defaultIncludes = ["行程规划", "当地中文沟通协助", "路线内接送安排建议", "住宿与服务组合建议"];
 const defaultExcludes = ["国际/国内机票", "个人消费", "景点门票及自费项目", "旺季价格差额"];
+const defaultTags = ["城市地标", "历史文化", "美食探索", "适合家庭 / 情侣"];
+const dayImages = [
+  "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=800&q=84",
+  "https://images.unsplash.com/photo-1580537659466-0a9bfa916a54?auto=format&fit=crop&w=800&q=84",
+  "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=84",
+  "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=84",
+];
 
 const parseJson = <T>(value: unknown, fallback: T): T => {
   try {
@@ -275,6 +321,22 @@ const parseJson = <T>(value: unknown, fallback: T): T => {
     return fallback;
   }
 };
+
+function valueOrEmpty(value: unknown) {
+  if (value === undefined || value === null) return "";
+  return String(value);
+}
+
+function normalizeItinerary(days: TravelPackageDay[], coverImage: string) {
+  return days.map((day, index) => ({
+    ...day,
+    coverImage: day.coverImage || dayImages[index % dayImages.length] || coverImage,
+    schedule: (day.schedule && day.schedule.length ? day.schedule : [
+      { time: index === 0 ? "14:00" : "09:00", titleZh: day.descriptionZh || day.titleZh, titleEn: day.descriptionEn || day.titleEn, image: day.coverImage || dayImages[index % dayImages.length], sortOrder: 1 },
+      { time: index === days.length - 1 ? "12:00" : "16:00", titleZh: index === days.length - 1 ? "根据航班时间送机" : "自由活动或返回酒店", titleEn: index === days.length - 1 ? "Airport transfer by flight time" : "Free time or return to hotel", sortOrder: 2 },
+    ]).map((slot, slotIndex) => ({ ...slot, sortOrder: slot.sortOrder ?? slotIndex + 1 })),
+  }));
+}
 
 export function staticTravelPackages(): TravelPackage[] {
   return packageSeeds.map((seed, index) => ({
@@ -288,10 +350,16 @@ export function staticTravelPackages(): TravelPackage[] {
     cityComboEn: seed.cityComboEn,
     summaryZh: seed.summaryZh,
     summaryEn: seed.summaryEn,
+    heroTextZh: "从现代都市到历史古城，遇见不一样的马来西亚。",
+    heroTextEn: "From modern skylines to heritage towns, discover a different Malaysia.",
+    subtitleZh: `${seed.days}天${seed.nights}晚 · 经典城市之旅`,
+    subtitleEn: `${seed.days}D${seed.nights}N · Classic private route`,
+    tags: [...defaultTags],
+    galleryImages: [seed.coverImage, ...dayImages],
     coverImage: seed.coverImage,
     startingPrice: seed.startingPrice,
     peakPrice: seed.peakPrice,
-    itinerary: seed.itinerary.map(([titleZh, titleEn, descriptionZh, descriptionEn]) => ({ titleZh, titleEn, descriptionZh, descriptionEn })),
+    itinerary: normalizeItinerary(seed.itinerary.map(([titleZh, titleEn, descriptionZh, descriptionEn]) => ({ titleZh, titleEn, descriptionZh, descriptionEn })), seed.coverImage),
     includes: [...defaultIncludes],
     excludes: [...defaultExcludes],
     accommodationNoteZh: "住宿可按预算与人数调整，最终以咨询确认为准。",
@@ -310,16 +378,17 @@ export function staticTravelPackages(): TravelPackage[] {
 
 export async function ensureTravelPackages() {
   await env.DB.prepare(createSql).run();
+  await migrateTravelPackages();
   const row = await env.DB.prepare("SELECT COUNT(*) total FROM travel_packages").first<{ total: number }>();
   if ((row?.total || 0) > 0) return;
   for (let index = 0; index < staticTravelPackages().length; index += 1) {
     const item = staticTravelPackages()[index];
     await env.DB.prepare(
       `INSERT INTO travel_packages (
-        slug,name_zh,name_en,days,nights,city_combo_zh,city_combo_en,summary_zh,summary_en,cover_image,
+        slug,name_zh,name_en,days,nights,city_combo_zh,city_combo_en,summary_zh,summary_en,hero_text_zh,hero_text_en,subtitle_zh,subtitle_en,tags,gallery_images,cover_image,
         starting_price,peak_price,itinerary,includes,excludes,accommodation_note_zh,accommodation_note_en,
         transfer_note_zh,transfer_note_en,notes_zh,notes_en,price_note_zh,price_note_en,status,sort_order
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
       .bind(
         item.slug,
@@ -331,6 +400,12 @@ export async function ensureTravelPackages() {
         item.cityComboEn,
         item.summaryZh,
         item.summaryEn,
+        item.heroTextZh,
+        item.heroTextEn,
+        item.subtitleZh,
+        item.subtitleEn,
+        JSON.stringify(item.tags),
+        JSON.stringify(item.galleryImages),
         item.coverImage,
         item.startingPrice,
         item.peakPrice,
@@ -353,6 +428,9 @@ export async function ensureTravelPackages() {
 }
 
 export function mapTravelPackage(row: Record<string, unknown>): TravelPackage {
+  const coverImage = String(row.cover_image || "");
+  const itinerary = normalizeItinerary(parseJson<TravelPackageDay[]>(row.itinerary, []), coverImage);
+  const galleryImages = parseJson<string[]>(row.gallery_images, []);
   return {
     id: Number(row.id),
     slug: String(row.slug),
@@ -364,10 +442,16 @@ export function mapTravelPackage(row: Record<string, unknown>): TravelPackage {
     cityComboEn: String(row.city_combo_en),
     summaryZh: String(row.summary_zh),
     summaryEn: String(row.summary_en),
-    coverImage: String(row.cover_image),
+    heroTextZh: valueOrEmpty(row.hero_text_zh) || "从现代都市到历史古城，遇见不一样的马来西亚。",
+    heroTextEn: valueOrEmpty(row.hero_text_en) || "From modern skylines to heritage towns, discover a different Malaysia.",
+    subtitleZh: valueOrEmpty(row.subtitle_zh) || `${Number(row.days)}天${Number(row.nights)}晚 · 经典城市之旅`,
+    subtitleEn: valueOrEmpty(row.subtitle_en) || `${Number(row.days)}D${Number(row.nights)}N · Classic private route`,
+    tags: parseJson<string[]>(row.tags, defaultTags),
+    galleryImages: galleryImages.length ? galleryImages : [coverImage, ...itinerary.map((day) => day.coverImage).filter((x): x is string => Boolean(x))],
+    coverImage,
     startingPrice: Number(row.starting_price),
     peakPrice: row.peak_price === null || row.peak_price === undefined ? null : Number(row.peak_price),
-    itinerary: parseJson<TravelPackageDay[]>(row.itinerary, []),
+    itinerary,
     includes: parseJson<string[]>(row.includes, []),
     excludes: parseJson<string[]>(row.excludes, []),
     accommodationNoteZh: String(row.accommodation_note_zh),
@@ -415,8 +499,12 @@ export async function createTravelPackage(input: Partial<TravelPackage>) {
     slug = `${base}-${++n}`;
   }
   const result = await env.DB.prepare(
-    `INSERT INTO travel_packages (slug,name_zh,name_en,days,nights,city_combo_zh,city_combo_en,summary_zh,summary_en,cover_image,starting_price,status,sort_order)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO travel_packages (
+      slug,name_zh,name_en,days,nights,city_combo_zh,city_combo_en,summary_zh,summary_en,
+      hero_text_zh,hero_text_en,subtitle_zh,subtitle_en,tags,gallery_images,cover_image,starting_price,peak_price,
+      itinerary,includes,excludes,accommodation_note_zh,accommodation_note_en,transfer_note_zh,transfer_note_en,
+      notes_zh,notes_en,price_note_zh,price_note_en,status,sort_order
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   )
     .bind(
       slug,
@@ -428,8 +516,26 @@ export async function createTravelPackage(input: Partial<TravelPackage>) {
       input.cityComboEn || "",
       input.summaryZh || "",
       input.summaryEn || "",
+      input.heroTextZh || "",
+      input.heroTextEn || "",
+      input.subtitleZh || "",
+      input.subtitleEn || "",
+      JSON.stringify(input.tags || []),
+      JSON.stringify(input.galleryImages || []),
       input.coverImage || "",
       input.startingPrice || 0,
+      input.peakPrice ?? null,
+      JSON.stringify(input.itinerary || []),
+      JSON.stringify(input.includes || defaultIncludes),
+      JSON.stringify(input.excludes || defaultExcludes),
+      input.accommodationNoteZh || "",
+      input.accommodationNoteEn || "",
+      input.transferNoteZh || "",
+      input.transferNoteEn || "",
+      input.notesZh || "",
+      input.notesEn || "",
+      input.priceNoteZh || "",
+      input.priceNoteEn || "",
       input.status || "draft",
       input.sortOrder || 99,
     )
@@ -441,7 +547,8 @@ export async function updateTravelPackage(id: number, input: Partial<TravelPacka
   await ensureTravelPackages();
   await env.DB.prepare(
     `UPDATE travel_packages SET
-      slug=?,name_zh=?,name_en=?,days=?,nights=?,city_combo_zh=?,city_combo_en=?,summary_zh=?,summary_en=?,cover_image=?,
+      slug=?,name_zh=?,name_en=?,days=?,nights=?,city_combo_zh=?,city_combo_en=?,summary_zh=?,summary_en=?,
+      hero_text_zh=?,hero_text_en=?,subtitle_zh=?,subtitle_en=?,tags=?,gallery_images=?,cover_image=?,
       starting_price=?,peak_price=?,itinerary=?,includes=?,excludes=?,accommodation_note_zh=?,accommodation_note_en=?,
       transfer_note_zh=?,transfer_note_en=?,notes_zh=?,notes_en=?,price_note_zh=?,price_note_en=?,status=?,sort_order=?,updated_at=CURRENT_TIMESTAMP
      WHERE id=?`,
@@ -456,6 +563,12 @@ export async function updateTravelPackage(id: number, input: Partial<TravelPacka
       input.cityComboEn || "",
       input.summaryZh || "",
       input.summaryEn || "",
+      input.heroTextZh || "",
+      input.heroTextEn || "",
+      input.subtitleZh || "",
+      input.subtitleEn || "",
+      JSON.stringify(input.tags || []),
+      JSON.stringify(input.galleryImages || []),
       input.coverImage || "",
       input.startingPrice || 0,
       input.peakPrice ?? null,
@@ -475,6 +588,31 @@ export async function updateTravelPackage(id: number, input: Partial<TravelPacka
       id,
     )
     .run();
+}
+
+export async function getTravelPackageById(id: number, all = false) {
+  await ensureTravelPackages();
+  const row = await env.DB.prepare(
+    `SELECT * FROM travel_packages WHERE id=? ${all ? "" : "AND status='published'"} LIMIT 1`,
+  )
+    .bind(id)
+    .first();
+  return row ? mapTravelPackage(row as Record<string, unknown>) : null;
+}
+
+export async function duplicateTravelPackage(id: number) {
+  const source = await getTravelPackageById(id, true);
+  if (!source) throw new Error("Package not found");
+  const copy = await createTravelPackage({
+    ...source,
+    id: 0,
+    slug: `${source.slug}-copy-${Date.now().toString(36)}`,
+    nameZh: `${source.nameZh} 副本`,
+    nameEn: `${source.nameEn} Copy`,
+    status: "draft",
+    sortOrder: source.sortOrder + 1,
+  });
+  return copy;
 }
 
 export async function deleteTravelPackage(id: number) {

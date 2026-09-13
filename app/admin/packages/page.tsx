@@ -1,9 +1,10 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import type { TravelPackage, TravelPackageDay } from "../../../db/packages";
+import type { TravelPackage, TravelPackageDay, TravelPackageSchedule } from "../../../db/packages";
 
-const emptyDay: TravelPackageDay = { titleZh: "", titleEn: "", descriptionZh: "", descriptionEn: "" };
+const emptySchedule: TravelPackageSchedule = { time: "", titleZh: "", titleEn: "", image: "" };
+const emptyDay: TravelPackageDay = { titleZh: "", titleEn: "", descriptionZh: "", descriptionEn: "", coverImage: "", schedule: [] };
 
 const emptyPackage: TravelPackage = {
   id: 0,
@@ -16,6 +17,12 @@ const emptyPackage: TravelPackage = {
   cityComboEn: "",
   summaryZh: "",
   summaryEn: "",
+  heroTextZh: "",
+  heroTextEn: "",
+  subtitleZh: "",
+  subtitleEn: "",
+  tags: ["城市地标", "历史文化", "美食探索", "适合家庭 / 情侣"],
+  galleryImages: [],
   coverImage: "",
   startingPrice: 0,
   peakPrice: null,
@@ -132,6 +139,25 @@ export default function AdminPackagesPage() {
     }
   };
 
+  const copyPackage = async () => {
+    if (selectedId === "new") return;
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch(`/api/admin/packages/${selectedId}/copy`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "复制失败");
+      const refreshed = await fetch("/api/admin/packages", { cache: "no-store" }).then((r) => r.json());
+      setItems(Array.isArray(refreshed) ? refreshed : []);
+      setSelectedId(data.id);
+      setMessage("已复制为草稿套餐，可以直接修改天数和每日行程。");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "复制失败");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="admin-packages-page">
       <div className="admin-page-top">
@@ -143,6 +169,7 @@ export default function AdminPackagesPage() {
         <div>
           <a className="admin-secondary" href="/packages" target="_blank">查看前台</a>
           <button className="admin-secondary" onClick={() => setSelectedId("new")}>新增套餐</button>
+          {selectedId !== "new" && <button className="admin-secondary" onClick={copyPackage} disabled={saving}>复制套餐</button>}
           <button className="admin-primary" onClick={save} disabled={saving}>{saving ? "保存中..." : "保存套餐"}</button>
         </div>
       </div>
@@ -177,6 +204,10 @@ export default function AdminPackagesPage() {
               <label><span>英文城市组合</span><input value={draft.cityComboEn} onChange={(event) => setField("cityComboEn", event.target.value)} /></label>
               <label><span>中文列表简介</span><input value={draft.summaryZh} onChange={(event) => setField("summaryZh", event.target.value)} /></label>
               <label><span>英文列表简介</span><input value={draft.summaryEn} onChange={(event) => setField("summaryEn", event.target.value)} /></label>
+              <label><span>详情页副标题（中文）</span><input value={draft.subtitleZh} onChange={(event) => setField("subtitleZh", event.target.value)} placeholder="4天3晚 · 经典城市之旅" /></label>
+              <label><span>Detail subtitle</span><input value={draft.subtitleEn} onChange={(event) => setField("subtitleEn", event.target.value)} /></label>
+              <label><span>Hero 氛围文案（中文）</span><textarea value={draft.heroTextZh} onChange={(event) => setField("heroTextZh", event.target.value)} placeholder="从现代都市到历史古城，遇见不一样的马来西亚。" /></label>
+              <label><span>Hero copy</span><textarea value={draft.heroTextEn} onChange={(event) => setField("heroTextEn", event.target.value)} /></label>
             </div>
             <label className="admin-cover-field">
               <span>封面图</span>
@@ -185,6 +216,8 @@ export default function AdminPackagesPage() {
               {draft.coverImage && <img src={draft.coverImage} alt="" />}
             </label>
 
+            <PackageArray title="详情页标签" value={draft.tags} onChange={(value) => setField("tags", value)} />
+            <PackageArray title="图库图片 URL" value={draft.galleryImages} onChange={(value) => setField("galleryImages", value)} />
             <PackageArray title="套餐包含" value={draft.includes} onChange={(value) => setField("includes", value)} />
             <PackageArray title="不包含" value={draft.excludes} onChange={(value) => setField("excludes", value)} />
 
@@ -197,6 +230,8 @@ export default function AdminPackagesPage() {
                   <input placeholder="英文标题" value={day.titleEn} onChange={(event) => setItinerary(index, "titleEn", event.target.value, draft, setField)} />
                   <textarea placeholder="中文说明" value={day.descriptionZh} onChange={(event) => setItinerary(index, "descriptionZh", event.target.value, draft, setField)} />
                   <textarea placeholder="英文说明" value={day.descriptionEn} onChange={(event) => setItinerary(index, "descriptionEn", event.target.value, draft, setField)} />
+                  <input placeholder="DAY 代表图 URL" value={day.coverImage || ""} onChange={(event) => setItinerary(index, "coverImage", event.target.value, draft, setField)} />
+                  <ScheduleEditor day={day} dayIndex={index} draft={draft} setField={setField} />
                   <button type="button" onClick={() => setField("itinerary", draft.itinerary.filter((_, i) => i !== index))}>删除这天</button>
                 </div>
               ))}
@@ -229,6 +264,44 @@ function setItinerary(
   setField: <K extends keyof TravelPackage>(key: K, value: TravelPackage[K]) => void,
 ) {
   setField("itinerary", draft.itinerary.map((day, i) => (i === index ? { ...day, [key]: value } : day)));
+}
+
+function setDaySchedule(
+  dayIndex: number,
+  schedule: TravelPackageSchedule[],
+  draft: TravelPackage,
+  setField: <K extends keyof TravelPackage>(key: K, value: TravelPackage[K]) => void,
+) {
+  setField("itinerary", draft.itinerary.map((day, i) => (i === dayIndex ? { ...day, schedule } : day)));
+}
+
+function ScheduleEditor({
+  day,
+  dayIndex,
+  draft,
+  setField,
+}: {
+  day: TravelPackageDay;
+  dayIndex: number;
+  draft: TravelPackage;
+  setField: <K extends keyof TravelPackage>(key: K, value: TravelPackage[K]) => void;
+}) {
+  const schedule = day.schedule || [];
+  return (
+    <div className="admin-package-schedule">
+      <b>时间节点</b>
+      {schedule.map((slot, index) => (
+        <div key={index}>
+          <input placeholder="时间" value={slot.time} onChange={(event) => setDaySchedule(dayIndex, schedule.map((x, i) => (i === index ? { ...x, time: event.target.value } : x)), draft, setField)} />
+          <input placeholder="中文内容" value={slot.titleZh} onChange={(event) => setDaySchedule(dayIndex, schedule.map((x, i) => (i === index ? { ...x, titleZh: event.target.value } : x)), draft, setField)} />
+          <input placeholder="英文内容" value={slot.titleEn} onChange={(event) => setDaySchedule(dayIndex, schedule.map((x, i) => (i === index ? { ...x, titleEn: event.target.value } : x)), draft, setField)} />
+          <input placeholder="节点图片 URL（可选）" value={slot.image || ""} onChange={(event) => setDaySchedule(dayIndex, schedule.map((x, i) => (i === index ? { ...x, image: event.target.value } : x)), draft, setField)} />
+          <button type="button" onClick={() => setDaySchedule(dayIndex, schedule.filter((_, i) => i !== index), draft, setField)}>删节点</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => setDaySchedule(dayIndex, [...schedule, { ...emptySchedule, sortOrder: schedule.length + 1 }], draft, setField)}>+ 添加时间节点</button>
+    </div>
+  );
 }
 
 function PackageArray({ title, value, onChange }: { title: string; value: string[]; onChange: (value: string[]) => void }) {
