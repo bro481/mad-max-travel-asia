@@ -4,6 +4,7 @@ export type PublicContentScope =
   | "properties"
   | "destinations"
   | "services"
+  | "packages"
   | "settings";
 
 export function revalidatePublicContent(...scopes: PublicContentScope[]) {
@@ -21,6 +22,11 @@ export function revalidatePublicContent(...scopes: PublicContentScope[]) {
     revalidatePath("/services/[slug]", "page");
     revalidatePath("/services/private-car");
     revalidatePath("/api/destinations");
+  }
+
+  if (selected.has("packages")) {
+    revalidatePath("/");
+    revalidatePath("/packages");
   }
 
   if (selected.has("settings")) {

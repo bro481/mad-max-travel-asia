@@ -1152,8 +1152,10 @@ export function ServicesPage({
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{t.rooms}</a>
           <ServiceMenu lang={lang} active />
+          <a href="/packages">{lang === "zh" ? "省心套餐" : "Packages"}</a>
+          <a href="/picks">{lang === "zh" ? "大马特产" : "Malaysia Picks"}</a>
+          <a href="/photography">{lang === "zh" ? "旅行攻略" : "Travel Guide"}</a>
           <a href="/about">{t.about}</a>
-          <a href="/#contact">{t.contact}</a>
           <div className="language-switch mobile-language">
             <button
               className={lang === "zh" ? "active" : ""}

@@ -46,8 +46,10 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
         <nav>
           <a href="/#stays">房源</a>
           <ServiceMenu lang="zh" active />
+          <a href="/packages">省心套餐</a>
+          <a href="/picks">大马特产</a>
+          <a href="/photography">旅行攻略</a>
           <a href="/about">关于我们</a>
-          <a href="/#contact">联系我们</a>
         </nav>
       </header>
       <main className="service-product-detail">

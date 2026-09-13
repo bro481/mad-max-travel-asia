@@ -950,8 +950,10 @@ export function ServiceDetail({
         <nav className={menu ? "open" : ""}>
           <a href="/#stays">{zh ? "房源" : "Stays"}</a>
           <ServiceMenu lang={lang} active />
+          <a href="/packages">{zh ? "省心套餐" : "Packages"}</a>
+          <a href="/picks">{zh ? "大马特产" : "Malaysia Picks"}</a>
+          <a href="/photography">{zh ? "旅行攻略" : "Travel Guide"}</a>
           <a href="/about">{zh ? "关于我们" : "About"}</a>
-          <a href="/#contact">{zh ? "联系我们" : "Contact"}</a>
         </nav>
         <div className="header-right">
           <div className="language-switch desktop-language">
