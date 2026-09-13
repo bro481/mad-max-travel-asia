@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type Lang = "zh" | "en";
@@ -13,8 +14,8 @@ const entries = {
     },
     {
       href: "/photography",
-      title: "旅行跟拍",
-      desc: "记录旅途中的自然瞬间",
+      title: "旅行攻略",
+      desc: "城市漫游 · 美食 · 住宿建议",
     },
     {
       href: "/picks",
@@ -30,8 +31,8 @@ const entries = {
     },
     {
       href: "/photography",
-      title: "Travel Photography",
-      desc: "Natural moments from your journey",
+      title: "Travel Guide",
+      desc: "City walks · Food · Stay notes",
     },
     {
       href: "/picks",
@@ -53,9 +54,9 @@ export function ServiceMenu({
 
   return (
     <span className={`service-menu ${open ? "open" : ""}`}>
-      <a className={active ? "active-nav" : ""} href="/services">
+      <Link className={active ? "active-nav" : ""} href="/services">
         {label}
-      </a>
+      </Link>
       <button
         aria-expanded={open}
         aria-label={lang === "zh" ? "展开当地服务菜单" : "Open local services menu"}
@@ -71,13 +72,13 @@ export function ServiceMenu({
       <div className="service-menu-panel">
         <p>{label}</p>
         {entries[lang].map((item) => (
-          <a href={item.href} key={item.href}>
+          <Link href={item.href} key={item.href}>
             <span>
               <b>{item.title}</b>
               <small>{item.desc}</small>
             </span>
             <i>→</i>
-          </a>
+          </Link>
         ))}
       </div>
     </span>

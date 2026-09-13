@@ -37,6 +37,9 @@ export default async function AdminLayout({
           <Link href="/admin/packages">
             ✦ <span>省心套餐</span>
           </Link>
+          <Link href="/admin/travel-guides">
+            ◌ <span>旅行攻略</span>
+          </Link>
           <Link href="/admin/inquiries">
             ☏ <span>客户咨询</span>
           </Link>
