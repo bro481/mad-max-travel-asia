@@ -7,6 +7,11 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
   const [sent, setSent] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const inquiryKind: InquiryKind = s.type === "交通接送" ? "airport-transfer" : s.type === "私人包车" ? "private-charter" : "experience";
+  const visibleRoutes = s.routes.filter((x) => x.visible !== false);
+  const routeImage = visibleRoutes
+    .map((x) => x.coverImage || x.image || x.nodes?.find((node) => node.image)?.image || "")
+    .find(Boolean);
+  const heroImage = s.images[0] || s.coverImage || s.gallery?.[0] || routeImage || "";
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = e.currentTarget,
@@ -47,7 +52,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
       </header>
       <main className="service-product-detail">
         <section className="service-product-hero">
-          {s.images[0] && <img src={s.images[0]} alt={s.nameZh} />}
+          {heroImage && <img src={heroImage} alt={s.nameZh} />}
           <div>
             <p>
               {s.city} · {s.category}
@@ -91,9 +96,11 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
                 <h2>{s.routeSectionTitleZh || "热门路线方案"}</h2>
                 {s.routeSectionIntroZh && <p>{s.routeSectionIntroZh}</p>}
                 <div className="route-grid">
-                  {s.routes.filter((x) => x.visible !== false).map((x, i) => (
+                  {visibleRoutes.map((x, i) => {
+                    const image = x.coverImage || x.image || x.nodes?.find((node) => node.image)?.image || "";
+                    return (
                     <article key={i}>
-                      {x.image && <img src={x.image} alt="" />}
+                      {image && <img src={image} alt="" />}
                       <span>
                         {[x.duration, x.tag || x.tags?.[0]].filter(Boolean).join(" · ")}
                       </span>
@@ -108,7 +115,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
                           : x.stops}
                       </small>
                     </article>
-                  ))}
+                  )})}
                 </div>
               </section>
             )}

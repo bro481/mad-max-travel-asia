@@ -269,6 +269,101 @@ const getExperienceDetail = (offer: Offer): ExperienceDetail => {
         ],
   };
 };
+const firstRouteImage = (service: ServiceItem) => {
+  const visibleRoutes = service.routes
+    .filter((route) => route.visible !== false)
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+  for (const route of visibleRoutes) {
+    const image =
+      route.coverImage ||
+      route.image ||
+      route.nodes?.find((node) => node.image)?.image ||
+      "";
+    if (image) return image;
+  }
+  return "";
+};
+const getManagedExperienceStops = (
+  service: ServiceItem,
+  offer: Offer,
+): ExperienceStop[] => {
+  const visibleRoutes = service.routes
+    .filter((route) => route.visible !== false)
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+
+  return visibleRoutes.flatMap((route, routeIndex) => {
+    const routeDetail = routePlanToPrivateRoute(route, service, routeIndex);
+    const routeImage = route.coverImage || route.image || "";
+    const routeTitleZh =
+      route.nameZh || route.name || routeDetail.stops[0]?.title[0] || offer.title[0];
+    const routeTitleEn =
+      route.nameEn || routeDetail.stops[0]?.title[1] || routeTitleZh;
+    const routeNoteZh =
+      route.descriptionZh ||
+      route.description ||
+      routeDetail.stops[0]?.note[0] ||
+      offer.desc[0];
+    const routeNoteEn =
+      route.descriptionEn || routeDetail.stops[0]?.note[1] || routeNoteZh;
+
+    if (visibleRoutes.length > 1 && routeDetail.stops.length <= 1) {
+      return [
+        {
+          title: [routeTitleZh, routeTitleEn] as [string, string],
+          note: [routeNoteZh, routeNoteEn] as [string, string],
+          image:
+            routeImage ||
+            routeDetail.stops[0]?.image ||
+            service.images[0] ||
+            offer.image,
+          featured: true,
+        },
+      ];
+    }
+
+    return routeDetail.stops.map((stop) => ({
+      title: stop.title,
+      note: stop.note,
+      image: stop.image || routeImage || service.images[0] || offer.image,
+      featured: Boolean(stop.image || routeImage),
+    }));
+  });
+};
+const getManagedExperienceDetail = (
+  service: ServiceItem | undefined,
+  offer: Offer,
+): ExperienceDetail => {
+  const base = getExperienceDetail(offer);
+  if (!service || service.templateType !== "experience") return base;
+  const stops = getManagedExperienceStops(service, offer);
+  if (!stops.length) return base;
+  const firstRoute = service.routes
+    .filter((route) => route.visible !== false)
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99))[0];
+  const tags = (service.tags.length ? service.tags : [service.category, service.city])
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((tag) => [tag, tag] as [string, string]);
+
+  return {
+    ...base,
+    title: [service.nameZh, service.nameEn || service.nameZh],
+    desc: [
+      service.introZh || service.subtitleZh || offer.desc[0],
+      service.introEn || service.subtitleEn || service.introZh || offer.desc[1],
+    ],
+    tags: tags.length ? tags : base.tags,
+    timelineTitle: [
+      service.routeSectionTitleZh || firstRoute?.sectionTitleZh || "体验行程",
+      service.routeSectionTitleEn || service.routeSectionTitleZh || "Experience itinerary",
+    ],
+    note: [
+      service.routeSectionIntroZh || base.note[0],
+      service.routeSectionIntroEn || service.routeSectionIntroZh || base.note[1],
+    ],
+    stops,
+  };
+};
 const airportVehicles: AirportVehicle[] = [
   {
     name: ["舒适轿车", "Comfort sedan"],
@@ -782,11 +877,17 @@ export function ServicesPage({
     const fallbackTag = category?.nameZh || service.category || "当地服务";
     const tags = (service.tags.length ? service.tags : [fallbackTag, service.city]).slice(0, 2).map((tag) => [tag, tag] as [string, string]);
     while (tags.length < 2) tags.push([service.city, service.city]);
+    const serviceImage =
+      service.images[0] ||
+      service.coverImage ||
+      service.gallery?.[0] ||
+      firstRouteImage(service) ||
+      img("photo-1549317661-bd32c8ce0db2");
     return {
       title: [service.nameZh, service.nameEn || service.nameZh],
       desc: [service.subtitleZh || service.introZh || "告诉我们日期和人数即可确认安排。", service.subtitleEn || service.subtitleZh || "Share your date and group size to confirm arrangements."],
       tags: tags as [[string, string], [string, string]],
-      image: service.images[0] || img("photo-1549317661-bd32c8ce0db2"),
+      image: serviceImage,
       serviceId: service.id,
       serviceSlug: service.slug,
       detail:
@@ -881,7 +982,9 @@ export function ServicesPage({
   const isExperienceOffer =
     selectedOffer?.detail === "island" || selectedOffer?.detail === "nature";
   const experienceDetail =
-    selectedOffer && isExperienceOffer ? getExperienceDetail(selectedOffer) : null;
+    selectedOffer && isExperienceOffer
+      ? getManagedExperienceDetail(selectedManagedService, selectedOffer)
+      : null;
   const experienceStops = experienceDetail?.stops ?? [];
   const activeExperienceStop =
     experienceStops[experienceIndex] || experienceStops[0];
@@ -1198,10 +1301,12 @@ export function ServicesPage({
               </p>
             </div>
             <div className="managed-service-grid">
-              {managed.map((x) => (
+              {managed.map((x) => {
+                const image = x.images[0] || x.coverImage || x.gallery?.[0] || firstRouteImage(x);
+                return (
                 <a href={`/services?service=${encodeURIComponent(x.slug)}`} key={x.id}>
-                  {x.images[0] ? (
-                    <img src={x.images[0]} alt="" />
+                  {image ? (
+                    <img src={image} alt="" />
                   ) : (
                     <div className="managed-placeholder">
                       {x.type === "交通接送"
@@ -1224,7 +1329,7 @@ export function ServicesPage({
                   </p>
                   <span>{lang === "zh" ? "查看详情 →" : "View details →"}</span>
                 </a>
-              ))}
+              )})}
             </div>
           </section>
         )}
