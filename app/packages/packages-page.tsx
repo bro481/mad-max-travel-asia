@@ -74,7 +74,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
       <main className="packages-page">
         <section className="packages-hero">
           <img
-            src="https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1900&q=90"
+            src="https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=1900&q=90"
             alt="Malaysia island package"
           />
           <div>
@@ -88,7 +88,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
         <section className="package-tabs-wrap">
           <div className="package-tabs-heading">
             <span />
-            <h2>{zh ? "想玩几天？" : "How many days?"}</h2>
+            <h2>{zh ? "选择行程天数" : "Choose trip length"}</h2>
           </div>
           <div className="package-day-tabs" role="tablist" aria-label={zh ? "选择套餐天数" : "Choose package days"}>
             {days.map((day) => (
@@ -120,7 +120,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
                   <i>
                     {item.days}{zh ? "天" : "D"}{item.nights}{zh ? "晚" : "N"}
                     <span />
-                    RM <strong>{money(item.startingPrice)}</strong> {zh ? "起" : "from"}
+                    {zh ? "¥" : "RMB"} <strong>{money(item.startingPrice)}</strong> {zh ? "起" : "from"}
                   </i>
                 </span>
                 <span className="package-arrow">→</span>
@@ -150,7 +150,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
                 <p className="eyebrow">MAD MAX · TRAVEL PACKAGE</p>
                 <h2>{zh ? selected.nameZh : selected.nameEn}</h2>
                 <p>{selected.days}{zh ? "天" : " Days"}{selected.nights}{zh ? "晚" : " Nights"} · {zh ? selected.summaryZh : selected.summaryEn}</p>
-                <b>RM {money(selected.startingPrice)} {zh ? "/ 人起" : " / person from"}</b>
+                <b>{zh ? "¥" : "RMB"} {money(selected.startingPrice)} {zh ? "/ 人起" : " / person from"}</b>
               </div>
             </div>
             <section className="package-detail-body">

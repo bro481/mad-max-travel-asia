@@ -156,7 +156,7 @@ export default function AdminPackagesPage() {
                 <img src={item.coverImage || "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=500&q=80"} alt="" />
                 <span>
                   <b>{item.nameZh}</b>
-                  <small>{item.days}天{item.nights}晚 · RM {item.startingPrice || 0} 起 · {item.status === "published" ? "上线" : "草稿"}</small>
+                  <small>{item.days}天{item.nights}晚 · ¥ {item.startingPrice || 0} 起 · {item.status === "published" ? "上线" : "草稿"}</small>
                 </span>
               </button>
             ))}
@@ -172,7 +172,7 @@ export default function AdminPackagesPage() {
               <label><span>天数</span><input type="number" min={1} value={draft.days} onChange={(event) => setField("days", Number(event.target.value))} /></label>
               <label><span>晚数</span><input type="number" min={0} value={draft.nights} onChange={(event) => setField("nights", Number(event.target.value))} /></label>
               <label><span>排序</span><input type="number" value={draft.sortOrder} onChange={(event) => setField("sortOrder", Number(event.target.value))} /></label>
-              <label><span>参考起价 RM</span><input type="number" min={0} value={draft.startingPrice} onChange={(event) => setField("startingPrice", Number(event.target.value))} /></label>
+              <label><span>参考起价 ¥</span><input type="number" min={0} value={draft.startingPrice} onChange={(event) => setField("startingPrice", Number(event.target.value))} /></label>
               <label><span>中文城市组合</span><input value={draft.cityComboZh} onChange={(event) => setField("cityComboZh", event.target.value)} /></label>
               <label><span>英文城市组合</span><input value={draft.cityComboEn} onChange={(event) => setField("cityComboEn", event.target.value)} /></label>
               <label><span>中文列表简介</span><input value={draft.summaryZh} onChange={(event) => setField("summaryZh", event.target.value)} /></label>
