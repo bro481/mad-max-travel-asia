@@ -27,6 +27,7 @@ export function revalidatePublicContent(...scopes: PublicContentScope[]) {
   if (selected.has("packages")) {
     revalidatePath("/");
     revalidatePath("/packages");
+    revalidatePath("/packages/[slug]", "page");
   }
 
   if (selected.has("settings")) {

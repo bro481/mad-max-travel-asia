@@ -551,6 +551,7 @@ export async function createTravelPackage(input: Partial<TravelPackage>) {
 
 export async function updateTravelPackage(id: number, input: Partial<TravelPackage>) {
   await ensureTravelPackages();
+  const slug = input.slug || `package-${id}`;
   await env.DB.prepare(
     `UPDATE travel_packages SET
       slug=?,name_zh=?,name_en=?,days=?,nights=?,city_combo_zh=?,city_combo_en=?,summary_zh=?,summary_en=?,
@@ -560,7 +561,7 @@ export async function updateTravelPackage(id: number, input: Partial<TravelPacka
      WHERE id=?`,
   )
     .bind(
-      input.slug || `package-${id}`,
+      slug,
       input.nameZh || "",
       input.nameEn || "",
       input.days || 4,
@@ -594,6 +595,7 @@ export async function updateTravelPackage(id: number, input: Partial<TravelPacka
       id,
     )
     .run();
+  return { id, slug };
 }
 
 export async function getTravelPackageById(id: number, all = false) {

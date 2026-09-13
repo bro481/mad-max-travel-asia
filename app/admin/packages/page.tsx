@@ -7,6 +7,7 @@ import type { PropertyRecord } from "../../../db/properties";
 import type { ServiceItem } from "../../../db/service-items";
 
 type AdminTab = "basic" | "itinerary" | "fees" | "english";
+type SaveProgress = { active: boolean; percent: number; label: string; error?: string };
 type ImageTarget =
   | { type: "cover" }
   | { type: "gallery"; index?: number }
@@ -117,6 +118,25 @@ function completionIssues(item: TravelPackage) {
   return issues;
 }
 
+async function fetchJson<T>(url: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), init?.timeoutMs || 30000);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = typeof payload?.error === "string" ? payload.error : `服务器返回 ${response.status}`;
+      throw new Error(message);
+    }
+    return payload as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw new Error("保存超时：服务器没有在 30 秒内响应，请刷新后台后确认是否已保存。");
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 export default function AdminPackagesPage() {
   const [items, setItems] = useState<TravelPackage[]>([]);
   const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
@@ -126,6 +146,7 @@ export default function AdminPackagesPage() {
   const [draft, setDraft] = useState<TravelPackage>(() => clone(emptyPackage));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState<SaveProgress>({ active: false, percent: 0, label: "" });
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState<AdminTab>("basic");
   const [activeDay, setActiveDay] = useState(0);
@@ -285,26 +306,33 @@ export default function AdminPackagesPage() {
   const save = async (status?: TravelPackage["status"]) => {
     setSaving(true);
     setMessage("");
+    setSaveProgress({ active: true, percent: 8, label: "正在整理套餐数据..." });
     const payload = normalizedDraft(status);
     try {
       const isNew = selectedId === "new";
-      const response = await fetch(isNew ? "/api/admin/packages" : `/api/admin/packages/${selectedId}`, {
+      setSaveProgress({ active: true, percent: 28, label: "正在写入数据库..." });
+      const data = await fetchJson<{ id?: number; slug?: string; ok?: boolean }>(isNew ? "/api/admin/packages" : `/api/admin/packages/${selectedId}`, {
         method: isNew ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        timeoutMs: 30000,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "保存失败");
-      const refreshed = await fetch("/api/admin/packages", { cache: "no-store" }).then((r) => r.json());
+      setSaveProgress({ active: true, percent: 68, label: "正在刷新后台列表..." });
+      const refreshed = await fetchJson<TravelPackage[]>("/api/admin/packages", { cache: "no-store", timeoutMs: 30000 });
       const nextItems = Array.isArray(refreshed) ? refreshed : [];
       const nextId = isNew ? data.id : selectedId;
+      if (typeof nextId !== "number") throw new Error("保存完成，但服务器没有返回套餐 ID，请刷新后台确认。");
       setItems(nextItems);
       setSelectedId(nextId);
       const saved = nextItems.find((item) => item.id === nextId);
       if (saved) setDraft(clone(saved));
-      setMessage(status === "published" ? "已保存并上线。" : "已保存为草稿。");
+      setSaveProgress({ active: true, percent: 100, label: status === "published" ? "已保存并上线，前台缓存已刷新。" : "已保存为草稿。" });
+      setMessage(status === "published" ? "已保存并上线，前台套餐页会同步更新。" : "已保存为草稿。");
+      window.setTimeout(() => setSaveProgress((current) => current.error ? current : { active: false, percent: 0, label: "" }), 1600);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存失败");
+      const errorMessage = error instanceof Error ? error.message : "保存失败";
+      setMessage(errorMessage);
+      setSaveProgress({ active: true, percent: 100, label: "保存失败", error: errorMessage });
     } finally {
       setSaving(false);
     }
@@ -409,6 +437,15 @@ export default function AdminPackagesPage() {
       </div>
 
       {message && <div className="admin-inline-message">{message}</div>}
+      {saveProgress.active && (
+        <div className={saveProgress.error ? "package-save-progress error" : "package-save-progress"}>
+          <div>
+            <b>{saveProgress.label}</b>
+            <span>{saveProgress.error || `${saveProgress.percent}%`}</span>
+          </div>
+          <i><em style={{ width: `${saveProgress.percent}%` }} /></i>
+        </div>
+      )}
 
       <div className="admin-package-editor">
         <aside className="admin-package-list">

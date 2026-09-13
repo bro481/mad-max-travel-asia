@@ -15,9 +15,9 @@ export async function PUT(
   const { id } = await params;
   try {
     const body = await request.json();
-    await updateTravelPackage(Number(id), body);
+    const item = await updateTravelPackage(Number(id), body);
     revalidatePublicContent("packages");
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, ...item });
   } catch (error) {
     console.error("Failed to update travel package", error);
     return NextResponse.json(
