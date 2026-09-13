@@ -44,7 +44,7 @@ const loadPublicServices = unstable_cache(
     };
   },
   ["public-services-page-data"],
-  { revalidate: 300 },
+  { revalidate: 300, tags: ["public-services-page-data"] },
 );
 
 export default async function Page() {

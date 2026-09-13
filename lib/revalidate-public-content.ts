@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export type PublicContentScope =
   | "properties"
@@ -16,8 +16,10 @@ export function revalidatePublicContent(...scopes: PublicContentScope[]) {
   }
 
   if (selected.has("services") || selected.has("destinations")) {
+    revalidateTag("public-services-page-data", { expire: 0 });
     revalidatePath("/services");
     revalidatePath("/services/[slug]", "page");
+    revalidatePath("/services/private-car");
     revalidatePath("/api/destinations");
   }
 
