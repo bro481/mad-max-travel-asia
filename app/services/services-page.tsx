@@ -364,6 +364,86 @@ const getManagedExperienceDetail = (
     stops,
   };
 };
+const getManagedExperienceRouteDetail = (
+  service: ServiceItem | undefined,
+  offer: Offer,
+): PrivateRouteDetailData | null => {
+  if (!service || service.templateType !== "experience") return null;
+  const visibleRoutes = service.routes
+    .filter((route) => route.visible !== false)
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+  if (!visibleRoutes.length) return null;
+
+  const routeDetails = visibleRoutes.map((route, index) =>
+    routePlanToPrivateRoute(route, service, index),
+  );
+  const stops = routeDetails.flatMap((detail, routeIndex) => {
+    const route = visibleRoutes[routeIndex];
+    const routeImage =
+      detail.image ||
+      route.coverImage ||
+      route.image ||
+      service.coverImage ||
+      service.images[0] ||
+      offer.image;
+
+    if (detail.stops.length <= 1) {
+      const stop = detail.stops[0];
+      return [
+        {
+          title: detail.title,
+          note: [
+            route.descriptionZh ||
+              route.description ||
+              stop?.note[0] ||
+              offer.desc[0],
+            route.descriptionEn ||
+              route.descriptionZh ||
+              route.description ||
+              stop?.note[1] ||
+              offer.desc[1],
+          ] as [string, string],
+          time: stop?.time || route.duration || "",
+          type: stop?.type,
+          image: stop?.image || routeImage,
+        },
+      ];
+    }
+
+    return detail.stops.map((stop) => ({
+      ...stop,
+      image: stop.image || routeImage,
+    }));
+  });
+
+  if (!stops.length) return null;
+  const firstRoute = visibleRoutes[0];
+  const serviceTags = (service.tags.length ? service.tags : [service.category, service.city])
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((tag) => [tag, tag] as [string, string]);
+  const cover =
+    service.coverImage ||
+    service.images[0] ||
+    routeDetails.find((detail) => detail.image)?.image ||
+    stops.find((stop) => stop.image)?.image ||
+    offer.image;
+
+  return {
+    title: [service.nameZh || offer.title[0], service.nameEn || service.nameZh || offer.title[1]],
+    desc: [
+      service.introZh || service.subtitleZh || offer.desc[0],
+      service.introEn || service.subtitleEn || service.introZh || offer.desc[1],
+    ],
+    duration: [
+      firstRoute?.duration || `${stops.length} 个节点`,
+      firstRoute?.duration || `${stops.length} stops`,
+    ],
+    tags: serviceTags.length ? serviceTags : offer.tags,
+    image: cover,
+    stops,
+  };
+};
 const airportVehicles: AirportVehicle[] = [
   {
     name: ["舒适轿车", "Comfort sedan"],
@@ -838,6 +918,8 @@ export function ServicesPage({
     [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedPrivateRoute, setSelectedPrivateRoute] =
     useState<PrivateRouteDetailData | null>(null);
+  const [selectedRouteInquiryKind, setSelectedRouteInquiryKind] =
+    useState<InquiryKind>("private-charter");
   const [inquiry, setInquiry] = useState<{ kind: InquiryKind; title?: string } | null>(null);
   const [experienceIndex, setExperienceIndex] = useState(0);
   const [intercityRequestOpen, setIntercityRequestOpen] = useState(false);
@@ -1090,6 +1172,21 @@ export function ServicesPage({
     if (!offer) return;
 
     if (!routeParam) {
+      const managedService = offer.serviceId
+        ? managed.find((item) => item.id === offer.serviceId)
+        : managed.find((item) => item.slug === offer.serviceSlug);
+      const experienceRoute = getManagedExperienceRouteDetail(
+        managedService,
+        offer,
+      );
+      if (experienceRoute) {
+        setSelectedRouteInquiryKind("experience");
+        setSelectedOffer(null);
+        setSelectedPrivateRoute((current) =>
+          current?.title[0] === experienceRoute.title[0] ? current : experienceRoute,
+        );
+        return;
+      }
       setSelectedOffer((current) => {
         if (
           current &&
@@ -1135,6 +1232,11 @@ export function ServicesPage({
         routes[matchedIndex],
         managedService,
         matchedIndex,
+      );
+      setSelectedRouteInquiryKind(
+        managedService.templateType === "experience"
+          ? "experience"
+          : "private-charter",
       );
       setSelectedPrivateRoute((current) =>
         current?.title[0] === nextRoute.title[0] ? current : nextRoute,
@@ -1270,6 +1372,19 @@ export function ServicesPage({
                               const serviceQuery = item.serviceSlug || (item.serviceId ? String(item.serviceId) : "");
                               if (serviceQuery) search.set("service", serviceQuery);
                               window.location.href = `/services/private-car?${search.toString()}`;
+                              return;
+                            }
+                            const managedService = item.serviceId
+                              ? managed.find((service) => service.id === item.serviceId)
+                              : managed.find((service) => service.slug === item.serviceSlug);
+                            const experienceRoute = getManagedExperienceRouteDetail(
+                              managedService,
+                              item,
+                            );
+                            if (experienceRoute) {
+                              setSelectedRouteInquiryKind("experience");
+                              setSelectedOffer(null);
+                              setSelectedPrivateRoute(experienceRoute);
                               return;
                             }
                             setExperienceIndex(0);
@@ -1584,6 +1699,7 @@ export function ServicesPage({
                         lang={lang}
                         onOpen={() => {
                           setSelectedOffer(null);
+                          setSelectedRouteInquiryKind("private-charter");
                           setSelectedPrivateRoute(route);
                         }}
                         key={`${route.title[0]}-${index}`}
@@ -1629,7 +1745,7 @@ export function ServicesPage({
           route={selectedPrivateRoute}
           lang={lang}
           onClose={() => setSelectedPrivateRoute(null)}
-          onInquire={() => setInquiry({ kind: "private-charter", title: selectedPrivateRoute.title[0] })}
+          onInquire={() => setInquiry({ kind: selectedRouteInquiryKind, title: selectedPrivateRoute.title[0] })}
         />
       )}
       {selectedOffer && !isAirportTransfer && !experienceDetail && !selectedPrivateCar && (
