@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { rooms } from "../../data";
 import { ServiceMenu } from "../../service-menu";
 import { InquiryModal } from "../../components/inquiry-modal";
 import type { TravelPackage } from "../../../db/packages";
@@ -9,16 +11,28 @@ type Lang = "zh" | "en";
 
 const fallbackHero =
   "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1800&q=90";
+const photo = (id: string, w = 1400) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
+const vehicleImages = [
+  photo("photo-1549317661-bd32c8ce0db2"),
+  photo("photo-1550355291-bbee04a92027"),
+  photo("photo-1515569067071-ec3b51335dd0"),
+];
+const defaultPackageDayImageIds = [
+  "photo-1596422846543-75c6fc197f07",
+  "photo-1580537659466-0a9bfa916a54",
+  "photo-1542314831-068cd1dbfeeb",
+  "photo-1436491865332-7a61a109cc05",
+];
 
 function Logo() {
   return (
-    <a className="logo" href="/">
+    <Link className="logo" href="/">
       <span className="logo-mark">⌂</span>
       <span>
         <b>MAD MAX</b>
         <small>MALAYSIA STAY</small>
       </span>
-    </a>
+    </Link>
   );
 }
 
@@ -26,13 +40,16 @@ function money(value: number) {
   return new Intl.NumberFormat("zh-CN").format(value || 0);
 }
 
-function splitHero(text: string) {
-  return text
-    .replace(/，/g, "，\n")
-    .replace(/,/g, ",\n")
-    .split("\n")
-    .filter(Boolean)
-    .slice(0, 3);
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function uniqueImages(images: string[]) {
+  return Array.from(new Set(images.filter(Boolean)));
+}
+
+function isDefaultPackageDayImage(image = "") {
+  return defaultPackageDayImageIds.some((id) => image.includes(id));
 }
 
 function compactFeeItems(items: string[], type: "include" | "exclude") {
@@ -53,10 +70,6 @@ function compactFeeItems(items: string[], type: "include" | "exclude") {
     .map((item) => aliases[item] || item)
     .filter((item) => !/(住宿与服务组合建议|旺季价格差额)/.test(item));
   return Array.from(new Set(mapped)).slice(0, 3);
-}
-
-function shouldShowScheduleImage(title: string) {
-  return !/(接机|送机|机场|航班|酒店|入住|退房|返回|自由活动)/.test(title);
 }
 
 function packageHeroLine(item: TravelPackage, zh: boolean) {
@@ -85,28 +98,139 @@ function compactDaySummary(text: string) {
     .trim();
 }
 
-function dayDetailText(day: TravelPackage["itinerary"][number], index: number, total: number, zh: boolean) {
+function dayDetailSections(day: TravelPackage["itinerary"][number], index: number, total: number, zh: boolean) {
   const title = zh ? day.titleZh : day.titleEn;
   const description = zh ? day.descriptionZh : day.descriptionEn;
-  if (!zh) return description;
+  if (!zh) {
+    return {
+      sections: [
+        { title: "Plan", text: description },
+        { title: "Pace", text: index === total - 1 ? "Check-out and airport transfer are arranged around your flight time." : "The exact order can be adjusted around weather, traffic and your pace." },
+      ],
+      meta: index === total - 1 ? "Airport transfer · Flexible timing" : "Private car · Chinese support · Flexible order",
+    };
+  }
   if (index === 0 && /(抵达|到达|接机)/.test(title + description)) {
-    return "抵达机场后，由司机接机前往市区住宿。办理入住后不再安排固定行程，晚上可以根据抵达时间自行逛街、吃饭或休息。";
+    return {
+      sections: [
+        { title: "抵达后", text: "司机在机场接机，前往吉隆坡市区住宿，先把行李和入住安排处理好。" },
+        { title: "晚上", text: "不安排固定行程，可以根据抵达时间自行吃饭、逛街或回住宿休息。" },
+      ],
+      meta: "接机安排 · 市区住宿 · 晚上自由活动",
+    };
   }
   if (index === total - 1 && /(退房|送机|返程|离开)/.test(title + description)) {
-    return "当天按航班时间安排退房与送机。如果航班较晚，也可以预留轻松用餐、购物或补充半日路线。";
+    return {
+      sections: [
+        { title: "退房前", text: "根据航班时间保留轻松节奏，可安排简单用餐、购物或在住宿附近休息。" },
+        { title: "送机", text: "司机按约定时间送往机场；如果航班较晚，也可以再加购半日路线。" },
+      ],
+      meta: "按航班送机 · 时间灵活 · 可补充半日路线",
+    };
   }
-  return description;
+  if (/马六甲|Malacca|Melaka/.test(title + description)) {
+    return {
+      sections: [
+        { title: "上午", text: "从吉隆坡出发前往马六甲，路上预留休息时间，到达后先游览荷兰红屋一带。" },
+        { title: "下午", text: "慢走鸡场街、河畔街区和古城老街，中间保留自由活动与用餐时间。" },
+        { title: "结束后", text: "傍晚按当天节奏返回吉隆坡住宿，不把行程排得太赶。" },
+      ],
+      meta: "专车往返 · 时间灵活 · 可按需求调整",
+    };
+  }
+  return {
+    sections: [
+      { title: "上午", text: "住宿出发，前往双子塔、国家皇宫及国家清真寺等城市地标。" },
+      { title: "下午", text: "继续前往独立广场、城市画廊与老城区，根据当天路线灵活调整顺序。" },
+      { title: "结束后", text: "专车送回住宿，晚上自由安排用餐、购物或休息。" },
+    ],
+    meta: "约 8 小时 · 专车出行 · 行程顺序可调整",
+  };
 }
 
-function isDuplicateScheduleText(text: string, daySummary: string) {
-  return compactDaySummary(text) === daySummary || /自由活动或返回酒店/.test(text);
+function fallbackDayImages(day: TravelPackage["itinerary"][number], index: number) {
+  const text = `${day.titleZh} ${day.descriptionZh} ${day.titleEn} ${day.descriptionEn}`;
+  if (/马六甲|Malacca|Melaka/.test(text)) {
+    return [photo("photo-1581791538302-03537b9c97bf"), photo("photo-1525625293386-3f8f99389edd"), photo("photo-1596422846543-75c6fc197f07")];
+  }
+  if (/(退房|送机|返程|离开|Departure|Airport)/.test(text)) {
+    return [photo("photo-1436491865332-7a61a109cc05"), photo("photo-1549317661-bd32c8ce0db2")];
+  }
+  if (index === 0 || /(抵达|到达|接机|Arrival)/.test(text)) {
+    return [photo("photo-1596422846543-75c6fc197f07"), photo("photo-1549317661-bd32c8ce0db2")];
+  }
+  return [photo("photo-1596422846543-75c6fc197f07"), photo("photo-1580193769210-b8d1c049a7d9"), photo("photo-1528127269322-539801943592")];
+}
+
+function InlineSwipeGallery({
+  images,
+  index,
+  onIndexChange,
+  alt,
+  className,
+  arrows = false,
+}: {
+  images: string[];
+  index: number;
+  onIndexChange: (index: number) => void;
+  alt: string;
+  className: string;
+  arrows?: boolean;
+}) {
+  const startX = useRef(0);
+  const activePointer = useRef<number | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const safeImages = images.length ? images : [fallbackHero];
+  const safeIndex = clamp(index, 0, safeImages.length - 1);
+  const moveTo = (next: number) => onIndexChange(clamp(next, 0, safeImages.length - 1));
+  const finishDrag = (width: number) => {
+    const threshold = Math.max(42, width * 0.16);
+    if (dragX < -threshold) moveTo(safeIndex + 1);
+    if (dragX > threshold) moveTo(safeIndex - 1);
+    setDragX(0);
+    activePointer.current = null;
+  };
+  return (
+    <div
+      className={`${className} package-swipe-gallery`}
+      onPointerDown={(event) => {
+        activePointer.current = event.pointerId;
+        startX.current = event.clientX;
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        if (activePointer.current !== event.pointerId) return;
+        setDragX(event.clientX - startX.current);
+      }}
+      onPointerUp={(event) => finishDrag(event.currentTarget.clientWidth)}
+      onPointerCancel={() => {
+        activePointer.current = null;
+        setDragX(0);
+      }}
+    >
+      <div className="package-swipe-track" style={{ transform: `translate3d(calc(${-safeIndex * 100}% + ${dragX}px),0,0)` }}>
+        {safeImages.map((image, imageIndex) => (
+          <img src={image} alt={imageIndex === safeIndex ? alt : ""} key={`${image}-${imageIndex}`} draggable={false} />
+        ))}
+      </div>
+      {arrows && safeImages.length > 1 && (
+        <>
+          <button className="package-swipe-arrow prev" type="button" onClick={() => moveTo(safeIndex - 1)} aria-label="上一张">‹</button>
+          <button className="package-swipe-arrow next" type="button" onClick={() => moveTo(safeIndex + 1)} aria-label="下一张">›</button>
+        </>
+      )}
+      <span className="package-swipe-count">{safeIndex + 1} / {safeImages.length}</span>
+    </div>
+  );
 }
 
 export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const [lang, setLang] = useState<Lang>("zh");
   const [menu, setMenu] = useState(false);
-  const [galleryOpen, setGalleryOpen] = useState(false);
-  const [activeImage, setActiveImage] = useState(0);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [dayImageIndex, setDayImageIndex] = useState<Record<number, number>>({});
+  const [stayIndex, setStayIndex] = useState(0);
+  const [vehicleIndex, setVehicleIndex] = useState(0);
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [feeOpen, setFeeOpen] = useState(false);
@@ -115,15 +239,16 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const gallery = useMemo(() => {
     const images = [item.coverImage, ...(item.galleryImages || []), ...item.itinerary.map((day) => day.coverImage || ""), ...item.itinerary.flatMap((day) => (day.schedule || []).map((slot) => slot.image || ""))]
       .filter(Boolean);
-    return Array.from(new Set(images.length ? images : [fallbackHero]));
+    return uniqueImages(images.length ? images : [fallbackHero]);
   }, [item]);
 
-  const heroImage = gallery[0] || fallbackHero;
+  const heroImage = gallery[heroIndex] || gallery[0] || fallbackHero;
   const title = zh ? item.nameZh : item.nameEn;
   const inquiryTitle = `${item.nameZh.replace(/\s+/g, "")}${item.days}天${item.nights}晚`;
   const heroLine = packageHeroLine(item, zh);
   const includeItems = compactFeeItems(item.includes || [], "include");
   const excludeItems = compactFeeItems(item.excludes || [], "exclude");
+  const stayImages = uniqueImages(rooms.filter((room) => room.location.zh === "吉隆坡").flatMap((room) => room.images).slice(0, 4));
 
   return (
     <>
@@ -133,12 +258,12 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
           {menu ? "关闭" : "☰ 菜单"}
         </button>
         <nav className={menu ? "open" : ""}>
-          <a href="/#stays">{zh ? "房源" : "Stays"}</a>
+          <Link href="/#stays">{zh ? "房源" : "Stays"}</Link>
           <ServiceMenu lang={lang} />
-          <a className="active-nav" href="/packages">{zh ? "省心套餐" : "Packages"}</a>
-          <a href="/picks">{zh ? "大马特产" : "Malaysia Picks"}</a>
-          <a href="/photography">{zh ? "旅行攻略" : "Travel Guide"}</a>
-          <a href="/about">{zh ? "关于我们" : "About"}</a>
+          <Link className="active-nav" href="/packages">{zh ? "省心套餐" : "Packages"}</Link>
+          <Link href="/picks">{zh ? "大马特产" : "Malaysia Picks"}</Link>
+          <Link href="/photography">{zh ? "旅行攻略" : "Travel Guide"}</Link>
+          <Link href="/about">{zh ? "关于我们" : "About"}</Link>
           <div className="language-switch mobile-language">
             <button className={zh ? "active" : ""} onClick={() => setLang("zh")}>中文</button>
             <i />
@@ -151,19 +276,16 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
             <i />
             <button className={!zh ? "active" : ""} onClick={() => setLang("en")}>English</button>
           </div>
-          <a className="button header-cta" href="/#contact">{zh ? "提交咨询" : "Inquire"}</a>
+          <Link className="button header-cta" href="/#contact">{zh ? "提交咨询" : "Inquire"}</Link>
         </div>
       </header>
 
       <main className="package-full-page">
-        <section className="package-full-hero" onClick={() => setGalleryOpen(true)}>
-          <img src={heroImage} alt={title} />
+        <section className="package-full-hero">
+          <InlineSwipeGallery images={gallery} index={heroIndex} onIndexChange={setHeroIndex} alt={title} className="package-hero-carousel" arrows />
           <div className="package-full-hero-copy">
             {heroLine && <span>{heroLine}</span>}
           </div>
-          <button className="package-gallery-pill" type="button" onClick={(event) => { event.stopPropagation(); setGalleryOpen(true); }}>
-            ▧ 1 / {gallery.length}
-          </button>
         </section>
 
         <section className="package-full-summary">
@@ -185,54 +307,73 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
           <div className="package-timeline">
             {item.itinerary.map((day, index) => {
               const open = openDay === index;
-              const cover = day.coverImage || gallery[(index + 1) % gallery.length] || heroImage;
-              let shownScheduleImages = 0;
+              const fallbackImages = fallbackDayImages(day, index);
+              const cover = day.coverImage && !isDefaultPackageDayImage(day.coverImage) ? day.coverImage : fallbackImages[0] || gallery[(index + 1) % gallery.length] || heroImage;
               const dayTitle = displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh);
               const daySummary = compactDaySummary(zh ? day.descriptionZh : day.descriptionEn);
-              const detailText = dayDetailText(day, index, item.itinerary.length, zh);
-              const scheduleRows = (day.schedule || []).filter((slot) => {
-                const text = zh ? slot.titleZh : slot.titleEn;
-                const description = zh ? slot.descriptionZh : slot.descriptionEn;
-                return Boolean(description || !isDuplicateScheduleText(text, daySummary));
-              });
-              const hasDetailText = compactDaySummary(detailText) !== daySummary;
-              const canExpand = hasDetailText || scheduleRows.length > 0;
+              const dayDetails = dayDetailSections(day, index, item.itinerary.length, zh);
+              const dayImages = uniqueImages([cover, ...(day.schedule || []).map((slot) => slot.image || ""), ...fallbackImages]);
+              const activeDayImage = dayImageIndex[index] || 0;
               return (
-                <article className={`${open && canExpand ? "open" : ""} ${canExpand ? "" : "no-expand"}`} key={`${day.titleZh}-${index}`}>
-                  <button className="package-day-toggle" type="button" onClick={() => canExpand && setOpenDay(open ? null : index)}>
+                <article className={open ? "open" : ""} key={`${day.titleZh}-${index}`}>
+                  <button className="package-day-toggle" type="button" onClick={() => setOpenDay(open ? null : index)}>
                     <span className="package-day-no">DAY {String(index + 1).padStart(2, "0")}</span>
                     <span className="package-day-copy">
                       <b>{dayTitle}</b>
                       <small>{daySummary}</small>
                     </span>
                     {cover && <img src={cover} alt="" />}
-                    {canExpand && <i>{open ? "⌃" : "⌄"}</i>}
+                    <i>{open ? "⌃" : "⌄"}</i>
                   </button>
-                  {canExpand && (
-                    <div className="package-day-panel" aria-hidden={!open}>
-                      {hasDetailText && <p className="package-day-detail">{detailText}</p>}
-                      {scheduleRows.map((slot, slotIndex) => (
-                        (() => {
-                          const text = zh ? slot.titleZh : slot.titleEn;
-                          const description = zh ? slot.descriptionZh : slot.descriptionEn;
-                          const showImage = Boolean(slot.image && shouldShowScheduleImage(text) && shownScheduleImages < 2);
-                          if (showImage) shownScheduleImages += 1;
-                          return (
-                            <div className={slot.time ? "package-schedule-row" : "package-schedule-row no-time"} key={`${slot.time || ""}-${slotIndex}`}>
-                              {slot.time && <time>{slot.time}</time>}
-                              <span />
-                              <p>{text}{description ? <small>{description}</small> : null}</p>
-                              {showImage && <img src={slot.image} alt="" />}
-                            </div>
-                          );
-                        })()
+                  <div className="package-day-panel" aria-hidden={!open}>
+                    <div className="package-day-detail-block">
+                      {dayDetails.sections.map((section) => (
+                        <div key={section.title}>
+                          <b>{section.title}</b>
+                          <p>{section.text}</p>
+                        </div>
                       ))}
                     </div>
-                  )}
+                    <InlineSwipeGallery
+                      images={dayImages}
+                      index={activeDayImage}
+                      onIndexChange={(next) => setDayImageIndex((current) => ({ ...current, [index]: next }))}
+                      alt={dayTitle}
+                      className="package-day-gallery"
+                    />
+                    <p className="package-day-meta">{dayDetails.meta}</p>
+                  </div>
                 </article>
               );
             })}
           </div>
+        </section>
+
+        <section className="package-value-section">
+          <p className="package-value-kicker">{zh ? "这趟已经帮你安排好" : "Already arranged"}</p>
+          <article>
+            <InlineSwipeGallery images={stayImages} index={stayIndex} onIndexChange={setStayIndex} alt={zh ? "吉隆坡市区舒适住宿" : "Comfortable Kuala Lumpur stay"} className="package-value-gallery" />
+            <div>
+              <small>{zh ? "住宿" : "Stay"}</small>
+              <h2>{zh ? "吉隆坡市区舒适住宿" : "Comfortable Kuala Lumpur city stay"}</h2>
+              <p>{zh ? `${item.nights}晚 · 根据人数安排合适房型` : `${item.nights} nights · Room type matched to group size`}</p>
+              <span>{zh ? "实际住宿及房型根据人数、入住日期确认。" : "Exact stay and room type are confirmed by group size and dates."}</span>
+              <Link href="/#stays">{zh ? "查看住宿 ›" : "View stays ›"}</Link>
+            </div>
+          </article>
+          <article>
+            <InlineSwipeGallery images={vehicleImages} index={vehicleIndex} onIndexChange={setVehicleIndex} alt={zh ? "行程用车" : "Trip vehicle"} className="package-value-gallery" />
+            <div>
+              <small>{zh ? "行程用车" : "Private car"}</small>
+              <h2>{zh ? "按人数安排合适车型" : "Vehicle matched to your group"}</h2>
+              <p>{zh ? "接机 · 市区行程 · 马六甲往返" : "Airport pickup · City route · Malacca return"}</p>
+              <span>{zh ? "1–14 人均可安排，根据人数与行李安排合适车型。" : "For 1–14 guests, matched by group size and luggage."}</span>
+            </div>
+          </article>
+          <p className="package-support-note">
+            <b>{zh ? "旅途中有需要，也可以随时联系我们。" : "Need help during the trip? You can reach us anytime."}</b>
+            <span>{zh ? "从抵达到返程，住宿、用车及行程问题均可中文沟通。" : "From arrival to departure, stay, vehicle and route questions can be handled in Chinese."}</span>
+          </p>
         </section>
 
         <section className="package-fee-line">
@@ -250,23 +391,6 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
         </div>
         <button type="button" onClick={() => setInquiryOpen(true)}>{zh ? "咨询行程" : "Inquire"} →</button>
       </footer>
-
-      {galleryOpen && (
-        <div className="package-gallery-layer" role="dialog" aria-modal="true" onClick={() => setGalleryOpen(false)}>
-          <section className="package-gallery-view" onClick={(event) => event.stopPropagation()}>
-            <button type="button" onClick={() => setGalleryOpen(false)}>×</button>
-            <img src={gallery[activeImage]} alt="" />
-            <p>{activeImage + 1} / {gallery.length}</p>
-            <div>
-              {gallery.map((image, index) => (
-                <button className={activeImage === index ? "active" : ""} key={image} type="button" onClick={() => setActiveImage(index)}>
-                  <img src={image} alt="" />
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
 
       {inquiryOpen && (
         <InquiryModal kind="package" title={inquiryTitle} onClose={() => setInquiryOpen(false)} />
