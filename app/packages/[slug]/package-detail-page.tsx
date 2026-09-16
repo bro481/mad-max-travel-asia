@@ -76,6 +76,28 @@ function displayDayTitle(title: string, index: number, total: number, zh: boolea
   return title;
 }
 
+function compactDaySummary(text: string) {
+  return text
+    .replace(/[，,、]/g, " · ")
+    .replace(/[。.!！]/g, "")
+    .replace(/\s*·\s*/g, " · ")
+    .replace(/与/g, " · ")
+    .trim();
+}
+
+function dayDetailText(day: TravelPackage["itinerary"][number], index: number, total: number, zh: boolean) {
+  const title = zh ? day.titleZh : day.titleEn;
+  const description = zh ? day.descriptionZh : day.descriptionEn;
+  if (!zh) return description;
+  if (index === 0 && /(抵达|到达|接机)/.test(title + description)) {
+    return "抵达机场后，由司机接机前往市区住宿。办理入住后不再安排固定行程，晚上可以根据抵达时间自行逛街、吃饭或休息。";
+  }
+  if (index === total - 1 && /(退房|送机|返程|离开)/.test(title + description)) {
+    return "当天按航班时间安排退房与送机。如果航班较晚，也可以预留轻松用餐、购物或补充半日路线。";
+  }
+  return description;
+}
+
 export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const [lang, setLang] = useState<Lang>("zh");
   const [menu, setMenu] = useState(false);
@@ -161,22 +183,28 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
               const open = openDay === index;
               const cover = day.coverImage || gallery[(index + 1) % gallery.length] || heroImage;
               let shownScheduleImages = 0;
+              const dayTitle = displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh);
+              const daySummary = compactDaySummary(zh ? day.descriptionZh : day.descriptionEn);
+              const detailText = dayDetailText(day, index, item.itinerary.length, zh);
               return (
                 <article className={open ? "open" : ""} key={`${day.titleZh}-${index}`}>
                   <button className="package-day-toggle" type="button" onClick={() => setOpenDay(open ? null : index)}>
                     <span className="package-day-no">DAY {String(index + 1).padStart(2, "0")}</span>
                     <span className="package-day-copy">
-                      <b>{displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh)}</b>
-                      <small>{zh ? day.descriptionZh : day.descriptionEn}</small>
+                      <b>{dayTitle}</b>
+                      <small>{daySummary}</small>
                     </span>
                     {cover && <img src={cover} alt="" />}
                     <i>{open ? "⌃" : "⌄"}</i>
                   </button>
                   <div className="package-day-panel" aria-hidden={!open}>
+                    <p className="package-day-detail">{detailText}</p>
                     {(day.schedule || []).map((slot, slotIndex) => (
                       (() => {
                         const text = zh ? slot.titleZh : slot.titleEn;
                         const description = zh ? slot.descriptionZh : slot.descriptionEn;
+                        if (!description && compactDaySummary(text) === daySummary) return null;
+                        if (!description && /自由活动或返回酒店/.test(text)) return null;
                         const showImage = Boolean(slot.image && shouldShowScheduleImage(text) && shownScheduleImages < 2);
                         if (showImage) shownScheduleImages += 1;
                         return (
@@ -208,7 +236,7 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
         <div>
           <b>{item.days}天{item.nights}晚 · {zh ? item.cityComboZh : item.cityComboEn}</b>
         </div>
-        <button type="button" onClick={() => setInquiryOpen(true)}>{zh ? "咨询这个行程" : "Inquire"} →</button>
+        <button type="button" onClick={() => setInquiryOpen(true)}>{zh ? "咨询行程" : "Inquire"} →</button>
       </footer>
 
       {galleryOpen && (
