@@ -4,9 +4,15 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ServiceMenu } from "../service-menu";
 import type { TravelGuideArticle, TravelGuideSettings } from "../../db/travel-guide-shared";
-import { guideCities } from "../../db/travel-guide-shared";
+import { guideCities, guideDefaultImages } from "../../db/travel-guide-shared";
 
 type Lang = "zh" | "en";
+
+function coverImage(item: TravelGuideArticle) {
+  const defaultImage = guideDefaultImages[item.slug];
+  if (defaultImage && item.coverImage.includes("photo-1584515933487-779824d29309")) return defaultImage;
+  return item.coverImage || defaultImage || "";
+}
 
 function Logo() {
   return (
@@ -84,7 +90,7 @@ export function TravelGuidePage({ articles, settings }: { articles: TravelGuideA
           {current.map((item, index) => (
             <Link className={index === 0 ? "guide-row guide-row-featured" : "guide-row"} href={`/photography/${item.slug}`} key={item.id}>
               <figure>
-                <img src={item.coverImage} alt={zh ? item.titleZh : item.titleEn || item.titleZh} />
+                <img src={coverImage(item)} alt={zh ? item.titleZh : item.titleEn || item.titleZh} />
                 {item.imageLabel && <figcaption>{item.imageLabel}</figcaption>}
               </figure>
               <span className="guide-row-copy">

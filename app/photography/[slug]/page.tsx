@@ -1,25 +1,20 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { getTravelGuide, staticTravelGuides } from "../../../db/travel-guides";
+import { getTravelGuide, listTravelGuides, staticTravelGuides } from "../../../db/travel-guides";
+import { GuideDetailPage } from "../guide-detail-page";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   let article = staticTravelGuides().find((item) => item.slug === slug) || null;
+  let articles = staticTravelGuides();
   try {
-    article = await getTravelGuide(slug);
+    [article, articles] = await Promise.all([getTravelGuide(slug), listTravelGuides()]);
   } catch (error) {
     console.error("Failed to load travel guide detail", error);
   }
   if (!article) notFound();
+  const related = articles.filter((item) => item.status === "published" && item.city === article.city && item.slug !== article.slug);
 
-  return (
-    <main className="guide-detail-placeholder">
-      <Link href="/photography">← 返回旅行攻略</Link>
-      <p>{article.category}</p>
-      <h1>{article.titleZh}</h1>
-      <span>约 {article.readMinutes} 分钟阅读</span>
-    </main>
-  );
+  return <GuideDetailPage article={article} related={related} />;
 }

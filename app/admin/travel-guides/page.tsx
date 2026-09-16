@@ -8,6 +8,16 @@ import { defaultGuideSettings, guideCategories, guideCities } from "../../../db/
 type AdminSection = "list" | "editor" | "settings";
 type BlockType = TravelGuideBlock["type"];
 
+const blockLabels: Record<BlockType, string> = {
+  heading: "地点标题",
+  paragraph: "正文",
+  image: "单张图片",
+  gallery: "横向图集",
+  quote: "当地提醒",
+  list: "实用信息",
+  divider: "分割线",
+};
+
 const emptyArticle: TravelGuideArticle = {
   id: 0,
   slug: "",
@@ -303,12 +313,12 @@ export default function AdminTravelGuidesPage() {
                   event.target.value = "";
                 }}>
                   <option value="">添加内容块</option>
-                  <option value="heading">标题</option>
+                  <option value="heading">地点标题</option>
                   <option value="paragraph">正文</option>
-                  <option value="image">图片</option>
-                  <option value="gallery">图集</option>
-                  <option value="quote">引用</option>
-                  <option value="list">列表</option>
+                  <option value="image">单张图片</option>
+                  <option value="gallery">横向图集</option>
+                  <option value="quote">当地提醒</option>
+                  <option value="list">实用信息</option>
                   <option value="divider">分割线</option>
                 </select>
               </div>
@@ -358,14 +368,14 @@ function BlockEditor({
   return (
     <article className="guide-block-editor">
       <header>
-        <b>{block.type}</b>
+        <b>{blockLabels[block.type]}</b>
         <span>
           <button type="button" onClick={() => moveBlock(index, -1)}>上移</button>
           <button type="button" onClick={() => moveBlock(index, 1)}>下移</button>
           <button type="button" onClick={removeBlock}>删除</button>
         </span>
       </header>
-      {("text" in block) && <textarea value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value } as TravelGuideBlock)} />}
+      {("text" in block) && <textarea value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value } as TravelGuideBlock)} placeholder={block.type === "heading" ? "例如：双子塔 KLCC" : block.type === "quote" ? "例如：傍晚人会变多，想拍照可以早一点到。" : "用短段落写，手机端更好读。"} />}
       {block.type === "image" && (
         <label><span>图片</span><input value={block.image} onChange={(event) => updateBlock(index, { ...block, image: event.target.value })} /><input type="file" accept="image/*" onChange={(event) => uploadImage(event, (url) => updateBlock(index, { ...block, image: url }))} /></label>
       )}
@@ -380,7 +390,7 @@ function BlockEditor({
       {block.type === "list" && (
         <div className="guide-gallery-editor">
           {block.items.map((item, itemIndex) => (
-            <input key={itemIndex} value={item} onChange={(event) => updateBlock(index, { ...block, items: block.items.map((value, i) => i === itemIndex ? event.target.value : value) })} />
+            <input key={itemIndex} value={item} onChange={(event) => updateBlock(index, { ...block, items: block.items.map((value, i) => i === itemIndex ? event.target.value : value) })} placeholder="例如：适合时间：17:00–21:00" />
           ))}
           <button type="button" onClick={() => updateBlock(index, { ...block, items: [...block.items, ""] })}>添加一行</button>
         </div>

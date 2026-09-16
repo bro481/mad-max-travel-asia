@@ -50,6 +50,10 @@ export const guideCategories: TravelGuideCategory[] = ["城市漫游", "行程�
 
 const image = (id: string) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1400&q=86`;
 
+export const guideDefaultImages: Partial<Record<string, string>> = {
+  "kl-chinatown-slow-walk": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Kuala_Lumpur._Jalan_Petaling._2019-12-07_15-24-13.jpg/1280px-Kuala_Lumpur._Jalan_Petaling._2019-12-07_15-24-13.jpg",
+};
+
 export const defaultGuideSettings: TravelGuideSettings = {
   heroImage: image("photo-1596422846543-75c6fc197f07"),
   heroTitleZh: "旅行攻略",

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import {
   defaultGuideSettings,
+  guideDefaultImages,
   guideCategories,
   guideCities,
   type TravelGuideArticle,
@@ -40,7 +41,7 @@ const staticGuideSeeds: Omit<TravelGuideArticle, "id" | "updatedAt">[] = [
     category: "城市漫游",
     summaryZh: "老店、咖啡馆、街边小吃和夜色，是吉隆坡很有生活感的一面。",
     summaryEn: "Old shops, cafes, street snacks and evening light in one easy walk.",
-    coverImage: image("photo-1584515933487-779824d29309"),
+    coverImage: guideDefaultImages["kl-chinatown-slow-walk"] || image("photo-1584515933487-779824d29309"),
     imageLabel: "CHINATOWN",
     readMinutes: 3,
     sortOrder: 2,
