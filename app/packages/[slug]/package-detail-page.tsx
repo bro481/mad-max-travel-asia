@@ -98,6 +98,10 @@ function dayDetailText(day: TravelPackage["itinerary"][number], index: number, t
   return description;
 }
 
+function isDuplicateScheduleText(text: string, daySummary: string) {
+  return compactDaySummary(text) === daySummary || /自由活动或返回酒店/.test(text);
+}
+
 export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const [lang, setLang] = useState<Lang>("zh");
   const [menu, setMenu] = useState(false);
@@ -171,13 +175,13 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
           </div>
           <aside>
             <b>¥{money(item.startingPrice)}</b><span>{zh ? "起/人" : " / person from"}</span>
-            <p>{zh ? "参考价 · 实际价格按人数与日期确认" : "Reference price · confirmed by dates and group size"}</p>
             <small>{zh ? `${item.days}天${item.nights}晚 · 住宿 + 行程用车 + 中文协助` : `${item.days}D${item.nights}N · Stay + car + Chinese support`}</small>
+            <p>{zh ? "按人数与日期确认最终价格" : "Final price confirmed by dates and group size"}</p>
           </aside>
         </section>
 
         <section className="package-full-itinerary">
-          <p className="package-itinerary-note">{zh ? "参考行程 · 可按你的时间调整" : "Reference route · adjustable to your timing"}</p>
+          <p className="package-itinerary-note">{zh ? "行程安排" : "Itinerary"}</p>
           <div className="package-timeline">
             {item.itinerary.map((day, index) => {
               const open = openDay === index;
@@ -186,38 +190,45 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
               const dayTitle = displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh);
               const daySummary = compactDaySummary(zh ? day.descriptionZh : day.descriptionEn);
               const detailText = dayDetailText(day, index, item.itinerary.length, zh);
+              const scheduleRows = (day.schedule || []).filter((slot) => {
+                const text = zh ? slot.titleZh : slot.titleEn;
+                const description = zh ? slot.descriptionZh : slot.descriptionEn;
+                return Boolean(description || !isDuplicateScheduleText(text, daySummary));
+              });
+              const hasDetailText = compactDaySummary(detailText) !== daySummary;
+              const canExpand = hasDetailText || scheduleRows.length > 0;
               return (
-                <article className={open ? "open" : ""} key={`${day.titleZh}-${index}`}>
-                  <button className="package-day-toggle" type="button" onClick={() => setOpenDay(open ? null : index)}>
+                <article className={`${open && canExpand ? "open" : ""} ${canExpand ? "" : "no-expand"}`} key={`${day.titleZh}-${index}`}>
+                  <button className="package-day-toggle" type="button" onClick={() => canExpand && setOpenDay(open ? null : index)}>
                     <span className="package-day-no">DAY {String(index + 1).padStart(2, "0")}</span>
                     <span className="package-day-copy">
                       <b>{dayTitle}</b>
                       <small>{daySummary}</small>
                     </span>
                     {cover && <img src={cover} alt="" />}
-                    <i>{open ? "⌃" : "⌄"}</i>
+                    {canExpand && <i>{open ? "⌃" : "⌄"}</i>}
                   </button>
-                  <div className="package-day-panel" aria-hidden={!open}>
-                    <p className="package-day-detail">{detailText}</p>
-                    {(day.schedule || []).map((slot, slotIndex) => (
-                      (() => {
-                        const text = zh ? slot.titleZh : slot.titleEn;
-                        const description = zh ? slot.descriptionZh : slot.descriptionEn;
-                        if (!description && compactDaySummary(text) === daySummary) return null;
-                        if (!description && /自由活动或返回酒店/.test(text)) return null;
-                        const showImage = Boolean(slot.image && shouldShowScheduleImage(text) && shownScheduleImages < 2);
-                        if (showImage) shownScheduleImages += 1;
-                        return (
-                          <div className={slot.time ? "package-schedule-row" : "package-schedule-row no-time"} key={`${slot.time || ""}-${slotIndex}`}>
-                            {slot.time && <time>{slot.time}</time>}
-                            <span />
-                            <p>{text}{description ? <small>{description}</small> : null}</p>
-                            {showImage && <img src={slot.image} alt="" />}
-                          </div>
-                        );
-                      })()
-                    ))}
-                  </div>
+                  {canExpand && (
+                    <div className="package-day-panel" aria-hidden={!open}>
+                      {hasDetailText && <p className="package-day-detail">{detailText}</p>}
+                      {scheduleRows.map((slot, slotIndex) => (
+                        (() => {
+                          const text = zh ? slot.titleZh : slot.titleEn;
+                          const description = zh ? slot.descriptionZh : slot.descriptionEn;
+                          const showImage = Boolean(slot.image && shouldShowScheduleImage(text) && shownScheduleImages < 2);
+                          if (showImage) shownScheduleImages += 1;
+                          return (
+                            <div className={slot.time ? "package-schedule-row" : "package-schedule-row no-time"} key={`${slot.time || ""}-${slotIndex}`}>
+                              {slot.time && <time>{slot.time}</time>}
+                              <span />
+                              <p>{text}{description ? <small>{description}</small> : null}</p>
+                              {showImage && <img src={slot.image} alt="" />}
+                            </div>
+                          );
+                        })()
+                      ))}
+                    </div>
+                  )}
                 </article>
               );
             })}
@@ -234,7 +245,8 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
 
       <footer className="package-fixed-consult">
         <div>
-          <b>{item.days}天{item.nights}晚 · {zh ? item.cityComboZh : item.cityComboEn}</b>
+          <b>{zh ? item.cityComboZh : item.cityComboEn}</b>
+          <small>{zh ? `${item.days}天${item.nights}晚` : `${item.days}D${item.nights}N`}</small>
         </div>
         <button type="button" onClick={() => setInquiryOpen(true)}>{zh ? "咨询行程" : "Inquire"} →</button>
       </footer>
