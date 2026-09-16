@@ -45,17 +45,19 @@ function defaultBlocks(article: TravelGuideArticle): TravelGuideBlock[] {
   if (article.slug === "first-time-kuala-lumpur") {
     return [
       { type: "heading", text: "双子塔 KLCC" },
-      { type: "gallery", images: [cover], caption: "傍晚到晚上，是第一次看吉隆坡城市感最舒服的时间。" },
+      { type: "gallery", images: [cover], caption: "KLCC · EVENING" },
       { type: "paragraph", text: "第一次来吉隆坡，可以把 KLCC 放在傍晚。白天看看城市，吃完饭以后等亮灯，晚上氛围会比白天更好。" },
       { type: "list", items: ["适合时间：17:00–21:00", "可以顺路：KLCC Park · Pavilion · 武吉免登"] },
       { type: "quote", text: "如果主要想拍照，不用太晚才到。亮灯前后人会变多，提前一点反而更从容。" },
       { type: "heading", text: "茨厂街 Chinatown" },
-      { type: "gallery", images: [guideDefaultImages["kl-chinatown-slow-walk"] || cover], caption: "老街区适合傍晚慢慢走，不需要把行程排得太满。" },
+      { type: "gallery", images: [guideDefaultImages["kl-chinatown-slow-walk"] || cover], caption: "CHINATOWN · EVENING WALK" },
       { type: "paragraph", text: "茨厂街不只适合打卡。附近的鬼仔巷、中央艺术坊和独立广场可以一起安排，下午慢慢过去会比较舒服。" },
       { type: "list", items: ["适合时间：15:00–19:00", "可以顺路：鬼仔巷 · 中央艺术坊 · 独立广场"] },
       { type: "heading", text: "武吉免登 Bukit Bintang" },
+      { type: "gallery", images: ["https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg/1280px-Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg"], caption: "BUKIT BINTANG · NIGHT WALK" },
       { type: "paragraph", text: "如果你喜欢晚上吃饭、逛街方便，武吉免登会比想象中实用。它不是最安静的区域，但第一次来很好上手。" },
       { type: "list", items: ["适合时间：晚餐后", "可以顺路：Pavilion · Jalan Alor · TRX"] },
+      { type: "paragraph", text: "吉隆坡不需要一次把所有地方都走完。第一次来，把几个区域串顺，留一点时间吃饭、散步，体验反而会更舒服。" },
     ];
   }
   return [
@@ -82,14 +84,16 @@ function Gallery({ images, caption }: GalleryProps) {
         if (Math.abs(delta) > 36) next(delta > 0 ? -1 : 1);
       }}
     >
-      <img src={clean[index]} alt="" />
-      {clean.length > 1 && (
-        <>
-          <button className="prev" type="button" onClick={() => next(-1)} aria-label="上一张">‹</button>
-          <button className="next" type="button" onClick={() => next(1)} aria-label="下一张">›</button>
-        </>
-      )}
-      <span>{index + 1} / {clean.length}</span>
+      <div>
+        <img src={clean[index]} alt="" />
+        {clean.length > 1 && (
+          <>
+            <button className="prev" type="button" onClick={() => next(-1)} aria-label="上一张">‹</button>
+            <button className="next" type="button" onClick={() => next(1)} aria-label="下一张">›</button>
+            <span>{index + 1} / {clean.length}</span>
+          </>
+        )}
+      </div>
       {caption && <figcaption>{caption}</figcaption>}
     </figure>
   );
@@ -105,6 +109,18 @@ function RelatedGuide({ item }: { item: TravelGuideArticle }) {
       </span>
       <i>›</i>
     </Link>
+  );
+}
+
+function PlaceTitle({ text }: { text: string }) {
+  const match = text.match(/^(.*?)(\s+[A-Za-z][A-Za-z\s&.'-]+)$/);
+  const english = match?.[2]?.trim() || "";
+  if (!match || !english.includes(" ")) return <>{text}</>;
+  return (
+    <>
+      <span>{match[1].trim()}</span>
+      <em>{english}</em>
+    </>
   );
 }
 
@@ -153,7 +169,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
               return (
                 <section className="guide-place-heading" key={index}>
                   <small>{headingNumbers[index]}</small>
-                  <h2>{block.text}</h2>
+                  <h2><PlaceTitle text={block.text} /></h2>
                 </section>
               );
             }
