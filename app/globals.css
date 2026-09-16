@@ -2650,7 +2650,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .package-swipe-count{right:14px;bottom:12px;padding:5px 9px;font-size:10px;background:rgba(14,18,22,.52)}
   .package-swipe-arrow{display:block;opacity:1;top:50%;width:28px;height:28px;border-radius:50%;background:rgba(14,18,22,.26);font-size:22px;color:rgba(255,255,255,.9)}
   .package-swipe-arrow.prev{left:10px}.package-swipe-arrow.next{right:10px}
-  .package-full-summary{display:block;padding:28px 24px 0}
+  .package-full-summary{display:block;padding:18px 24px 0}
   .package-full-eyebrow,.package-full-fit,.package-full-summary>div>p:not(.package-full-eyebrow){display:none}
   .package-full-summary h1{font-size:32px;line-height:1.08;font-weight:650;margin-bottom:15px}
   .package-full-summary aside{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 7px;padding-top:0}
@@ -2658,7 +2658,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .package-full-summary aside span{align-self:end;margin:0 0 2px;font-size:12px;color:#53687a}
   .package-full-summary aside small{grid-column:1/-1;margin-top:2px;color:#31516d;font-size:12px;line-height:1.35}
   .package-full-summary aside p{grid-column:1/-1;margin-top:0;color:#99a2aa;font-size:11px;line-height:1.4}
-  .package-full-itinerary{padding:8px 24px 4px}
+  .package-full-itinerary{padding:16px 24px 4px}
   .package-itinerary-note{margin:0 0 10px;color:#14304a;font:600 18px/1.15 var(--serif)}
   .package-timeline{margin-left:5px}
   .package-timeline:before{top:17px;bottom:16px;background:rgba(198,150,93,.32)}
@@ -2700,7 +2700,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .package-value-kicker{margin:0 0 10px;font-size:17px}
   .package-value-row{grid-template-columns:27px minmax(0,1fr) 84px;gap:10px;padding:13px 0;border-bottom-color:rgba(205,184,160,.22)}
   .package-value-row.support{grid-template-columns:27px minmax(0,1fr) 30px}
-  .package-value-no{font-size:10px}
+  .package-value-no{color:rgba(177,123,72,.5);font-size:10px;font-weight:500;letter-spacing:.16em}
   .package-value-copy small{margin-bottom:4px;font-size:10px}
   .package-value-copy h2{font-size:15px;line-height:1.25;margin-bottom:4px}
   .package-value-copy p{font-size:11.5px;line-height:1.45}
