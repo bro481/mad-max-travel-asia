@@ -13,9 +13,9 @@ const fallbackHero =
   "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1800&q=90";
 const photo = (id: string, w = 1400) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
 const vehicleImages = [
-  photo("photo-1549317661-bd32c8ce0db2"),
   photo("photo-1550355291-bbee04a92027"),
-  photo("photo-1515569067071-ec3b51335dd0"),
+  photo("photo-1504215680853-026ed2a45def"),
+  photo("photo-1469854523086-cc02fe5d8800"),
 ];
 const defaultPackageDayImageIds = [
   "photo-1596422846543-75c6fc197f07",
@@ -151,7 +151,7 @@ function dayDetailSections(day: TravelPackage["itinerary"][number], index: numbe
 function fallbackDayImages(day: TravelPackage["itinerary"][number], index: number) {
   const text = `${day.titleZh} ${day.descriptionZh} ${day.titleEn} ${day.descriptionEn}`;
   if (/马六甲|Malacca|Melaka/.test(text)) {
-    return [photo("photo-1581791538302-03537b9c97bf"), photo("photo-1525625293386-3f8f99389edd"), photo("photo-1596422846543-75c6fc197f07")];
+    return [photo("photo-1565967511849-76a60a516170"), photo("photo-1500534314209-a25ddb2bd429"), photo("photo-1525625293386-3f8f99389edd")];
   }
   if (/(退房|送机|返程|离开|Departure|Airport)/.test(text)) {
     return [photo("photo-1436491865332-7a61a109cc05"), photo("photo-1549317661-bd32c8ce0db2")];
@@ -159,7 +159,7 @@ function fallbackDayImages(day: TravelPackage["itinerary"][number], index: numbe
   if (index === 0 || /(抵达|到达|接机|Arrival)/.test(text)) {
     return [photo("photo-1596422846543-75c6fc197f07"), photo("photo-1549317661-bd32c8ce0db2")];
   }
-  return [photo("photo-1596422846543-75c6fc197f07"), photo("photo-1580193769210-b8d1c049a7d9"), photo("photo-1528127269322-539801943592")];
+  return [photo("photo-1580193769210-b8d1c049a7d9"), photo("photo-1564507592333-c60657eea523"), photo("photo-1528127269322-539801943592")];
 }
 
 function InlineSwipeGallery({
@@ -235,12 +235,18 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [feeOpen, setFeeOpen] = useState(false);
   const zh = lang === "zh";
+  const stayImages = useMemo(() => uniqueImages(rooms.filter((room) => room.location.zh === "吉隆坡").flatMap((room) => room.images).slice(0, 4)), []);
 
   const gallery = useMemo(() => {
-    const images = [item.coverImage, ...(item.galleryImages || []), ...item.itinerary.map((day) => day.coverImage || ""), ...item.itinerary.flatMap((day) => (day.schedule || []).map((slot) => slot.image || ""))]
+    const themedImages = item.itinerary.flatMap((day, index) => fallbackDayImages(day, index));
+    const uploadedDayImages = [
+      ...item.itinerary.map((day) => day.coverImage || ""),
+      ...item.itinerary.flatMap((day) => (day.schedule || []).map((slot) => slot.image || "")),
+    ].filter((image) => image && !isDefaultPackageDayImage(image));
+    const images = [item.coverImage, ...(item.galleryImages || []), ...uploadedDayImages, ...themedImages, ...stayImages.slice(0, 1), ...vehicleImages.slice(0, 1)]
       .filter(Boolean);
     return uniqueImages(images.length ? images : [fallbackHero]);
-  }, [item]);
+  }, [item, stayImages]);
 
   const heroImage = gallery[heroIndex] || gallery[0] || fallbackHero;
   const title = zh ? item.nameZh : item.nameEn;
@@ -248,7 +254,6 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const heroLine = packageHeroLine(item, zh);
   const includeItems = compactFeeItems(item.includes || [], "include");
   const excludeItems = compactFeeItems(item.excludes || [], "exclude");
-  const stayImages = uniqueImages(rooms.filter((room) => room.location.zh === "吉隆坡").flatMap((room) => room.images).slice(0, 4));
 
   return (
     <>
@@ -312,7 +317,8 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
               const dayTitle = displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh);
               const daySummary = compactDaySummary(zh ? day.descriptionZh : day.descriptionEn);
               const dayDetails = dayDetailSections(day, index, item.itinerary.length, zh);
-              const dayImages = uniqueImages([cover, ...(day.schedule || []).map((slot) => slot.image || ""), ...fallbackImages]);
+              const scheduleImages = (day.schedule || []).map((slot) => slot.image || "").filter((image) => image && !isDefaultPackageDayImage(image));
+              const dayImages = uniqueImages([cover, ...scheduleImages, ...fallbackImages]);
               const activeDayImage = dayImageIndex[index] || 0;
               return (
                 <article className={open ? "open" : ""} key={`${day.titleZh}-${index}`}>
@@ -371,8 +377,8 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
             </div>
           </article>
           <p className="package-support-note">
-            <b>{zh ? "旅途中有需要，也可以随时联系我们。" : "Need help during the trip? You can reach us anytime."}</b>
-            <span>{zh ? "从抵达到返程，住宿、用车及行程问题均可中文沟通。" : "From arrival to departure, stay, vehicle and route questions can be handled in Chinese."}</span>
+            <b>{zh ? "全程中文协助" : "Chinese support throughout"}</b>
+            <span>{zh ? "从抵达到返程，住宿、用车及行程问题均可沟通。" : "From arrival to departure, stay, vehicle and route questions can be handled in Chinese."}</span>
           </p>
         </section>
 
@@ -389,7 +395,7 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
           <b>{zh ? item.cityComboZh : item.cityComboEn}</b>
           <small>{zh ? `${item.days}天${item.nights}晚` : `${item.days}D${item.nights}N`}</small>
         </div>
-        <button type="button" onClick={() => setInquiryOpen(true)}>{zh ? "咨询行程" : "Inquire"} →</button>
+        <button type="button" onClick={() => setInquiryOpen(true)}>{zh ? "咨询这个行程" : "Inquire"} →</button>
       </footer>
 
       {inquiryOpen && (
