@@ -182,6 +182,8 @@ function InlineSwipeGallery({
   const [dragX, setDragX] = useState(0);
   const safeImages = images.length ? images : [fallbackHero];
   const safeIndex = clamp(index, 0, safeImages.length - 1);
+  const atStart = safeIndex === 0;
+  const atEnd = safeIndex === safeImages.length - 1;
   const moveTo = (next: number) => onIndexChange(clamp(next, 0, safeImages.length - 1));
   const finishDrag = (width: number) => {
     const threshold = Math.max(42, width * 0.16);
@@ -215,8 +217,8 @@ function InlineSwipeGallery({
       </div>
       {arrows && safeImages.length > 1 && (
         <>
-          <button className="package-swipe-arrow prev" type="button" onClick={() => moveTo(safeIndex - 1)} aria-label="上一张">‹</button>
-          <button className="package-swipe-arrow next" type="button" onClick={() => moveTo(safeIndex + 1)} aria-label="下一张">›</button>
+          <button className={`package-swipe-arrow prev ${atStart ? "muted" : ""}`} type="button" onClick={() => moveTo(safeIndex - 1)} aria-label="上一张">‹</button>
+          <button className={`package-swipe-arrow next ${atEnd ? "muted" : ""}`} type="button" onClick={() => moveTo(safeIndex + 1)} aria-label="下一张">›</button>
         </>
       )}
       <span className="package-swipe-count">{safeIndex + 1} / {safeImages.length}</span>
@@ -344,6 +346,7 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
                       onIndexChange={(next) => setDayImageIndex((current) => ({ ...current, [index]: next }))}
                       alt={dayTitle}
                       className="package-day-gallery"
+                      arrows
                     />
                     <p className="package-day-meta">{dayDetails.meta}</p>
                   </div>

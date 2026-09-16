@@ -2610,7 +2610,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .package-hero-carousel img{object-position:center 52%;filter:saturate(1.02) contrast(.98)}
 .package-swipe-count{position:absolute;z-index:3;right:18px;bottom:18px;border-radius:999px;background:rgba(14,18,22,.58);color:#fff;padding:6px 10px;font:500 12px/1 var(--sans);letter-spacing:.02em}
 .package-swipe-arrow{position:absolute;z-index:3;top:50%;width:36px;height:52px;transform:translateY(-50%);border:0;background:rgba(15,24,32,.18);color:rgba(255,255,255,.9);font-size:34px;line-height:1;opacity:0;cursor:pointer;transition:opacity .18s ease,background .18s ease}
-.package-swipe-arrow.prev{left:18px}.package-swipe-arrow.next{right:18px}.package-swipe-gallery:hover .package-swipe-arrow{opacity:1}.package-swipe-arrow:hover{background:rgba(15,24,32,.32)}
+.package-swipe-arrow.prev{left:18px}.package-swipe-arrow.next{right:18px}.package-swipe-gallery:hover .package-swipe-arrow{opacity:1}.package-swipe-arrow:hover{background:rgba(15,24,32,.32)}.package-swipe-arrow.muted{opacity:.38}
 .package-full-summary{max-width:1200px;padding:26px 28px 12px;gap:34px}
 .package-full-eyebrow{margin-bottom:8px}
 .package-full-summary h1{margin-bottom:8px}
@@ -2650,16 +2650,16 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .package-swipe-count{right:14px;bottom:12px;padding:5px 9px;font-size:10px;background:rgba(14,18,22,.52)}
   .package-swipe-arrow{display:block;opacity:1;top:50%;width:28px;height:28px;border-radius:50%;background:rgba(14,18,22,.26);font-size:22px;color:rgba(255,255,255,.9)}
   .package-swipe-arrow.prev{left:10px}.package-swipe-arrow.next{right:10px}
-  .package-full-summary{display:block;padding:30px 24px 6px}
+  .package-full-summary{display:block;padding:28px 24px 0}
   .package-full-eyebrow,.package-full-fit,.package-full-summary>div>p:not(.package-full-eyebrow){display:none}
-  .package-full-summary h1{font-size:32px;line-height:1.08;font-weight:650;margin-bottom:13px}
+  .package-full-summary h1{font-size:32px;line-height:1.08;font-weight:650;margin-bottom:15px}
   .package-full-summary aside{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 7px;padding-top:0}
   .package-full-summary aside b{font-size:34px;line-height:1;color:#b98655}
   .package-full-summary aside span{align-self:end;margin:0 0 2px;font-size:12px;color:#53687a}
   .package-full-summary aside small{grid-column:1/-1;margin-top:2px;color:#31516d;font-size:12px;line-height:1.35}
   .package-full-summary aside p{grid-column:1/-1;margin-top:0;color:#99a2aa;font-size:11px;line-height:1.4}
-  .package-full-itinerary{padding:16px 24px 6px}
-  .package-itinerary-note{margin:0 0 12px;color:#14304a;font:600 18px/1.15 var(--serif)}
+  .package-full-itinerary{padding:8px 24px 4px}
+  .package-itinerary-note{margin:0 0 10px;color:#14304a;font:600 18px/1.15 var(--serif)}
   .package-timeline{margin-left:5px}
   .package-timeline:before{top:17px;bottom:16px;background:rgba(198,150,93,.32)}
   .package-timeline article{padding-left:17px}
@@ -2672,12 +2672,14 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .package-day-toggle img{grid-area:image;width:84px;height:56px;border-radius:8px}
   .package-day-toggle i{grid-area:arrow;align-self:center;justify-self:end;font-size:13px;color:#b9854e}
   .package-timeline article.no-expand .package-day-toggle{cursor:default}
-  .package-timeline article.open .package-day-panel{padding:0 0 12px}
+  .package-timeline article.open .package-day-panel{padding:0 0 7px}
   .package-day-detail{margin:0 0 10px;color:#526a80;font-size:12.5px;line-height:1.65}
-  .package-day-detail-block{gap:9px;margin:0 0 12px;max-width:none}
+  .package-day-detail-block{gap:9px;margin:0 0 10px;max-width:none}
   .package-day-detail-block b{margin-bottom:3px;font-size:12.5px}
   .package-day-detail-block p{font-size:12.5px;line-height:1.65}
-  .package-day-gallery{aspect-ratio:16/9;height:auto;margin:0 0 9px;border-radius:10px}
+  .package-day-gallery{aspect-ratio:16/9;height:auto;margin:0 0 8px;border-radius:10px}
+  .package-day-gallery .package-swipe-arrow{display:block;opacity:1;width:26px;height:26px;font-size:21px;background:rgba(14,18,22,.24)}
+  .package-day-gallery .package-swipe-arrow.muted{opacity:.35}
   .package-day-gallery .package-swipe-count{right:10px;bottom:10px;font-size:10px}
   .package-day-meta{margin:0;color:#8b97a2;font-size:11px;line-height:1.5}
   .package-schedule-row,.package-schedule-row.no-time{grid-template-columns:1fr;gap:3px;margin-left:0;min-height:auto;padding:5px 0}
