@@ -229,8 +229,6 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
   const [menu, setMenu] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [dayImageIndex, setDayImageIndex] = useState<Record<number, number>>({});
-  const [stayIndex, setStayIndex] = useState(0);
-  const [vehicleIndex, setVehicleIndex] = useState(0);
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [feeOpen, setFeeOpen] = useState(false);
@@ -357,36 +355,41 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
 
         <section className="package-value-section">
           <p className="package-value-kicker">{zh ? "这趟已经帮你安排好" : "Already arranged"}</p>
-          <article>
-            <InlineSwipeGallery images={stayImages} index={stayIndex} onIndexChange={setStayIndex} alt={zh ? "吉隆坡市区舒适住宿" : "Comfortable Kuala Lumpur stay"} className="package-value-gallery" />
-            <div>
+          <article className="package-value-row">
+            <span className="package-value-no">01</span>
+            <div className="package-value-copy">
               <small>{zh ? "住宿" : "Stay"}</small>
               <h2>{zh ? "吉隆坡市区舒适住宿" : "Comfortable Kuala Lumpur city stay"}</h2>
               <p>{zh ? `${item.nights}晚 · 根据人数安排合适房型` : `${item.nights} nights · Room type matched to group size`}</p>
-              <span>{zh ? "实际住宿及房型根据人数、入住日期确认。" : "Exact stay and room type are confirmed by group size and dates."}</span>
               <Link href="/#stays">{zh ? "查看住宿 ›" : "View stays ›"}</Link>
             </div>
+            {stayImages[0] && <img className="package-value-thumb" src={stayImages[0]} alt="" />}
           </article>
-          <article>
-            <InlineSwipeGallery images={vehicleImages} index={vehicleIndex} onIndexChange={setVehicleIndex} alt={zh ? "行程用车" : "Trip vehicle"} className="package-value-gallery" />
-            <div>
+          <article className="package-value-row">
+            <span className="package-value-no">02</span>
+            <div className="package-value-copy">
               <small>{zh ? "行程用车" : "Private car"}</small>
-              <h2>{zh ? "按人数安排合适车型" : "Vehicle matched to your group"}</h2>
-              <p>{zh ? "接机 · 市区行程 · 马六甲往返" : "Airport pickup · City route · Malacca return"}</p>
-              <span>{zh ? "1–14 人均可安排，根据人数与行李安排合适车型。" : "For 1–14 guests, matched by group size and luggage."}</span>
+              <h2>{zh ? "接机 · 市区行程 · 马六甲往返" : "Airport pickup · City route · Malacca return"}</h2>
+              <p>{zh ? "1–14人 · 按人数与行李安排车型" : "1–14 guests · Vehicle matched to group size and luggage"}</p>
             </div>
+            {vehicleImages[0] && <img className="package-value-thumb" src={vehicleImages[0]} alt="" />}
           </article>
-          <p className="package-support-note">
-            <b>{zh ? "全程中文协助" : "Chinese support throughout"}</b>
-            <span>{zh ? "从抵达到返程，住宿、用车及行程问题均可沟通。" : "From arrival to departure, stay, vehicle and route questions can be handled in Chinese."}</span>
-          </p>
+          <article className="package-value-row support">
+            <span className="package-value-no">03</span>
+            <div className="package-value-copy">
+              <small>{zh ? "中文协助" : "Chinese support"}</small>
+              <h2>{zh ? "住宿、用车及行程问题均可沟通" : "Help with stays, vehicles and route questions"}</h2>
+              <p>{zh ? "从抵达到返程，有需要都可以联系我们。" : "From arrival to departure, you can reach us when needed."}</p>
+            </div>
+            <span className="package-value-mark">✓</span>
+          </article>
         </section>
 
         <section className="package-fee-line">
-          <b>ⓘ {zh ? "费用说明" : "Price notes"}</b>
+          <b>ⓘ {zh ? "费用与预订说明" : "Price and booking notes"}</b>
           <p><span>{zh ? "包含" : "Included"}</span>{zh ? "住宿 · 行程用车 · 中文沟通协助" : includeItems.join(" · ")}</p>
           <p><span>{zh ? "不含" : "Not included"}</span>{zh ? "机票 · 餐食 · 门票 · 个人消费" : excludeItems.join(" · ")}</p>
-          <button type="button" onClick={() => setFeeOpen(true)}>{zh ? "详细费用说明" : "Full details"} ›</button>
+          <button type="button" onClick={() => setFeeOpen(true)}>{zh ? "查看详细说明" : "Full details"} ›</button>
         </section>
       </main>
 
