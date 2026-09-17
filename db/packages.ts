@@ -592,6 +592,26 @@ export async function ensureTravelPackages() {
   return ensureTravelPackagesPromise;
 }
 
+function isMissingTravelPackageSchema(error: unknown) {
+  const code = String((error as { code?: unknown })?.code || "");
+  const message = error instanceof Error ? error.message : "";
+  return (
+    code === "42P01" ||
+    code === "42703" ||
+    /relation .*travel_packages.* does not exist|column .* does not exist|no such table: travel_packages/i.test(message)
+  );
+}
+
+async function readTravelPackagesWithSchemaFallback<T>(read: () => Promise<T>) {
+  try {
+    return await read();
+  } catch (error) {
+    if (!isMissingTravelPackageSchema(error)) throw error;
+    await ensureTravelPackages();
+    return read();
+  }
+}
+
 export function mapTravelPackage(row: Record<string, unknown>): TravelPackage {
   const coverImage = String(row.cover_image || "");
   const itinerary = normalizeItinerary(parseJson<TravelPackageDay[]>(row.itinerary, []), coverImage);
@@ -661,21 +681,23 @@ export function mapTravelPackage(row: Record<string, unknown>): TravelPackage {
 }
 
 export async function listTravelPackages(all = false) {
-  await ensureTravelPackages();
-  const result = await env.DB.prepare(
-    `SELECT * FROM travel_packages ${all ? "" : "WHERE status='published'"} ORDER BY days, sort_order, id`,
-  ).all();
-  return result.results.map((item) => mapTravelPackage(item as Record<string, unknown>));
+  return readTravelPackagesWithSchemaFallback(async () => {
+    const result = await env.DB.prepare(
+      `SELECT * FROM travel_packages ${all ? "" : "WHERE status='published'"} ORDER BY days, sort_order, id`,
+    ).all();
+    return result.results.map((item) => mapTravelPackage(item as Record<string, unknown>));
+  });
 }
 
 export async function getTravelPackage(slug: string, all = false) {
-  await ensureTravelPackages();
-  const row = await env.DB.prepare(
-    `SELECT * FROM travel_packages WHERE slug=? ${all ? "" : "AND status='published'"} LIMIT 1`,
-  )
-    .bind(slug)
-    .first();
-  return row ? mapTravelPackage(row as Record<string, unknown>) : null;
+  return readTravelPackagesWithSchemaFallback(async () => {
+    const row = await env.DB.prepare(
+      `SELECT * FROM travel_packages WHERE slug=? ${all ? "" : "AND status='published'"} LIMIT 1`,
+    )
+      .bind(slug)
+      .first();
+    return row ? mapTravelPackage(row as Record<string, unknown>) : null;
+  });
 }
 
 export async function createTravelPackage(input: Partial<TravelPackage>) {
