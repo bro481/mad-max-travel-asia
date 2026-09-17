@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { withPublicDataTimeout } from "../../../lib/public-data-timeout";
 import { RoomDetail } from "./room-detail";
 
 export const revalidate = 300;
@@ -20,7 +21,11 @@ export default async function RoomPage({params}:{params:Promise<{slug:string}>})
   let dbRoom = null;
   try {
     const { getPublishedPropertyBySlug, propertyToRoom } = await import("../../../db/properties");
-    const property=await getPublishedPropertyBySlug(slug);
+    const property = await withPublicDataTimeout(
+      getPublishedPropertyBySlug(slug),
+      null,
+      `Public room detail query: ${slug}`,
+    );
     dbRoom = property ? propertyToRoom(property) : null;
   } catch {}
   if(dbRoom)return <RoomDetail room={dbRoom}/>;

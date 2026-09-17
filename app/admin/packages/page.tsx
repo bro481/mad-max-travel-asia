@@ -1,18 +1,29 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import type { TravelPackage, TravelPackageDay, TravelPackageSchedule } from "../../../db/packages";
+import { ChangeEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import type {
+  TravelPackage,
+  TravelPackageArrangements,
+  TravelPackageDay,
+  TravelPackageDayContentBlock,
+  TravelPackageDisplayOptions,
+  TravelPackageInquirySettings,
+  TravelPackagePriceTier,
+  TravelPackageSchedule,
+} from "../../../db/packages";
 import type { DestinationRecord } from "../../../db/destinations";
 import type { PropertyRecord } from "../../../db/properties";
 import type { ServiceItem } from "../../../db/service-items";
 
-type AdminTab = "basic" | "itinerary" | "fees" | "english";
+type AdminTab = "basic" | "itinerary" | "arrangements" | "fees" | "english";
 type SaveProgress = { active: boolean; percent: number; label: string; error?: string };
 type ImageTarget =
   | { type: "cover" }
   | { type: "gallery"; index?: number }
   | { type: "day"; dayIndex: number }
-  | { type: "slot"; dayIndex: number; slotIndex: number };
+  | { type: "dayGallery"; dayIndex: number; index?: number }
+  | { type: "slot"; dayIndex: number; slotIndex: number }
+  | { type: "arrangement"; section: "stay" | "vehicle"; index?: number };
 
 const nodeTypes = [
   { value: "transport", label: "交通", icon: "🚗" },
@@ -44,7 +55,48 @@ const emptySchedule: TravelPackageSchedule = {
   nodeType: "note",
   sourceType: "manual",
 };
-const emptyDay: TravelPackageDay = { titleZh: "", titleEn: "", descriptionZh: "", descriptionEn: "", coverImage: "", schedule: [] };
+const emptyContentBlock: TravelPackageDayContentBlock = { titleZh: "", titleEn: "", textZh: "", textEn: "" };
+const emptyDay: TravelPackageDay = { titleZh: "", titleEn: "", summaryZh: "", summaryEn: "", descriptionZh: "", descriptionEn: "", coverImage: "", galleryImages: [], galleryCaptionZh: "", galleryCaptionEn: "", contentBlocks: [], schedule: [] };
+const emptyArrangements: TravelPackageArrangements = {
+  stay: {
+    visible: true,
+    titleZh: "吉隆坡市区舒适住宿",
+    titleEn: "Comfortable Kuala Lumpur city stay",
+    nights: "3晚",
+    descriptionZh: "根据人数安排合适房型",
+    descriptionEn: "Room type matched to group size",
+    noteZh: "实际住宿及房型根据人数、入住日期确认。",
+    noteEn: "Final stay and room type are confirmed by group size and dates.",
+    images: [],
+    propertyIds: [],
+  },
+  vehicle: {
+    visible: true,
+    titleZh: "按人数安排合适车型",
+    titleEn: "Vehicle matched to your group",
+    scopeZh: "接机 · 市区行程 · 马六甲往返",
+    scopeEn: "Airport pickup · City route · Malacca return",
+    descriptionZh: "1–14人均可安排，根据人数与行李安排合适车型。",
+    descriptionEn: "1-14 guests can be arranged, with vehicle matched to group size and luggage.",
+    images: [],
+    serviceIds: [],
+  },
+  support: {
+    visible: true,
+    titleZh: "全程中文协助",
+    titleEn: "Chinese support throughout",
+    descriptionZh: "从抵达到返程，住宿、用车及行程问题均可沟通。",
+    descriptionEn: "From arrival to departure, we can help with stay, vehicle and itinerary questions.",
+  },
+};
+const defaultDisplayOptions: TravelPackageDisplayOptions = { heroGallery: true, tags: true, itinerary: true, arrangements: true, fees: true };
+const defaultInquirySettings: TravelPackageInquirySettings = {
+  buttonTextZh: "咨询这个行程",
+  buttonTextEn: "Inquire",
+  titleTemplateZh: "【官网咨询｜{套餐名称} {天数}天{晚数}晚】",
+  titleTemplateEn: "Website inquiry | {package} {days}D{nights}N",
+  promptFields: ["出行人数", "出行日期", "儿童人数", "联系方式", "其他需求"],
+};
 
 const emptyPackage: TravelPackage = {
   id: 0,
@@ -77,6 +129,10 @@ const emptyPackage: TravelPackage = {
   notesEn: "",
   priceNoteZh: "价格为参考起价，不含机票，旺季和节假日价格可能调整。",
   priceNoteEn: "",
+  arrangements: clone(emptyArrangements),
+  displayOptions: { ...defaultDisplayOptions },
+  priceTiers: [],
+  inquirySettings: { ...defaultInquirySettings },
   status: "draft",
   sortOrder: 99,
   updatedAt: "",
@@ -254,9 +310,23 @@ export default function AdminPackagesPage() {
         else galleryImages.push(url);
         return { ...current, galleryImages: galleryImages.filter(Boolean) };
       }
+      if (target.type === "arrangement") {
+        const arrangements = clone(current.arrangements || emptyArrangements);
+        const images = [...(arrangements[target.section].images || [])];
+        if (typeof target.index === "number") images[target.index] = url;
+        else images.push(url);
+        arrangements[target.section].images = images.filter(Boolean);
+        return { ...current, arrangements };
+      }
       const itinerary = current.itinerary.map((day, dayIndex) => {
         if (dayIndex !== target.dayIndex) return day;
         if (target.type === "day") return { ...day, coverImage: url };
+        if (target.type === "dayGallery") {
+          const galleryImages = [...(day.galleryImages || [])];
+          if (typeof target.index === "number") galleryImages[target.index] = url;
+          else galleryImages.push(url);
+          return { ...day, galleryImages: galleryImages.filter(Boolean), coverImage: day.coverImage || url };
+        }
         return { ...day, schedule: (day.schedule || []).map((slot, slotIndex) => (slotIndex === target.slotIndex ? { ...slot, image: url } : slot)) };
       });
       return { ...current, itinerary };
@@ -264,19 +334,19 @@ export default function AdminPackagesPage() {
   };
 
   const uploadImage = async (event: ChangeEvent<HTMLInputElement>, target: ImageTarget) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []);
     event.target.value = "";
-    if (!file) return;
+    if (!files.length) return;
     const form = new FormData();
-    form.append("files", file);
+    files.forEach((file) => form.append("files", file));
     setSaving(true);
     try {
       const response = await fetch("/api/admin/uploads", { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "上传失败");
-      const url = data.urls?.[0] || "";
-      if (!url) throw new Error("上传后没有返回图片地址");
-      applyImage(target, url);
+      const urls = (data.urls || []).filter(Boolean);
+      if (!urls.length) throw new Error("上传后没有返回图片地址");
+      urls.forEach((url: string) => applyImage(target, url));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "上传失败");
     } finally {
@@ -298,8 +368,38 @@ export default function AdminPackagesPage() {
       excludes: draft.excludes.filter(Boolean),
       itinerary: draft.itinerary.map((day) => ({
         ...day,
-        schedule: (day.schedule || []).filter((slot) => slot.titleZh || slot.titleEn || slot.time || slot.image),
+        galleryImages: (day.galleryImages || []).filter(Boolean),
+        contentBlocks: (day.contentBlocks || []).filter((block) => block.titleZh || block.titleEn || block.textZh || block.textEn),
+        schedule: (day.schedule || []).filter((slot) =>
+          slot.titleZh ||
+          slot.titleEn ||
+          slot.descriptionZh ||
+          slot.descriptionEn ||
+          slot.time ||
+          slot.image ||
+          slot.sourceLabel ||
+          slot.sourceId ||
+          slot.nodeType,
+        ),
       })),
+      arrangements: {
+        ...draft.arrangements,
+        stay: {
+          ...draft.arrangements.stay,
+          images: (draft.arrangements.stay.images || []).filter(Boolean),
+          propertyIds: (draft.arrangements.stay.propertyIds || []).map(Number).filter(Boolean),
+        },
+        vehicle: {
+          ...draft.arrangements.vehicle,
+          images: (draft.arrangements.vehicle.images || []).filter(Boolean),
+          serviceIds: (draft.arrangements.vehicle.serviceIds || []).map(Number).filter(Boolean),
+        },
+      },
+      priceTiers: draft.priceTiers.filter((tier) => tier.label || tier.price),
+      inquirySettings: {
+        ...draft.inquirySettings,
+        promptFields: draft.inquirySettings.promptFields.filter(Boolean),
+      },
     };
   };
 
@@ -393,6 +493,28 @@ export default function AdminPackagesPage() {
       ),
     }));
   };
+  const updateContentBlock = (dayIndex: number, blockIndex: number, patch: Partial<TravelPackageDayContentBlock>) => {
+    updateDraft((current) => ({
+      ...current,
+      itinerary: current.itinerary.map((day, index) =>
+        index === dayIndex
+          ? { ...day, contentBlocks: (day.contentBlocks || []).map((block, i) => (i === blockIndex ? { ...block, ...patch } : block)) }
+          : day,
+      ),
+    }));
+  };
+  const updateArrangement = <S extends keyof TravelPackageArrangements>(
+    section: S,
+    patch: Partial<TravelPackageArrangements[S]>,
+  ) => {
+    updateDraft((current) => ({ ...current, arrangements: { ...current.arrangements, [section]: { ...current.arrangements[section], ...patch } } }));
+  };
+  const updateDisplayOption = (key: keyof TravelPackageDisplayOptions, value: boolean) => {
+    setField("displayOptions", { ...draft.displayOptions, [key]: value });
+  };
+  const updatePriceTier = (index: number, patch: Partial<TravelPackagePriceTier>) => {
+    setField("priceTiers", draft.priceTiers.map((tier, tierIndex) => (tierIndex === index ? { ...tier, ...patch } : tier)));
+  };
   const moveDay = (from: number, to: number) => {
     if (to < 0 || to >= draft.itinerary.length || from === to) return;
     updateDraft((current) => {
@@ -479,7 +601,8 @@ export default function AdminPackagesPage() {
             {[
               ["basic", "基本信息"],
               ["itinerary", "每日行程"],
-              ["fees", "费用与说明"],
+              ["arrangements", "套餐安排"],
+              ["fees", "费用说明"],
               ["english", "英文"],
             ].map(([key, label]) => (
               <button key={key} className={activeTab === key ? "active" : ""} type="button" onClick={() => setActiveTab(key as AdminTab)}>{label}</button>
@@ -517,7 +640,27 @@ export default function AdminPackagesPage() {
                 <label className="wide"><span>一句话简介</span><input value={draft.summaryZh} onChange={(event) => setField("summaryZh", event.target.value)} placeholder="城市经典 + 古城慢游，一次体验两种马来西亚。" /></label>
               </div>
 
-              <ImageCard title="封面图" image={draft.coverImage} onFile={(event) => uploadImage(event, { type: "cover" })} helper="上传或从下方已有图片库中设置为封面。" />
+              <ImageListEditor
+                title="顶部图片 / 套餐图库"
+                helper="第一张自动作为封面；前台顶部直接左右滑动显示这些图片。"
+                images={Array.from(new Set([draft.coverImage, ...draft.galleryImages].filter(Boolean)))}
+                coverImage={draft.coverImage}
+                onUpload={(event) => uploadImage(event, { type: "gallery" })}
+                onSetCover={(image) => setDraft((current) => ({ ...current, coverImage: image, galleryImages: Array.from(new Set([image, ...current.galleryImages.filter((item) => item !== image)])) }))}
+                onRemove={(image) => setDraft((current) => {
+                  const galleryImages = current.galleryImages.filter((item) => item !== image);
+                  const coverImage = current.coverImage === image ? galleryImages[0] || "" : current.coverImage;
+                  return { ...current, coverImage, galleryImages };
+                })}
+                onMove={(from, to) => {
+                  const images = Array.from(new Set([draft.coverImage, ...draft.galleryImages].filter(Boolean)));
+                  if (to < 0 || to >= images.length) return;
+                  const next = [...images];
+                  const [image] = next.splice(from, 1);
+                  next.splice(to, 0, image);
+                  setDraft((current) => ({ ...current, coverImage: next[0] || "", galleryImages: next }));
+                }}
+              />
 
               <div className="package-field-block">
                 <span>套餐特色</span>
@@ -527,23 +670,9 @@ export default function AdminPackagesPage() {
                   ))}
                   <button type="button" onClick={() => setField("tags", [...draft.tags, "新标签"])}>+ 添加标签</button>
                 </div>
+                <small>前台最多显示前 4 个标签。</small>
                 <InlineArray value={draft.tags} onChange={(value) => setField("tags", value)} compact />
               </div>
-
-              <details className="package-collapse" open={galleryOpen} onToggle={(event) => setGalleryOpen(event.currentTarget.open)}>
-                <summary>更多图片</summary>
-                <div className="gallery-grid-editor">
-                  {draft.galleryImages.map((image, index) => (
-                    <div key={`${image}-${index}`}>
-                      {image ? <img src={image} alt="" /> : <span />}
-                      <button type="button" onClick={() => setField("coverImage", image)}>设为封面</button>
-                      <button type="button" onClick={() => setField("galleryImages", draft.galleryImages.filter((_, i) => i !== index))}>删除</button>
-                      <label>更换<input type="file" accept="image/*" onChange={(event) => uploadImage(event, { type: "gallery", index })} /></label>
-                    </div>
-                  ))}
-                  <label className="gallery-add">+ 上传图片<input type="file" accept="image/*" onChange={(event) => uploadImage(event, { type: "gallery" })} /></label>
-                </div>
-              </details>
 
               <details className="package-collapse" open={advancedOpen} onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}>
                 <summary>高级设置</summary>
@@ -586,9 +715,36 @@ export default function AdminPackagesPage() {
                           <div className="admin-form-grid">
                             <label><span>主题标题</span><input value={day.titleZh} onChange={(event) => updateDay(index, { titleZh: event.target.value })} placeholder="海岛的一天" /></label>
                             <label><span>城市</span><input value={draft.cityComboZh} readOnly /></label>
-                            <label className="wide"><span>副标题</span><input value={day.descriptionZh} onChange={(event) => updateDay(index, { descriptionZh: event.target.value })} placeholder="清澈的海水，治愈的蓝" /></label>
+                            <label className="wide"><span>折叠摘要</span><input value={day.summaryZh || day.descriptionZh} onChange={(event) => updateDay(index, { summaryZh: event.target.value })} placeholder="专车接机 · 入住市区住宿 · 晚上自由探索" /></label>
+                            <label className="wide"><span>副标题 / 旧版说明</span><input value={day.descriptionZh} onChange={(event) => updateDay(index, { descriptionZh: event.target.value })} placeholder="清澈的海水，治愈的蓝" /></label>
                           </div>
                           <ImageCard title="当天主图" image={day.coverImage || ""} onFile={(event) => uploadImage(event, { type: "day", dayIndex: index })} helper="推荐填写；节点图片只给重点体验使用。" />
+                          <ContentBlockEditor
+                            blocks={day.contentBlocks || []}
+                            onChange={(blocks) => updateDay(index, { contentBlocks: blocks })}
+                            updateBlock={(blockIndex, patch) => updateContentBlock(index, blockIndex, patch)}
+                          />
+                          <ImageListEditor
+                            title="当日图片"
+                            helper="第一张默认作为折叠状态小缩略图；展开后作为当天图片轮播。"
+                            images={Array.from(new Set([day.coverImage || "", ...(day.galleryImages || [])].filter(Boolean)))}
+                            coverImage={day.coverImage || ""}
+                            onUpload={(event) => uploadImage(event, { type: "dayGallery", dayIndex: index })}
+                            onSetCover={(image) => updateDay(index, { coverImage: image, galleryImages: Array.from(new Set([image, ...(day.galleryImages || []).filter((item) => item !== image)])) })}
+                            onRemove={(image) => {
+                              const galleryImages = (day.galleryImages || []).filter((item) => item !== image);
+                              updateDay(index, { galleryImages, coverImage: day.coverImage === image ? galleryImages[0] || "" : day.coverImage });
+                            }}
+                            onMove={(from, to) => {
+                              const images = Array.from(new Set([day.coverImage || "", ...(day.galleryImages || [])].filter(Boolean)));
+                              if (to < 0 || to >= images.length) return;
+                              const next = [...images];
+                              const [image] = next.splice(from, 1);
+                              next.splice(to, 0, image);
+                              updateDay(index, { coverImage: next[0] || "", galleryImages: next });
+                            }}
+                          />
+                          <label className="package-caption-field"><span>图片说明</span><input value={day.galleryCaptionZh || ""} onChange={(event) => updateDay(index, { galleryCaptionZh: event.target.value })} placeholder="接机安排 · 市区住宿 · 晚上自由活动" /></label>
                           <ScheduleEditor day={day} dayIndex={index} properties={sourceProperties} services={sourceServices} updateSlot={updateSlot} updateDay={updateDay} uploadImage={uploadImage} />
                           <div className="day-card-actions">
                             <button type="button" onClick={() => moveDay(index, index - 1)}>上移</button>
@@ -605,11 +761,120 @@ export default function AdminPackagesPage() {
             </div>
           )}
 
+          {activeTab === "arrangements" && (
+            <div className="package-tab-panel">
+              <section className="package-display-options">
+                <h3>前台显示控制</h3>
+                {[
+                  ["heroGallery", "顶部图库"],
+                  ["tags", "套餐特色"],
+                  ["itinerary", "每日行程"],
+                  ["arrangements", "这趟已经帮你安排好"],
+                  ["fees", "费用说明"],
+                ].map(([key, label]) => (
+                  <label key={key}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(draft.displayOptions[key as keyof TravelPackageDisplayOptions])}
+                      onChange={(event) => updateDisplayOption(key as keyof TravelPackageDisplayOptions, event.target.checked)}
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </section>
+
+              <ArrangementBlock
+                title="住宿安排"
+                enabled={draft.arrangements.stay.visible}
+                onToggle={(visible) => updateArrangement("stay", { visible })}
+              >
+                <div className="admin-form-grid">
+                  <label><span>住宿标题</span><input value={draft.arrangements.stay.titleZh} onChange={(event) => updateArrangement("stay", { titleZh: event.target.value })} /></label>
+                  <label><span>住宿晚数</span><input value={draft.arrangements.stay.nights} onChange={(event) => updateArrangement("stay", { nights: event.target.value })} placeholder="3晚" /></label>
+                  <label><span>住宿说明</span><input value={draft.arrangements.stay.descriptionZh} onChange={(event) => updateArrangement("stay", { descriptionZh: event.target.value })} /></label>
+                  <label><span>补充说明</span><input value={draft.arrangements.stay.noteZh} onChange={(event) => updateArrangement("stay", { noteZh: event.target.value })} /></label>
+                </div>
+                <LinkedPicker
+                  title="关联房源"
+                  emptyText="未关联房源；仍可使用下方套餐专属住宿图片和说明。"
+                  values={draft.arrangements.stay.propertyIds}
+                  options={properties.map((property) => ({ id: property.id, label: `${property.city} · ${property.nameZh}` }))}
+                  onChange={(propertyIds) => updateArrangement("stay", { propertyIds })}
+                />
+                <ImageListEditor
+                  title="住宿图片"
+                  helper="前台住宿模块会左右滑动显示；如为空，会回退展示关联房源或默认房源图片。"
+                  images={draft.arrangements.stay.images || []}
+                  onUpload={(event) => uploadImage(event, { type: "arrangement", section: "stay" })}
+                  onRemove={(image) => updateArrangement("stay", { images: draft.arrangements.stay.images.filter((item) => item !== image) })}
+                  onMove={(from, to) => {
+                    const next = [...draft.arrangements.stay.images];
+                    if (to < 0 || to >= next.length) return;
+                    const [image] = next.splice(from, 1);
+                    next.splice(to, 0, image);
+                    updateArrangement("stay", { images: next });
+                  }}
+                />
+              </ArrangementBlock>
+
+              <ArrangementBlock
+                title="行程用车"
+                enabled={draft.arrangements.vehicle.visible}
+                onToggle={(visible) => updateArrangement("vehicle", { visible })}
+              >
+                <div className="admin-form-grid">
+                  <label><span>标题</span><input value={draft.arrangements.vehicle.titleZh} onChange={(event) => updateArrangement("vehicle", { titleZh: event.target.value })} /></label>
+                  <label><span>服务范围</span><input value={draft.arrangements.vehicle.scopeZh} onChange={(event) => updateArrangement("vehicle", { scopeZh: event.target.value })} /></label>
+                  <label className="wide"><span>说明</span><input value={draft.arrangements.vehicle.descriptionZh} onChange={(event) => updateArrangement("vehicle", { descriptionZh: event.target.value })} /></label>
+                </div>
+                <LinkedPicker
+                  title="关联当地服务"
+                  emptyText="未关联当地服务；仍可填写套餐专属用车说明。"
+                  values={draft.arrangements.vehicle.serviceIds}
+                  options={services.map((service) => ({ id: service.id, label: `${service.city} · ${service.nameZh}` }))}
+                  onChange={(serviceIds) => updateArrangement("vehicle", { serviceIds })}
+                />
+                <ImageListEditor
+                  title="用车图片"
+                  helper="如为空，前台会继续使用默认车辆图片。"
+                  images={draft.arrangements.vehicle.images || []}
+                  onUpload={(event) => uploadImage(event, { type: "arrangement", section: "vehicle" })}
+                  onRemove={(image) => updateArrangement("vehicle", { images: draft.arrangements.vehicle.images.filter((item) => item !== image) })}
+                  onMove={(from, to) => {
+                    const next = [...draft.arrangements.vehicle.images];
+                    if (to < 0 || to >= next.length) return;
+                    const [image] = next.splice(from, 1);
+                    next.splice(to, 0, image);
+                    updateArrangement("vehicle", { images: next });
+                  }}
+                />
+              </ArrangementBlock>
+
+              <ArrangementBlock
+                title="中文协助"
+                enabled={draft.arrangements.support.visible}
+                onToggle={(visible) => updateArrangement("support", { visible })}
+              >
+                <div className="admin-form-grid">
+                  <label><span>标题</span><input value={draft.arrangements.support.titleZh} onChange={(event) => updateArrangement("support", { titleZh: event.target.value })} /></label>
+                  <label className="wide"><span>说明</span><input value={draft.arrangements.support.descriptionZh} onChange={(event) => updateArrangement("support", { descriptionZh: event.target.value })} /></label>
+                </div>
+              </ArrangementBlock>
+            </div>
+          )}
+
           {activeTab === "fees" && (
             <div className="package-tab-panel">
-              <section className="fee-section"><div><h3>费用包含</h3><button type="button" onClick={() => setField("includes", includeTemplate)}>套用模板：标准省心套餐</button></div><InlineArray value={draft.includes} onChange={(value) => setField("includes", value)} /></section>
-              <section className="fee-section"><div><h3>费用不包含</h3><button type="button" onClick={() => setField("excludes", excludeTemplate)}>套用默认</button></div><InlineArray value={draft.excludes} onChange={(value) => setField("excludes", value)} /></section>
-              <details className="package-collapse" open={priceTiersOpen} onToggle={(event) => setPriceTiersOpen(event.currentTarget.open)}><summary>人数价格高级设置</summary><div className="price-tier-placeholder"><span>2人 ¥2280/人</span><span>3人 ¥1980/人</span><span>4人 ¥1880/人</span><small>暂为结构预留，当前仍保存参考起价。</small></div></details>
+              <section className="fee-section"><div><h3>费用包含</h3><button type="button" onClick={() => setField("includes", includeTemplate)}>套用模板：标准省心套餐</button></div><SortableTextList value={draft.includes} onChange={(value) => setField("includes", value)} /></section>
+              <section className="fee-section"><div><h3>费用不包含</h3><button type="button" onClick={() => setField("excludes", excludeTemplate)}>套用默认</button></div><SortableTextList value={draft.excludes} onChange={(value) => setField("excludes", value)} /></section>
+              <details className="package-collapse" open={priceTiersOpen} onToggle={(event) => setPriceTiersOpen(event.currentTarget.open)}>
+                <summary>人数价格高级设置</summary>
+                <PriceTierEditor
+                  tiers={draft.priceTiers}
+                  onChange={(priceTiers) => setField("priceTiers", priceTiers)}
+                  updateTier={updatePriceTier}
+                />
+              </details>
               <details className="package-collapse" open={otherNotesOpen} onToggle={(event) => setOtherNotesOpen(event.currentTarget.open)}>
                 <summary>其他说明</summary>
                 <label className="default-note-check"><input type="checkbox" onChange={(event) => { if (event.target.checked) updateDraft((current) => ({ ...current, accommodationNoteZh: defaultNotes.accommodation, transferNoteZh: defaultNotes.transfer, priceNoteZh: defaultNotes.price, notesZh: defaultNotes.notes })); }} /> 使用默认说明</label>
@@ -620,6 +885,15 @@ export default function AdminPackagesPage() {
                   <label><span>注意事项</span><textarea value={draft.notesZh} onChange={(event) => setField("notesZh", event.target.value)} /></label>
                 </div>
               </details>
+              <section className="fee-section package-inquiry-settings">
+                <div><h3>咨询设置</h3><small>前台固定咨询栏和弹窗复制文案会使用这里。</small></div>
+                <div className="admin-form-grid">
+                  <label><span>咨询按钮文字</span><input value={draft.inquirySettings.buttonTextZh} onChange={(event) => setField("inquirySettings", { ...draft.inquirySettings, buttonTextZh: event.target.value })} /></label>
+                  <label><span>咨询标题模板</span><input value={draft.inquirySettings.titleTemplateZh} onChange={(event) => setField("inquirySettings", { ...draft.inquirySettings, titleTemplateZh: event.target.value })} /></label>
+                </div>
+                <small>可用变量：{"{套餐名称}"}、{"{天数}"}、{"{晚数}"}、{"{城市}"}</small>
+                <SortableTextList value={draft.inquirySettings.promptFields} onChange={(promptFields) => setField("inquirySettings", { ...draft.inquirySettings, promptFields })} />
+              </section>
             </div>
           )}
 
@@ -672,6 +946,86 @@ function ImageCard({ title, image, helper, onFile }: { title: string; image: str
   );
 }
 
+function ImageListEditor({
+  title,
+  helper,
+  images,
+  coverImage,
+  onUpload,
+  onSetCover,
+  onRemove,
+  onMove,
+}: {
+  title: string;
+  helper: string;
+  images: string[];
+  coverImage?: string;
+  onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
+  onSetCover?: (image: string) => void;
+  onRemove: (image: string, index: number) => void;
+  onMove: (from: number, to: number) => void;
+}) {
+  return (
+    <div className="image-list-editor">
+      <header>
+        <div><b>{title}</b><small>{helper}</small></div>
+        <label>+ 上传图片<input type="file" accept="image/*" multiple onChange={onUpload} /></label>
+      </header>
+      <div>
+        {images.map((image, index) => (
+          <article key={`${image}-${index}`}>
+            <img src={image} alt="" />
+            <span>{coverImage === image || (!coverImage && index === 0) ? "★ 封面" : `图${index + 1}`}</span>
+            <nav>
+              <button type="button" onClick={() => onMove(index, index - 1)} disabled={index === 0}>↑</button>
+              <button type="button" onClick={() => onMove(index, index + 1)} disabled={index === images.length - 1}>↓</button>
+              {onSetCover && <button type="button" onClick={() => onSetCover(image)}>设封面</button>}
+              <button type="button" onClick={() => onRemove(image, index)}>删除</button>
+              <button type="button" disabled>裁剪</button>
+            </nav>
+          </article>
+        ))}
+        {!images.length && <p className="image-list-empty">还没有图片，上传后会显示在前台轮播。</p>}
+      </div>
+    </div>
+  );
+}
+
+function ContentBlockEditor({
+  blocks,
+  onChange,
+  updateBlock,
+}: {
+  blocks: TravelPackageDayContentBlock[];
+  onChange: (blocks: TravelPackageDayContentBlock[]) => void;
+  updateBlock: (index: number, patch: Partial<TravelPackageDayContentBlock>) => void;
+}) {
+  return (
+    <div className="content-block-editor">
+      <header>
+        <div><b>展开详细内容</b><small>用于前台 Day 展开后的“上午 / 下午 / 晚上”等内容段。</small></div>
+        <button type="button" onClick={() => onChange([...blocks, { ...emptyContentBlock, sortOrder: blocks.length + 1 }])}>+ 添加内容段</button>
+      </header>
+      {blocks.map((block, index) => (
+        <article key={index}>
+          <input value={block.titleZh} onChange={(event) => updateBlock(index, { titleZh: event.target.value })} placeholder="上午 / 下午 / 晚上" />
+          <textarea value={block.textZh} onChange={(event) => updateBlock(index, { textZh: event.target.value })} placeholder="从吉隆坡出发前往马六甲..." />
+          <nav>
+            <button type="button" onClick={() => {
+              if (index <= 0) return;
+              const next = [...blocks];
+              [next[index - 1], next[index]] = [next[index], next[index - 1]];
+              onChange(next);
+            }}>上移</button>
+            <button type="button" onClick={() => onChange(blocks.filter((_, i) => i !== index))}>删除</button>
+          </nav>
+        </article>
+      ))}
+      {!blocks.length && <p>未填写时，前台会继续使用旧版自动生成的内容段。</p>}
+    </div>
+  );
+}
+
 function InlineArray({ value, onChange, compact = false }: { value: string[]; onChange: (value: string[]) => void; compact?: boolean }) {
   return (
     <div className={compact ? "inline-array compact" : "inline-array"}>
@@ -683,6 +1037,99 @@ function InlineArray({ value, onChange, compact = false }: { value: string[]; on
         </label>
       ))}
       {!compact && <button type="button" onClick={() => onChange([...value, ""])}>+ 添加</button>}
+    </div>
+  );
+}
+
+function SortableTextList({ value, onChange }: { value: string[]; onChange: (value: string[]) => void }) {
+  return (
+    <div className="sortable-text-list">
+      {value.map((item, index) => (
+        <div key={index}>
+          <span aria-hidden="true">☰</span>
+          <input value={item} onChange={(event) => onChange(value.map((x, i) => (i === index ? event.target.value : x)))} placeholder="填写一项" />
+          <button type="button" onClick={() => {
+            if (index <= 0) return;
+            const next = [...value];
+            [next[index - 1], next[index]] = [next[index], next[index - 1]];
+            onChange(next);
+          }} disabled={index === 0}>上移</button>
+          <button type="button" onClick={() => onChange(value.filter((_, i) => i !== index))}>删除</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...value, ""])}>+ 添加一项</button>
+    </div>
+  );
+}
+
+function ArrangementBlock({ title, enabled, onToggle, children }: { title: string; enabled: boolean; onToggle: (enabled: boolean) => void; children: ReactNode }) {
+  return (
+    <section className="arrangement-block">
+      <header>
+        <h3>{title}</h3>
+        <label><input type="checkbox" checked={enabled} onChange={(event) => onToggle(event.target.checked)} /> 前台显示</label>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function LinkedPicker({
+  title,
+  emptyText,
+  values,
+  options,
+  onChange,
+}: {
+  title: string;
+  emptyText: string;
+  values: number[];
+  options: { id: number; label: string }[];
+  onChange: (values: number[]) => void;
+}) {
+  return (
+    <div className="linked-picker">
+      <b>{title}</b>
+      <select value="" onChange={(event) => {
+        const id = Number(event.target.value);
+        if (id && !values.includes(id)) onChange([...values, id]);
+      }}>
+        <option value="">+ 选择</option>
+        {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+      </select>
+      <div>
+        {values.map((id) => {
+          const option = options.find((item) => item.id === id);
+          return <button key={id} type="button" onClick={() => onChange(values.filter((value) => value !== id))}>{option?.label || `ID ${id}`} ×</button>;
+        })}
+        {!values.length && <small>{emptyText}</small>}
+      </div>
+    </div>
+  );
+}
+
+function PriceTierEditor({
+  tiers,
+  onChange,
+  updateTier,
+}: {
+  tiers: TravelPackagePriceTier[];
+  onChange: (tiers: TravelPackagePriceTier[]) => void;
+  updateTier: (index: number, patch: Partial<TravelPackagePriceTier>) => void;
+}) {
+  return (
+    <div className="price-tier-editor">
+      {tiers.map((tier, index) => (
+        <div key={index}>
+          <input value={tier.label} onChange={(event) => updateTier(index, { label: event.target.value })} placeholder="2人 / 5-6人 / 7-10人" />
+          <input type="number" min={0} value={tier.price ?? ""} onChange={(event) => updateTier(index, { price: event.target.value ? Number(event.target.value) : null })} placeholder="价格" />
+          <input value={tier.unit || "/人"} onChange={(event) => updateTier(index, { unit: event.target.value })} />
+          <label><input type="checkbox" checked={tier.visible !== false} onChange={(event) => updateTier(index, { visible: event.target.checked })} /> 公开</label>
+          <button type="button" onClick={() => onChange(tiers.filter((_, i) => i !== index))}>删除</button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...tiers, { label: "", price: null, unit: "/人", visible: false }])}>+ 添加人数价格</button>
+      <small>当前前台仍只展示参考起价；这些价格可作为内部报价参考，公开项后续可扩展展示。</small>
     </div>
   );
 }

@@ -3,40 +3,24 @@ import { unstable_cache } from "next/cache";
 import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
 import type { ServiceItem } from "../../db/service-items";
+import { withPublicDataTimeout } from "../../lib/public-data-timeout";
 
 export const dynamic = "force-dynamic";
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs = 8000) {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error("Public services query timed out")), timeoutMs);
-  });
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timer) clearTimeout(timer);
-  });
-}
 
 const loadPublicServices = unstable_cache(
   async () => {
     const { listServices, staticServiceCategories } = await import("../../db/services");
     const { listDestinations, staticDestinations } = await import("../../db/destinations");
     const { listServiceItems } = await import("../../db/service-items");
-    const [servicesResult, destinationsResult, managedResult] = await Promise.allSettled([
-      withTimeout(listServices()),
-      withTimeout(listDestinations(true)),
-      withTimeout(listServiceItems()),
+    const [services, destinationSettings, managed] = await Promise.all([
+      withPublicDataTimeout(listServices(), () => staticServiceCategories(), "Public services categories query"),
+      withPublicDataTimeout(listDestinations(true), staticDestinations, "Public services destinations query"),
+      withPublicDataTimeout(listServiceItems(), [], "Public service items query"),
     ]);
     return {
-      services:
-        servicesResult.status === "fulfilled"
-          ? servicesResult.value
-          : staticServiceCategories(),
-      destinationSettings:
-        destinationsResult.status === "fulfilled"
-          ? destinationsResult.value
-          : staticDestinations,
-      managed:
-        managedResult.status === "fulfilled" ? managedResult.value : [],
+      services,
+      destinationSettings,
+      managed,
     } satisfies {
       services: ServiceCategory[];
       destinationSettings: DestinationRecord[];

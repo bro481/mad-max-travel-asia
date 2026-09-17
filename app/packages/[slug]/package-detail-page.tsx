@@ -5,9 +5,13 @@ import Link from "next/link";
 import { rooms } from "../../data";
 import { ServiceMenu } from "../../service-menu";
 import { InquiryModal } from "../../components/inquiry-modal";
-import type { TravelPackage } from "../../../db/packages";
+import type { TravelPackage, TravelPackageSchedule } from "../../../db/packages";
+import type { PropertyRecord } from "../../../db/properties";
+import type { ServiceItem } from "../../../db/service-items";
 
 type Lang = "zh" | "en";
+type PackageReferenceProperty = Pick<PropertyRecord, "id" | "slug" | "nameZh" | "nameEn">;
+type PackageReferenceService = Pick<ServiceItem, "id" | "slug" | "nameZh" | "nameEn">;
 
 const fallbackHero =
   "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1800&q=90";
@@ -52,36 +56,43 @@ function isDefaultPackageDayImage(image = "") {
   return defaultPackageDayImageIds.some((id) => image.includes(id));
 }
 
-function compactFeeItems(items: string[], type: "include" | "exclude") {
-  const aliases: Record<string, string> =
-    type === "include"
-      ? {
-          行程规划: "行程规划",
-          当地中文沟通协助: "中文沟通",
-          路线内接送安排建议: "行程内接送安排",
-        }
-      : {
-          "国际/国内机票": "机票",
-          个人消费: "个人消费",
-          景点门票及自费项目: "门票及自费项目",
-        };
-  const mapped = items
-    .filter(Boolean)
-    .map((item) => aliases[item] || item)
-    .filter((item) => !/(住宿与服务组合建议|旺季价格差额)/.test(item));
-  return Array.from(new Set(mapped)).slice(0, 3);
+function compactFeeItems(items: string[]) {
+  return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
 }
 
 function packageHeroLine(item: TravelPackage, zh: boolean) {
+  const text = zh ? item.heroTextZh : item.heroTextEn;
+  if (text?.trim()) return text.trim();
   if (!zh) return `${item.days} days, arranged at an easy pace.`;
-  if (item.cityComboZh.includes("吉隆坡") && item.cityComboZh.includes("马六甲")) return "城市与古城，刚刚好的四天。";
   return `${item.cityComboZh}，刚刚好的${item.days}天。`;
 }
 
 function packageSummary(item: TravelPackage, zh: boolean) {
-  if (!zh) return item.summaryEn;
-  if (item.cityComboZh.includes("吉隆坡") && item.cityComboZh.includes("马六甲")) return "城市与古城之间，轻松玩四天。";
-  return item.summaryZh;
+  const text = zh ? item.summaryZh : item.summaryEn;
+  if (text?.trim()) return text.trim();
+  return zh ? `${item.cityComboZh}，轻松玩${item.days}天。` : `${item.cityComboEn}, an easy ${item.days}-day route.`;
+}
+
+function packageSubtitle(item: TravelPackage, zh: boolean) {
+  const text = zh ? item.subtitleZh : item.subtitleEn;
+  if (text?.trim()) return text.trim();
+  return zh ? `${item.days}天${item.nights}晚 · 住宿 + 行程用车 + 中文协助` : `${item.days}D${item.nights}N · Stay + car + Chinese support`;
+}
+
+function linkedCountNote(count = 0, zh: boolean, zhLabel: string, enLabel: string) {
+  if (!count) return "";
+  return zh ? `已关联 ${count} 个${zhLabel}，可按实际日期和人数确认。` : `${count} linked ${enLabel} option${count > 1 ? "s" : ""} can be confirmed by dates and group size.`;
+}
+
+function linkedReferenceNote(names: string[], count = 0, zh: boolean, zhLabel: string, enLabel: string) {
+  if (names.length) return zh ? `已关联：${names.join("、")}` : `Linked: ${names.join(", ")}`;
+  return linkedCountNote(count, zh, zhLabel, enLabel);
+}
+
+function formatPriceTier(tier: NonNullable<TravelPackage["priceTiers"]>[number], zh: boolean) {
+  const label = tier.label || (zh ? "人数价格" : "Group price");
+  if (!tier.price) return `${label} ${zh ? "询价" : "on request"}`;
+  return `${label} ¥${money(tier.price)}${tier.unit || (zh ? "/人" : " / person")}`;
 }
 
 function displayDayTitle(title: string, index: number, total: number, zh: boolean) {
@@ -162,6 +173,113 @@ function fallbackDayImages(day: TravelPackage["itinerary"][number], index: numbe
   return [photo("photo-1580193769210-b8d1c049a7d9"), photo("photo-1564507592333-c60657eea523"), photo("photo-1528127269322-539801943592")];
 }
 
+function getDisplayOptions(item: TravelPackage) {
+  const defaults = { heroGallery: true, tags: true, itinerary: true, arrangements: true, fees: true };
+  return Object.assign({}, defaults, item.displayOptions || {});
+}
+
+function fillTemplate(template: string, item: TravelPackage, zh: boolean) {
+  const name = zh ? item.nameZh : item.nameEn;
+  const city = zh ? item.cityComboZh : item.cityComboEn;
+  return (template || "")
+    .replaceAll("{套餐名称}", name)
+    .replaceAll("{Package}", name)
+    .replaceAll("{天数}", String(item.days))
+    .replaceAll("{晚数}", String(item.nights))
+    .replaceAll("{城市}", city)
+    .replaceAll("{City}", city)
+    .replaceAll("{days}", String(item.days))
+    .replaceAll("{nights}", String(item.nights));
+}
+
+function packageInquiryTitle(item: TravelPackage, zh: boolean) {
+  const template = zh ? item.inquirySettings?.titleTemplateZh : item.inquirySettings?.titleTemplateEn;
+  return fillTemplate(template || `${zh ? item.nameZh : item.nameEn} ${item.days}${zh ? "天" : "D"}${item.nights}${zh ? "晚" : "N"}`, item, zh);
+}
+
+function dayContent(day: TravelPackage["itinerary"][number], index: number, total: number, zh: boolean) {
+  const blocks = (day.contentBlocks || [])
+    .slice()
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    .map((block) => ({
+      title: (zh ? block.titleZh : block.titleEn) || block.titleZh,
+      text: (zh ? block.textZh : block.textEn) || block.textZh,
+    }))
+    .filter((block) => block.title && block.text);
+  if (blocks.length) {
+    return {
+      sections: blocks,
+      meta:
+        (zh ? day.galleryCaptionZh : day.galleryCaptionEn) ||
+        (day.schedule || []).map((slot) => (zh ? slot.titleZh : slot.titleEn) || slot.titleZh).filter(Boolean).slice(0, 3).join(" · "),
+    };
+  }
+  const scheduleSections = (day.schedule || [])
+    .slice()
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    .map((slot) => {
+      const nodeTitle = (zh ? slot.titleZh : slot.titleEn) || slot.titleZh || slot.titleEn;
+      const nodeText = (zh ? slot.descriptionZh : slot.descriptionEn) || slot.descriptionZh || slot.descriptionEn || "";
+      const title = slot.time?.trim() || nodeTitle;
+      const text = slot.time?.trim() ? [nodeTitle, nodeText].filter(Boolean).join("：") : nodeText;
+      return { title, text };
+    })
+    .filter((section) => section.title && section.text);
+  if (scheduleSections.length) {
+    return {
+      sections: scheduleSections,
+      meta:
+        (zh ? day.galleryCaptionZh : day.galleryCaptionEn) ||
+        (day.schedule || []).map((slot) => (zh ? slot.titleZh : slot.titleEn) || slot.titleZh).filter(Boolean).slice(0, 3).join(" · "),
+    };
+  }
+  const fallback = dayDetailSections(day, index, total, zh);
+  return {
+    sections: fallback.sections,
+    meta: (zh ? day.galleryCaptionZh : day.galleryCaptionEn) || fallback.meta,
+  };
+}
+
+function scheduleNodeIcon(type?: TravelPackageSchedule["nodeType"]) {
+  if (type === "transport") return "🚗";
+  if (type === "stay") return "🏨";
+  if (type === "experience") return "🌴";
+  if (type === "food") return "🍴";
+  if (type === "flight") return "✈";
+  if (type === "free") return "☀";
+  return "📍";
+}
+
+function fallbackScheduleNodes(day: TravelPackage["itinerary"][number], zh: boolean): TravelPackageSchedule[] {
+  const title = zh ? day.titleZh : day.titleEn;
+  const summary = zh ? day.summaryZh || day.descriptionZh : day.summaryEn || day.descriptionEn;
+  const text = `${title} ${summary} ${day.descriptionZh} ${day.descriptionEn}`;
+  const nodes: TravelPackageSchedule[] = [];
+  if (/(接机|接送|专车|用车|transfer|car|pickup)/i.test(text)) {
+    nodes.push({
+      nodeType: "transport",
+      time: zh ? "抵达后" : "After arrival",
+      titleZh: "专车接送",
+      titleEn: "Private transfer",
+      descriptionZh: "根据抵达时间和当天路线安排接送。",
+      descriptionEn: "Transfer is arranged around arrival time and the route of the day.",
+      sortOrder: 1,
+    });
+  }
+  if (/(入住|住宿|酒店|公寓|stay|hotel|apartment)/i.test(text)) {
+    nodes.push({
+      nodeType: "stay",
+      time: zh ? "当天" : "This day",
+      titleZh: "住宿安排",
+      titleEn: "Stay arrangement",
+      descriptionZh: summary || "住宿及房型会根据人数、日期和实际库存确认。",
+      descriptionEn: summary || "The stay and room type are confirmed by group size, dates and availability.",
+      sortOrder: 2,
+    });
+  }
+  return nodes;
+}
+
 function InlineSwipeGallery({
   images,
   index,
@@ -226,34 +344,88 @@ function InlineSwipeGallery({
   );
 }
 
-export function PackageDetailPage({ item }: { item: TravelPackage }) {
+export function PackageDetailPage({
+  item,
+  properties = [],
+  services = [],
+}: {
+  item: TravelPackage;
+  properties?: PackageReferenceProperty[];
+  services?: PackageReferenceService[];
+}) {
   const [lang, setLang] = useState<Lang>("zh");
   const [menu, setMenu] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
   const [dayImageIndex, setDayImageIndex] = useState<Record<number, number>>({});
+  const [arrangementImageIndex, setArrangementImageIndex] = useState<Record<string, number>>({});
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [feeOpen, setFeeOpen] = useState(false);
   const zh = lang === "zh";
+  const displayOptions = getDisplayOptions(item);
   const stayImages = useMemo(() => uniqueImages(rooms.filter((room) => room.location.zh === "吉隆坡").flatMap((room) => room.images).slice(0, 4)), []);
 
   const gallery = useMemo(() => {
-    const themedImages = item.itinerary.flatMap((day, index) => fallbackDayImages(day, index));
-    const uploadedDayImages = [
-      ...item.itinerary.map((day) => day.coverImage || ""),
-      ...item.itinerary.flatMap((day) => (day.schedule || []).map((slot) => slot.image || "")),
-    ].filter((image) => image && !isDefaultPackageDayImage(image));
-    const images = [item.coverImage, ...(item.galleryImages || []), ...uploadedDayImages, ...themedImages, ...stayImages.slice(0, 1), ...vehicleImages.slice(0, 1)]
-      .filter(Boolean);
+    const topImages = displayOptions.heroGallery ? [item.coverImage, ...(item.galleryImages || [])] : [item.coverImage];
+    const images = topImages.filter(Boolean);
     return uniqueImages(images.length ? images : [fallbackHero]);
-  }, [item, stayImages]);
+  }, [displayOptions.heroGallery, item]);
 
   const heroImage = gallery[heroIndex] || gallery[0] || fallbackHero;
   const title = zh ? item.nameZh : item.nameEn;
-  const inquiryTitle = `${item.nameZh.replace(/\s+/g, "")}${item.days}天${item.nights}晚`;
+  const inquiryTitle = packageInquiryTitle(item, zh);
   const heroLine = packageHeroLine(item, zh);
-  const includeItems = compactFeeItems(item.includes || [], "include");
-  const excludeItems = compactFeeItems(item.excludes || [], "exclude");
+  const includeItems = compactFeeItems(item.includes || []);
+  const excludeItems = compactFeeItems(item.excludes || []);
+  const includeText = includeItems.join(" · ") || (zh ? "住宿 · 行程用车 · 中文沟通协助" : "Stay · Route vehicle · Chinese support");
+  const excludeText = excludeItems.join(" · ") || (zh ? "机票 · 餐食 · 门票 · 个人消费" : "Flights · Meals · Tickets · Personal expenses");
+  const visiblePriceTiers = (item.priceTiers || []).filter((tier) => tier.visible !== false && (tier.label || tier.price));
+  const visibleTags = (item.tags || []).filter(Boolean).slice(0, 4);
+  const stay = item.arrangements?.stay;
+  const vehicle = item.arrangements?.vehicle;
+  const support = item.arrangements?.support;
+  const stayPropertyNames = (stay?.propertyIds || [])
+    .map((id) => properties.find((property) => property.id === id))
+    .filter((property): property is PackageReferenceProperty => Boolean(property))
+    .map((property) => (zh ? property.nameZh : property.nameEn) || property.nameZh);
+  const vehicleServiceNames = (vehicle?.serviceIds || [])
+    .map((id) => services.find((service) => service.id === id))
+    .filter((service): service is PackageReferenceService => Boolean(service))
+    .map((service) => (zh ? service.nameZh : service.nameEn) || service.nameZh);
+  const stayGallery = uniqueImages([...(stay?.images || []), ...stayImages]);
+  const vehicleGallery = uniqueImages([...(vehicle?.images || []), ...vehicleImages]);
+  const arrangementRows = [
+    stay?.visible !== false && {
+      key: "stay",
+      eyebrow: zh ? "住宿" : "Stay",
+      title: (zh ? stay?.titleZh : stay?.titleEn) || (zh ? "吉隆坡市区舒适住宿" : "Comfortable Kuala Lumpur city stay"),
+      description: [
+        (zh ? stay?.nights || `${item.nights}晚` : `${item.nights} nights`),
+        (zh ? stay?.descriptionZh : stay?.descriptionEn) || (zh ? "根据人数安排合适房型" : "Room type matched to group size"),
+      ].filter(Boolean).join(" · "),
+      note: [(zh ? stay?.noteZh : stay?.noteEn), linkedReferenceNote(stayPropertyNames, stay?.propertyIds?.length, zh, "住宿选择", "stay")].filter(Boolean).join(" "),
+      images: stayGallery,
+      link: true,
+    },
+    vehicle?.visible !== false && {
+      key: "vehicle",
+      eyebrow: zh ? "行程用车" : "Private car",
+      title: (zh ? vehicle?.titleZh : vehicle?.titleEn) || (zh ? "按人数安排合适车型" : "Vehicle matched to your group"),
+      description: [(zh ? vehicle?.scopeZh : vehicle?.scopeEn), (zh ? vehicle?.descriptionZh : vehicle?.descriptionEn)].filter(Boolean).join(" · "),
+      note: linkedReferenceNote(vehicleServiceNames, vehicle?.serviceIds?.length, zh, "当地服务", "local service"),
+      images: vehicleGallery,
+      link: false,
+    },
+    support?.visible !== false && {
+      key: "support",
+      eyebrow: zh ? "中文协助" : "Chinese support",
+      title: (zh ? support?.titleZh : support?.titleEn) || (zh ? "全程中文协助" : "Chinese support throughout"),
+      description: (zh ? support?.descriptionZh : support?.descriptionEn) || (zh ? "从抵达到返程，住宿、用车及行程问题均可沟通。" : "From arrival to departure, we can help with stay, vehicle and itinerary questions."),
+      note: "",
+      images: [] as string[],
+      link: false,
+    },
+  ].filter(Boolean) as Array<{ key: string; eyebrow: string; title: string; description: string; note: string; images: string[]; link: boolean }>;
 
   return (
     <>
@@ -298,15 +470,16 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
             <p className="package-full-eyebrow">{zh ? item.cityComboEn.toUpperCase() : item.cityComboZh}</p>
             <h1>{title}</h1>
             <p>{packageSummary(item, zh)}</p>
-            <p className="package-full-fit">{zh ? "初次到访 · 情侣 / 朋友 · 不赶行程" : "First visit · Couples / friends · Easy pace"}</p>
+            {displayOptions.tags && visibleTags.length > 0 && <p className="package-full-fit">{visibleTags.join(" · ")}</p>}
           </div>
           <aside>
             <b>¥{money(item.startingPrice)}</b><span>{zh ? "起/人" : " / person from"}</span>
-            <small>{zh ? `${item.days}天${item.nights}晚 · 住宿 + 行程用车 + 中文协助` : `${item.days}D${item.nights}N · Stay + car + Chinese support`}</small>
+            <small>{packageSubtitle(item, zh)}</small>
             <p>{zh ? "按人数与日期确认最终价格" : "Final price confirmed by dates and group size"}</p>
           </aside>
         </section>
 
+        {displayOptions.itinerary && (
         <section className="package-full-itinerary">
           <p className="package-itinerary-note">{zh ? "行程安排" : "Itinerary"}</p>
           <div className="package-timeline">
@@ -315,10 +488,15 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
               const fallbackImages = fallbackDayImages(day, index);
               const cover = day.coverImage && !isDefaultPackageDayImage(day.coverImage) ? day.coverImage : fallbackImages[0] || gallery[(index + 1) % gallery.length] || heroImage;
               const dayTitle = displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh);
-              const daySummary = compactDaySummary(zh ? day.descriptionZh : day.descriptionEn);
-              const dayDetails = dayDetailSections(day, index, item.itinerary.length, zh);
+              const daySummary = compactDaySummary((zh ? day.summaryZh : day.summaryEn) || (zh ? day.descriptionZh : day.descriptionEn));
+              const dayDetails = dayContent(day, index, item.itinerary.length, zh);
+              const savedScheduleNodes = (day.schedule || [])
+                .slice()
+                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+                .filter((slot) => slot.titleZh || slot.titleEn || slot.descriptionZh || slot.descriptionEn || slot.time || slot.image || slot.sourceLabel);
+              const scheduleNodes = savedScheduleNodes.length ? savedScheduleNodes : fallbackScheduleNodes(day, zh);
               const scheduleImages = (day.schedule || []).map((slot) => slot.image || "").filter((image) => image && !isDefaultPackageDayImage(image));
-              const dayImages = uniqueImages([cover, ...scheduleImages, ...fallbackImages]);
+              const dayImages = uniqueImages([cover, ...(day.galleryImages || []), ...scheduleImages, ...fallbackImages]);
               const activeDayImage = dayImageIndex[index] || 0;
               return (
                 <article className={open ? "open" : ""} key={`${day.titleZh}-${index}`}>
@@ -340,6 +518,26 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
                         </div>
                       ))}
                     </div>
+                    {scheduleNodes.length > 0 && (
+                      <div className="package-day-node-list">
+                        {scheduleNodes.map((slot, slotIndex) => {
+                          const nodeTitle = (zh ? slot.titleZh : slot.titleEn) || slot.titleZh || slot.titleEn;
+                          const nodeDescription = (zh ? slot.descriptionZh : slot.descriptionEn) || slot.descriptionZh || slot.descriptionEn;
+                          return (
+                            <article key={`${nodeTitle}-${slotIndex}`}>
+                              <span>{scheduleNodeIcon(slot.nodeType)}</span>
+                              <div>
+                                <small>{slot.time || (zh ? "时间灵活" : "Flexible time")}</small>
+                                <b>{nodeTitle}</b>
+                                {nodeDescription && <p>{nodeDescription}</p>}
+                                {slot.sourceLabel && <em>{zh ? "引用" : "Linked"}：{slot.sourceLabel}</em>}
+                              </div>
+                              {slot.image && !isDefaultPackageDayImage(slot.image) && <img src={slot.image} alt="" />}
+                            </article>
+                          );
+                        })}
+                      </div>
+                    )}
                     <InlineSwipeGallery
                       images={dayImages}
                       index={activeDayImage}
@@ -355,45 +553,46 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
             })}
           </div>
         </section>
+        )}
 
+        {displayOptions.arrangements && arrangementRows.length > 0 && (
         <section className="package-value-section">
           <p className="package-value-kicker">{zh ? "这趟已经帮你安排好" : "Already arranged"}</p>
-          <article className="package-value-row">
-            <span className="package-value-no">01</span>
-            <div className="package-value-copy">
-              <small>{zh ? "住宿" : "Stay"}</small>
-              <h2>{zh ? "吉隆坡市区舒适住宿" : "Comfortable Kuala Lumpur city stay"}</h2>
-              <p>{zh ? `${item.nights}晚 · 根据人数安排合适房型` : `${item.nights} nights · Room type matched to group size`}</p>
-              <Link href="/#stays">{zh ? "查看住宿 ›" : "View stays ›"}</Link>
-            </div>
-            {stayImages[0] && <img className="package-value-thumb" src={stayImages[0]} alt="" />}
-          </article>
-          <article className="package-value-row">
-            <span className="package-value-no">02</span>
-            <div className="package-value-copy">
-              <small>{zh ? "行程用车" : "Private car"}</small>
-              <h2>{zh ? "接机 · 市区行程 · 马六甲往返" : "Airport pickup · City route · Malacca return"}</h2>
-              <p>{zh ? "1–14人 · 按人数与行李安排车型" : "1–14 guests · Vehicle matched to group size and luggage"}</p>
-            </div>
-            {vehicleImages[0] && <img className="package-value-thumb" src={vehicleImages[0]} alt="" />}
-          </article>
-          <article className="package-value-row support">
-            <span className="package-value-no">03</span>
-            <div className="package-value-copy">
-              <small>{zh ? "中文协助" : "Chinese support"}</small>
-              <h2>{zh ? "住宿、用车及行程问题均可沟通" : "Help with stays, vehicles and route questions"}</h2>
-              <p>{zh ? "从抵达到返程，有需要都可以联系我们。" : "From arrival to departure, you can reach us when needed."}</p>
-            </div>
-            <span className="package-value-mark">✓</span>
-          </article>
+          {arrangementRows.map((row, index) => {
+            const activeIndex = arrangementImageIndex[row.key] || 0;
+            return (
+              <article className={`package-value-row ${row.key === "support" ? "support" : ""}`} key={row.key}>
+                <span className="package-value-no">{String(index + 1).padStart(2, "0")}</span>
+                <div className="package-value-copy">
+                  <small>{row.eyebrow}</small>
+                  <h2>{row.title}</h2>
+                  <p>{row.description}</p>
+                  {row.note && <p>{row.note}</p>}
+                  {row.link && <Link href="/#stays">{zh ? "查看住宿 ›" : "View stays ›"}</Link>}
+                </div>
+                {row.images.length > 0 ? (
+                  <InlineSwipeGallery
+                    images={row.images}
+                    index={activeIndex}
+                    onIndexChange={(next) => setArrangementImageIndex((current) => ({ ...current, [row.key]: next }))}
+                    alt={row.title}
+                    className="package-value-gallery"
+                  />
+                ) : <span className="package-value-mark">✓</span>}
+              </article>
+            );
+          })}
         </section>
+        )}
 
+        {displayOptions.fees && (
         <section className="package-fee-line">
           <b>ⓘ {zh ? "费用与预订说明" : "Price and booking notes"}</b>
-          <p><span>{zh ? "包含" : "Included"}</span>{zh ? "住宿 · 行程用车 · 中文沟通协助" : includeItems.join(" · ")}</p>
-          <p><span>{zh ? "不含" : "Not included"}</span>{zh ? "机票 · 餐食 · 门票 · 个人消费" : excludeItems.join(" · ")}</p>
+          <p><span>{zh ? "包含" : "Included"}</span>{includeText}</p>
+          <p><span>{zh ? "不含" : "Not included"}</span>{excludeText}</p>
           <button type="button" onClick={() => setFeeOpen(true)}>{zh ? "查看详细说明" : "Full details"} ›</button>
         </section>
+        )}
       </main>
 
       <footer className="package-fixed-consult">
@@ -401,11 +600,11 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
           <b>{zh ? item.cityComboZh : item.cityComboEn}</b>
           <small>{zh ? `${item.days}天${item.nights}晚` : `${item.days}D${item.nights}N`}</small>
         </div>
-        <button type="button" onClick={() => setInquiryOpen(true)}>{zh ? "咨询这个行程" : "Inquire"} →</button>
+        <button type="button" onClick={() => setInquiryOpen(true)}>{(zh ? item.inquirySettings?.buttonTextZh : item.inquirySettings?.buttonTextEn) || (zh ? "咨询这个行程" : "Inquire")} →</button>
       </footer>
 
       {inquiryOpen && (
-        <InquiryModal kind="package" title={inquiryTitle} onClose={() => setInquiryOpen(false)} />
+        <InquiryModal kind="package" title={inquiryTitle} promptFields={item.inquirySettings?.promptFields || []} onClose={() => setInquiryOpen(false)} />
       )}
 
       {feeOpen && (
@@ -414,10 +613,13 @@ export function PackageDetailPage({ item }: { item: TravelPackage }) {
             <button type="button" onClick={() => setFeeOpen(false)}>×</button>
             <h2>{zh ? "预订与费用说明" : "Booking and price notes"}</h2>
             <dl>
-              <div><dt>{zh ? "住宿" : "Stay"}</dt><dd>{zh ? "市区舒适住宿，实际房型会根据人数与日期确认。" : "Comfortable city stay, confirmed by dates and group size."}</dd></div>
-              <div><dt>{zh ? "用车" : "Car"}</dt><dd>{zh ? "根据人数安排合适车型，行程内用车统一协调。" : "Vehicle arranged by group size for the planned route."}</dd></div>
-              <div><dt>{zh ? "门票" : "Tickets"}</dt><dd>{zh ? "景点门票及自费项目会在咨询时按实际路线确认。" : "Tickets and optional activities are confirmed with the route."}</dd></div>
-              <div><dt>{zh ? "儿童 / 旺季" : "Kids / peak dates"}</dt><dd>{zh ? "儿童、节假日、旺季和额外路线会单独核算。" : "Kids, peak dates and extra routes are quoted separately."}</dd></div>
+              <div><dt>{zh ? "包含" : "Included"}</dt><dd>{includeText}</dd></div>
+              <div><dt>{zh ? "不含" : "Not included"}</dt><dd>{excludeText}</dd></div>
+              {visiblePriceTiers.length > 0 && <div><dt>{zh ? "人数价格" : "Group prices"}</dt><dd>{visiblePriceTiers.map((tier) => formatPriceTier(tier, zh)).join("；")}</dd></div>}
+              <div><dt>{zh ? "住宿" : "Stay"}</dt><dd>{(zh ? item.accommodationNoteZh || stay?.noteZh : item.accommodationNoteEn || stay?.noteEn) || (zh ? "实际住宿及房型会根据人数与日期确认。" : "Final stay and room type are confirmed by group size and dates.")}</dd></div>
+              <div><dt>{zh ? "用车" : "Car"}</dt><dd>{(zh ? item.transferNoteZh || vehicle?.descriptionZh : item.transferNoteEn || vehicle?.descriptionEn) || (zh ? "根据人数安排合适车型，行程内用车统一协调。" : "Vehicle arranged by group size for the planned route.")}</dd></div>
+              <div><dt>{zh ? "价格说明" : "Price note"}</dt><dd>{(zh ? item.priceNoteZh : item.priceNoteEn) || (zh ? "价格为参考起价，最终按人数、日期和实际安排确认。" : "The shown price is a starting reference and is confirmed by dates, group size and route.")}</dd></div>
+              <div><dt>{zh ? "注意事项" : "Notes"}</dt><dd>{(zh ? item.notesZh : item.notesEn) || (zh ? "行程可能根据天气、交通及当地实际情况调整。" : "The itinerary may be adjusted around weather, traffic and local conditions.")}</dd></div>
             </dl>
           </section>
         </div>

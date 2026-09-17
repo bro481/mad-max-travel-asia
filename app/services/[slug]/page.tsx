@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { withPublicDataTimeout } from "../../../lib/public-data-timeout";
 import { ServiceDetail } from "./service-detail";
 import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem } from "../../../db/service-items";
@@ -125,10 +126,13 @@ export default async function Page({
     process.env.NODE_ENV === "development" ||
     process.env.LOCAL_BROWSER_PREVIEW === "1"
       ? staticServices.find((item) => item.slug === slug)
-      : await import("../../../db/services")
-          .then(({ getService }) => getService(slug))
-          .catch(() => null)
-          .then((item) => item || staticServices.find((fallback) => fallback.slug === slug));
+      : await import("../../../db/services").then(({ getService }) =>
+          withPublicDataTimeout(
+            getService(slug),
+            () => staticServices.find((fallback) => fallback.slug === slug) || null,
+            `Public service detail query: ${slug}`,
+          ),
+        );
   if (!service)
     return (
       <main className="not-found">
@@ -141,7 +145,7 @@ export default async function Page({
   let managedServices: ServiceItem[] = [];
   if (slug === "private-car" && process.env.NODE_ENV !== "development") {
     managedServices = await import("../../../db/service-items")
-      .then(({ listServiceItems }) => listServiceItems())
+      .then(({ listServiceItems }) => withPublicDataTimeout(listServiceItems(), [], "Public private-car service items query"))
       .then((items) =>
         items.filter(
           (item) =>

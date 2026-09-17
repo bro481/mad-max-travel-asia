@@ -5,10 +5,24 @@ export type TravelPackageStatus = "draft" | "published";
 export type TravelPackageDay = {
   titleZh: string;
   titleEn: string;
+  summaryZh?: string;
+  summaryEn?: string;
   descriptionZh: string;
   descriptionEn: string;
   coverImage?: string;
+  galleryImages?: string[];
+  galleryCaptionZh?: string;
+  galleryCaptionEn?: string;
+  contentBlocks?: TravelPackageDayContentBlock[];
   schedule?: TravelPackageSchedule[];
+};
+
+export type TravelPackageDayContentBlock = {
+  titleZh: string;
+  titleEn?: string;
+  textZh: string;
+  textEn?: string;
+  sortOrder?: number;
 };
 
 export type TravelPackageSchedule = {
@@ -56,9 +70,69 @@ export type TravelPackage = {
   notesEn: string;
   priceNoteZh: string;
   priceNoteEn: string;
+  arrangements: TravelPackageArrangements;
+  displayOptions: TravelPackageDisplayOptions;
+  priceTiers: TravelPackagePriceTier[];
+  inquirySettings: TravelPackageInquirySettings;
   status: TravelPackageStatus;
   sortOrder: number;
   updatedAt: string;
+};
+
+export type TravelPackageArrangements = {
+  stay: {
+    visible: boolean;
+    titleZh: string;
+    titleEn: string;
+    nights: string;
+    descriptionZh: string;
+    descriptionEn: string;
+    noteZh: string;
+    noteEn: string;
+    images: string[];
+    propertyIds: number[];
+  };
+  vehicle: {
+    visible: boolean;
+    titleZh: string;
+    titleEn: string;
+    scopeZh: string;
+    scopeEn: string;
+    descriptionZh: string;
+    descriptionEn: string;
+    images: string[];
+    serviceIds: number[];
+  };
+  support: {
+    visible: boolean;
+    titleZh: string;
+    titleEn: string;
+    descriptionZh: string;
+    descriptionEn: string;
+  };
+};
+
+export type TravelPackageDisplayOptions = {
+  heroGallery: boolean;
+  tags: boolean;
+  itinerary: boolean;
+  arrangements: boolean;
+  fees: boolean;
+};
+
+export type TravelPackagePriceTier = {
+  label: string;
+  price: number | null;
+  unit: string;
+  visible?: boolean;
+};
+
+export type TravelPackageInquirySettings = {
+  buttonTextZh: string;
+  buttonTextEn: string;
+  titleTemplateZh: string;
+  titleTemplateEn: string;
+  promptFields: string[];
 };
 
 const createSql = `CREATE TABLE IF NOT EXISTS travel_packages (
@@ -92,25 +166,33 @@ const createSql = `CREATE TABLE IF NOT EXISTS travel_packages (
  notes_en TEXT NOT NULL DEFAULT '',
  price_note_zh TEXT NOT NULL DEFAULT '',
  price_note_en TEXT NOT NULL DEFAULT '',
+ arrangements TEXT NOT NULL DEFAULT '{}',
+ display_options TEXT NOT NULL DEFAULT '{}',
+ price_tiers TEXT NOT NULL DEFAULT '[]',
+ inquiry_settings TEXT NOT NULL DEFAULT '{}',
  status TEXT NOT NULL DEFAULT 'draft',
  sort_order INTEGER NOT NULL DEFAULT 0,
  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`;
 
-const packageMigrationSql = [
-  "ALTER TABLE travel_packages ADD COLUMN hero_text_zh TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE travel_packages ADD COLUMN hero_text_en TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE travel_packages ADD COLUMN subtitle_zh TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE travel_packages ADD COLUMN subtitle_en TEXT NOT NULL DEFAULT ''",
-  "ALTER TABLE travel_packages ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
-  "ALTER TABLE travel_packages ADD COLUMN gallery_images TEXT NOT NULL DEFAULT '[]'",
-];
+const packageMigrationColumns = [
+  ["hero_text_zh", "TEXT NOT NULL DEFAULT ''"],
+  ["hero_text_en", "TEXT NOT NULL DEFAULT ''"],
+  ["subtitle_zh", "TEXT NOT NULL DEFAULT ''"],
+  ["subtitle_en", "TEXT NOT NULL DEFAULT ''"],
+  ["tags", "TEXT NOT NULL DEFAULT '[]'"],
+  ["gallery_images", "TEXT NOT NULL DEFAULT '[]'"],
+  ["arrangements", "TEXT NOT NULL DEFAULT '{}'"],
+  ["display_options", "TEXT NOT NULL DEFAULT '{}'"],
+  ["price_tiers", "TEXT NOT NULL DEFAULT '[]'"],
+  ["inquiry_settings", "TEXT NOT NULL DEFAULT '{}'"],
+] as const;
 
 async function migrateTravelPackages() {
-  for (const sql of packageMigrationSql) {
-    try {
-      await env.DB.prepare(sql).run();
-    } catch {}
+  const info = await env.DB.prepare("PRAGMA table_info(travel_packages)").all<{ name: string }>();
+  const existing = new Set(info.results.map((column) => column.name));
+  for (const [name, definition] of packageMigrationColumns) {
+    if (!existing.has(name)) await env.DB.prepare(`ALTER TABLE travel_packages ADD COLUMN ${name} ${definition}`).run();
   }
 }
 
@@ -320,6 +402,56 @@ const dayImages = [
   "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=84",
 ];
 
+function defaultArrangements(item: Partial<TravelPackage>): TravelPackageArrangements {
+  const nights = Number(item.nights || 3);
+  return {
+    stay: {
+      visible: true,
+      titleZh: "吉隆坡市区舒适住宿",
+      titleEn: "Comfortable Kuala Lumpur city stay",
+      nights: `${nights}晚`,
+      descriptionZh: "根据人数安排合适房型",
+      descriptionEn: "Room type matched to group size",
+      noteZh: item.accommodationNoteZh || "实际住宿及房型根据人数、入住日期确认。",
+      noteEn: item.accommodationNoteEn || "Final stay and room type are confirmed by group size and dates.",
+      images: [],
+      propertyIds: [],
+    },
+    vehicle: {
+      visible: true,
+      titleZh: "按人数安排合适车型",
+      titleEn: "Vehicle matched to your group",
+      scopeZh: "接机 · 市区行程 · 马六甲往返",
+      scopeEn: "Airport pickup · City route · Malacca return",
+      descriptionZh: "1–14人均可安排，根据人数与行李安排合适车型。",
+      descriptionEn: "1-14 guests can be arranged, with vehicle matched to group size and luggage.",
+      images: [],
+      serviceIds: [],
+    },
+    support: {
+      visible: true,
+      titleZh: "全程中文协助",
+      titleEn: "Chinese support throughout",
+      descriptionZh: "从抵达到返程，住宿、用车及行程问题均可沟通。",
+      descriptionEn: "From arrival to departure, we can help with stay, vehicle and itinerary questions.",
+    },
+  };
+}
+
+function defaultDisplayOptions(): TravelPackageDisplayOptions {
+  return { heroGallery: true, tags: true, itinerary: true, arrangements: true, fees: true };
+}
+
+function defaultInquirySettings(item: Partial<TravelPackage>): TravelPackageInquirySettings {
+  return {
+    buttonTextZh: "咨询这个行程",
+    buttonTextEn: "Inquire",
+    titleTemplateZh: `【官网咨询｜${item.nameZh || "省心套餐"} ${item.days || 4}天${item.nights || 3}晚】`,
+    titleTemplateEn: `Website inquiry | ${item.nameEn || item.nameZh || "Package"} ${item.days || 4}D${item.nights || 3}N`,
+    promptFields: ["出行人数", "出行日期", "儿童人数", "联系方式", "其他需求"],
+  };
+}
+
 const parseJson = <T>(value: unknown, fallback: T): T => {
   try {
     return JSON.parse(String(value || "")) as T;
@@ -336,7 +468,13 @@ function valueOrEmpty(value: unknown) {
 function normalizeItinerary(days: TravelPackageDay[], coverImage: string) {
   return days.map((day, index) => ({
     ...day,
+    summaryZh: day.summaryZh || day.descriptionZh,
+    summaryEn: day.summaryEn || day.descriptionEn,
     coverImage: day.coverImage || dayImages[index % dayImages.length] || coverImage,
+    galleryImages: day.galleryImages || [],
+    galleryCaptionZh: day.galleryCaptionZh || "",
+    galleryCaptionEn: day.galleryCaptionEn || "",
+    contentBlocks: (day.contentBlocks || []).map((block, blockIndex) => ({ ...block, sortOrder: block.sortOrder ?? blockIndex + 1 })),
     schedule: (day.schedule && day.schedule.length ? day.schedule : [
       { titleZh: day.descriptionZh || day.titleZh, titleEn: day.descriptionEn || day.titleEn, image: day.coverImage || dayImages[index % dayImages.length], sortOrder: 1 },
       { titleZh: index === days.length - 1 ? "根据航班时间安排送机" : "自由活动或返回酒店", titleEn: index === days.length - 1 ? "Airport transfer by flight time" : "Free time or return to hotel", sortOrder: 2 },
@@ -376,13 +514,22 @@ export function staticTravelPackages(): TravelPackage[] {
     notesEn: "The route can be adjusted by season, weather, group size and interests.",
     priceNoteZh: "价格为参考起价，不含机票，旺季和节假日价格可能调整。",
     priceNoteEn: "Prices are starting references, excluding flights. Peak dates may vary.",
+    arrangements: defaultArrangements({
+      nights: seed.nights,
+      accommodationNoteZh: "住宿可按预算与人数调整，最终以咨询确认为准。",
+    }),
+    displayOptions: defaultDisplayOptions(),
+    priceTiers: [],
+    inquirySettings: defaultInquirySettings({ nameZh: seed.nameZh, nameEn: seed.nameEn, days: seed.days, nights: seed.nights }),
     status: "published",
     sortOrder: index + 1,
     updatedAt: "",
   }));
 }
 
-export async function ensureTravelPackages() {
+let ensureTravelPackagesPromise: Promise<void> | null = null;
+
+async function ensureTravelPackagesOnce() {
   await env.DB.prepare(createSql).run();
   await migrateTravelPackages();
   const row = await env.DB.prepare("SELECT COUNT(*) total FROM travel_packages").first<{ total: number }>();
@@ -393,8 +540,8 @@ export async function ensureTravelPackages() {
       `INSERT INTO travel_packages (
         slug,name_zh,name_en,days,nights,city_combo_zh,city_combo_en,summary_zh,summary_en,hero_text_zh,hero_text_en,subtitle_zh,subtitle_en,tags,gallery_images,cover_image,
         starting_price,peak_price,itinerary,includes,excludes,accommodation_note_zh,accommodation_note_en,
-        transfer_note_zh,transfer_note_en,notes_zh,notes_en,price_note_zh,price_note_en,status,sort_order
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        transfer_note_zh,transfer_note_en,notes_zh,notes_en,price_note_zh,price_note_en,arrangements,display_options,price_tiers,inquiry_settings,status,sort_order
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
       .bind(
         item.slug,
@@ -426,6 +573,10 @@ export async function ensureTravelPackages() {
         item.notesEn,
         item.priceNoteZh,
         item.priceNoteEn,
+        JSON.stringify(item.arrangements),
+        JSON.stringify(item.displayOptions),
+        JSON.stringify(item.priceTiers),
+        JSON.stringify(item.inquirySettings),
         item.status,
         item.sortOrder,
       )
@@ -433,10 +584,35 @@ export async function ensureTravelPackages() {
   }
 }
 
+export async function ensureTravelPackages() {
+  ensureTravelPackagesPromise ||= ensureTravelPackagesOnce().catch((error) => {
+    ensureTravelPackagesPromise = null;
+    throw error;
+  });
+  return ensureTravelPackagesPromise;
+}
+
 export function mapTravelPackage(row: Record<string, unknown>): TravelPackage {
   const coverImage = String(row.cover_image || "");
   const itinerary = normalizeItinerary(parseJson<TravelPackageDay[]>(row.itinerary, []), coverImage);
   const galleryImages = parseJson<string[]>(row.gallery_images, []);
+  const parsedArrangements = parseJson<Partial<TravelPackageArrangements>>(row.arrangements, {});
+  const defaultPackageArrangements = defaultArrangements({
+    nameZh: String(row.name_zh),
+    nameEn: String(row.name_en),
+    days: Number(row.days),
+    nights: Number(row.nights),
+    accommodationNoteZh: String(row.accommodation_note_zh),
+    accommodationNoteEn: String(row.accommodation_note_en),
+  });
+  const baseForDefaults = {
+    nameZh: String(row.name_zh),
+    nameEn: String(row.name_en),
+    days: Number(row.days),
+    nights: Number(row.nights),
+    accommodationNoteZh: String(row.accommodation_note_zh),
+    accommodationNoteEn: String(row.accommodation_note_en),
+  };
   return {
     id: Number(row.id),
     slug: String(row.slug),
@@ -468,6 +644,16 @@ export function mapTravelPackage(row: Record<string, unknown>): TravelPackage {
     notesEn: String(row.notes_en),
     priceNoteZh: String(row.price_note_zh),
     priceNoteEn: String(row.price_note_en),
+    arrangements: {
+      ...defaultPackageArrangements,
+      ...parsedArrangements,
+      stay: { ...defaultPackageArrangements.stay, ...(parsedArrangements.stay || {}) },
+      vehicle: { ...defaultPackageArrangements.vehicle, ...(parsedArrangements.vehicle || {}) },
+      support: { ...defaultPackageArrangements.support, ...(parsedArrangements.support || {}) },
+    },
+    displayOptions: { ...defaultDisplayOptions(), ...parseJson<Partial<TravelPackageDisplayOptions>>(row.display_options, {}) },
+    priceTiers: parseJson<TravelPackagePriceTier[]>(row.price_tiers, []),
+    inquirySettings: { ...defaultInquirySettings(baseForDefaults), ...parseJson<Partial<TravelPackageInquirySettings>>(row.inquiry_settings, {}) },
     status: String(row.status) === "published" ? "published" : "draft",
     sortOrder: Number(row.sort_order),
     updatedAt: String(row.updated_at),
@@ -509,8 +695,8 @@ export async function createTravelPackage(input: Partial<TravelPackage>) {
       slug,name_zh,name_en,days,nights,city_combo_zh,city_combo_en,summary_zh,summary_en,
       hero_text_zh,hero_text_en,subtitle_zh,subtitle_en,tags,gallery_images,cover_image,starting_price,peak_price,
       itinerary,includes,excludes,accommodation_note_zh,accommodation_note_en,transfer_note_zh,transfer_note_en,
-      notes_zh,notes_en,price_note_zh,price_note_en,status,sort_order
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      notes_zh,notes_en,price_note_zh,price_note_en,arrangements,display_options,price_tiers,inquiry_settings,status,sort_order
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   )
     .bind(
       slug,
@@ -542,6 +728,10 @@ export async function createTravelPackage(input: Partial<TravelPackage>) {
       input.notesEn || "",
       input.priceNoteZh || "",
       input.priceNoteEn || "",
+      JSON.stringify(input.arrangements || defaultArrangements(input)),
+      JSON.stringify(input.displayOptions || defaultDisplayOptions()),
+      JSON.stringify(input.priceTiers || []),
+      JSON.stringify(input.inquirySettings || defaultInquirySettings(input)),
       input.status || "draft",
       input.sortOrder || 99,
     )
@@ -557,7 +747,7 @@ export async function updateTravelPackage(id: number, input: Partial<TravelPacka
       slug=?,name_zh=?,name_en=?,days=?,nights=?,city_combo_zh=?,city_combo_en=?,summary_zh=?,summary_en=?,
       hero_text_zh=?,hero_text_en=?,subtitle_zh=?,subtitle_en=?,tags=?,gallery_images=?,cover_image=?,
       starting_price=?,peak_price=?,itinerary=?,includes=?,excludes=?,accommodation_note_zh=?,accommodation_note_en=?,
-      transfer_note_zh=?,transfer_note_en=?,notes_zh=?,notes_en=?,price_note_zh=?,price_note_en=?,status=?,sort_order=?,updated_at=CURRENT_TIMESTAMP
+      transfer_note_zh=?,transfer_note_en=?,notes_zh=?,notes_en=?,price_note_zh=?,price_note_en=?,arrangements=?,display_options=?,price_tiers=?,inquiry_settings=?,status=?,sort_order=?,updated_at=CURRENT_TIMESTAMP
      WHERE id=?`,
   )
     .bind(
@@ -590,6 +780,10 @@ export async function updateTravelPackage(id: number, input: Partial<TravelPacka
       input.notesEn || "",
       input.priceNoteZh || "",
       input.priceNoteEn || "",
+      JSON.stringify(input.arrangements || defaultArrangements(input)),
+      JSON.stringify(input.displayOptions || defaultDisplayOptions()),
+      JSON.stringify(input.priceTiers || []),
+      JSON.stringify(input.inquirySettings || defaultInquirySettings(input)),
       input.status === "published" ? "published" : "draft",
       input.sortOrder || 0,
       id,

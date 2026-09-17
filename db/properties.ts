@@ -35,7 +35,16 @@ const createSql=`CREATE TABLE IF NOT EXISTS properties (
 
 export async function ensureProperties(){
   await env.DB.prepare(createSql).run();
-  for (const sql of ["ALTER TABLE properties ADD COLUMN suitable_for TEXT NOT NULL DEFAULT '[]'", "ALTER TABLE properties ADD COLUMN guest_quote TEXT NOT NULL DEFAULT ''", "ALTER TABLE properties ADD COLUMN guest_quote_author TEXT NOT NULL DEFAULT ''", "ALTER TABLE properties ADD COLUMN space_config TEXT NOT NULL DEFAULT '{}'", "ALTER TABLE properties ADD COLUMN sleeping_arrangements TEXT NOT NULL DEFAULT '[]'"]) { try { await env.DB.prepare(sql).run(); } catch {} }
+  const columns = [
+    ["suitable_for", "TEXT NOT NULL DEFAULT '[]'"],
+    ["guest_quote", "TEXT NOT NULL DEFAULT ''"],
+    ["guest_quote_author", "TEXT NOT NULL DEFAULT ''"],
+    ["space_config", "TEXT NOT NULL DEFAULT '{}'"],
+    ["sleeping_arrangements", "TEXT NOT NULL DEFAULT '[]'"],
+  ] as const;
+  const info = await env.DB.prepare("PRAGMA table_info(properties)").all<{ name:string }>();
+  const existing = new Set(info.results.map((column) => column.name));
+  for (const [name, definition] of columns) if (!existing.has(name)) await env.DB.prepare(`ALTER TABLE properties ADD COLUMN ${name} ${definition}`).run();
   const count=await env.DB.prepare("SELECT COUNT(*) AS total FROM properties").first<{total:number}>();
   if((count?.total||0)>0)return;
   for(const room of rooms){
