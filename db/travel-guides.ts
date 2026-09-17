@@ -210,28 +210,53 @@ export async function ensureTravelGuides() {
   }
 }
 
+function isMissingTravelGuideSchema(error: unknown) {
+  const code = String((error as { code?: unknown })?.code || "");
+  const message = error instanceof Error ? error.message : "";
+  return (
+    code === "42P01" ||
+    code === "42703" ||
+    /relation .*travel_guide_(articles|settings).* does not exist|column .* does not exist|no such table: travel_guide_(articles|settings)/i.test(
+      message,
+    )
+  );
+}
+
+async function readTravelGuidesWithSchemaFallback<T>(read: () => Promise<T>) {
+  try {
+    return await read();
+  } catch (error) {
+    if (!isMissingTravelGuideSchema(error)) throw error;
+    await ensureTravelGuides();
+    return read();
+  }
+}
+
 export async function listTravelGuides(all = false) {
-  await ensureTravelGuides();
-  const result = await env.DB.prepare(
-    `SELECT * FROM travel_guide_articles ${all ? "" : "WHERE status='published'"} ORDER BY city, featured DESC, sort_order, id`,
-  ).all();
-  return result.results.map((row) => mapArticle(row as Record<string, unknown>));
+  return readTravelGuidesWithSchemaFallback(async () => {
+    const result = await env.DB.prepare(
+      `SELECT * FROM travel_guide_articles ${all ? "" : "WHERE status='published'"} ORDER BY city, featured DESC, sort_order, id`,
+    ).all();
+    return result.results.map((row) => mapArticle(row as Record<string, unknown>));
+  });
 }
 
 export async function getTravelGuide(slug: string, all = false) {
-  await ensureTravelGuides();
-  const row = await env.DB.prepare(
-    `SELECT * FROM travel_guide_articles WHERE slug=? ${all ? "" : "AND status='published'"} LIMIT 1`,
-  )
-    .bind(slug)
-    .first();
-  return row ? mapArticle(row as Record<string, unknown>) : null;
+  return readTravelGuidesWithSchemaFallback(async () => {
+    const row = await env.DB.prepare(
+      `SELECT * FROM travel_guide_articles WHERE slug=? ${all ? "" : "AND status='published'"} LIMIT 1`,
+    )
+      .bind(slug)
+      .first();
+    return row ? mapArticle(row as Record<string, unknown>) : null;
+  });
 }
 
 export async function getTravelGuideSettings() {
-  await ensureTravelGuides();
-  const row = await env.DB.prepare("SELECT * FROM travel_guide_settings WHERE id=1").first();
-  return mapSettings(row as Record<string, unknown> | null);
+  return readTravelGuidesWithSchemaFallback(async () => {
+    const row = await env.DB.prepare("SELECT * FROM travel_guide_settings WHERE id=1").first();
+    return mapSettings(row as Record<string, unknown> | null);
+  });
 }
 
 export async function updateTravelGuideSettings(input: Partial<TravelGuideSettings>) {
