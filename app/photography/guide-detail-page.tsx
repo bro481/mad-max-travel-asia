@@ -67,16 +67,16 @@ function defaultBlocks(article: TravelGuideArticle): TravelGuideBlock[] {
       { type: "heading", text: "双子塔 KLCC" },
       { type: "gallery", images: [cover], caption: "KLCC · EVENING" },
       { type: "paragraph", text: "第一次来吉隆坡，建议把 KLCC 留到傍晚。白天看看城市，吃完饭以后等亮灯，晚上氛围会比白天更好。" },
-      { type: "list", items: ["建议时间：17:00–21:00", "建议停留：1.5–2小时", "顺路安排：KLCC Park · Pavilion"] },
+      { type: "list", items: ["适合时间：17:00–21:00", "建议停留：1.5–2小时", "顺路安排：KLCC Park · Pavilion"] },
       { type: "quote", text: "如果主要想拍照，不用太晚才到。亮灯前后人会变多，提前一点反而更从容。" },
       { type: "heading", text: "茨厂街 Chinatown" },
       { type: "gallery", images: [guideDefaultImages["kl-chinatown-slow-walk"] || cover], caption: "CHINATOWN · EVENING WALK" },
       { type: "paragraph", text: "茨厂街不只适合打卡。附近的鬼仔巷、中央艺术坊和独立广场可以一起安排，下午慢慢过去会比较舒服。" },
-      { type: "list", items: ["建议时间：15:00–19:00", "建议停留：1–2小时", "顺路安排：鬼仔巷 · 中央艺术坊 · 独立广场"] },
+      { type: "list", items: ["适合时间：15:00–19:00", "建议停留：1–2小时", "顺路安排：鬼仔巷 · 中央艺术坊 · 独立广场"] },
       { type: "heading", text: "武吉免登 Bukit Bintang" },
       { type: "gallery", images: ["https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg/1280px-Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg"], caption: "BUKIT BINTANG · NIGHT WALK" },
       { type: "paragraph", text: "如果你喜欢晚上吃饭、逛街方便，武吉免登会比想象中实用。它不是最安静的区域，但第一次来很好上手。" },
-      { type: "list", items: ["建议时间：晚餐后", "建议停留：2–3小时", "顺路安排：Pavilion · Jalan Alor · TRX"] },
+      { type: "list", items: ["适合时间：晚餐后", "建议停留：2–3小时", "顺路安排：Pavilion · Jalan Alor · TRX"] },
       { type: "paragraph", text: "吉隆坡不需要一次把所有地方都走完。第一次来，把几个区域串顺，留一点时间吃饭、散步，体验反而会更舒服。" },
     ];
   }
@@ -118,15 +118,18 @@ function placeSubtitle(text: string) {
   return placeSubtitleMap[name] || text.replace(name, "").trim();
 }
 
-function routeMeta(article: TravelGuideArticle) {
-  if (article.slug === "first-time-kuala-lumpur") return "约半天～1天 · 建议下午出发 · 晚上结束";
-  if (article.category === "行程参考") return "按当天节奏安排 · 可根据天气调整";
-  return "轻松慢走 · 适合自由行";
-}
-
 function splitInfoItem(item: string) {
   const [label, ...rest] = item.split(/[:：]/);
-  return { label: (label || "").trim(), value: rest.join("：").trim() || item };
+  const normalizedLabel = (label || "").trim()
+    .replace(/^建议时间$/, "适合时间")
+    .replace(/^可以顺路$/, "顺路安排");
+  return { label: normalizedLabel, value: rest.join("：").trim() || item };
+}
+
+function quickMeta(article: TravelGuideArticle, cityName: string, placeCount: number) {
+  const readMinutes = article.readMinutes || 4;
+  if (article.slug === "first-time-kuala-lumpur") return `${cityName} · 半日～1日 · ${placeCount || 3}个地方 · 约${readMinutes}分钟阅读`;
+  return `${cityName} · ${placeCount || 1}个地方 · 约${readMinutes}分钟阅读`;
 }
 
 function Gallery({ images, caption }: GalleryProps) {
@@ -234,17 +237,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
           <div className="guide-detail-tags">
             {guideTags(article).map((tag) => <span key={tag}>{tag}</span>)}
           </div>
-          <span>约 {article.readMinutes || 4} 分钟阅读{city ? ` · ${city.zh}` : ""}</span>
-          {placeHeadings.length > 1 && (
-            <nav className="guide-route-overview" aria-label="这篇攻略">
-              <b>本篇路线</b>
-              <p>{placeHeadings.map((item) => placeDisplayName(item.title)).join(" → ")}</p>
-              <small>{routeMeta(article)}</small>
-              <div>
-                {placeHeadings.map((item) => <a href={`#${item.id}`} key={item.id}>{item.number} {placeDisplayName(item.title)}</a>)}
-              </div>
-            </nav>
-          )}
+          <span>{quickMeta(article, city?.zh || "马来西亚", placeHeadings.length)}</span>
           <Gallery images={[guideHeroImage(article)]} caption={article.imageLabel || city?.en?.toUpperCase()} />
         </section>
 
@@ -277,8 +270,8 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
         <section className="guide-soft-link">
           <small>Malaysia local travel support</small>
           <h2>还在安排马来西亚行程？</h2>
-          <p>告诉我们日期和人数，住宿、接送机、包车和当地行程可以一起看看。</p>
-          <Link href="/#contact">提交行程需求 →</Link>
+          <p>告诉我们日期、人数和想去的地方，我们帮你一起看看怎么安排。</p>
+          <Link href="/#contact">咨询行程 →</Link>
         </section>
 
         {related.length > 0 && (
