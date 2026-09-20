@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../../../chatgpt-auth";
 import { getReferrerWithStats } from "../../../../../../db/referrers";
 
+const PUBLIC_SITE_ORIGIN = "https://madmaxtravel.asia";
+
 function escapeXml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -12,7 +14,7 @@ function escapeXml(value: string) {
 }
 
 export async function GET(
-  request: Request,
+  _: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
   if (!(await getChatGPTUser()))
@@ -20,8 +22,7 @@ export async function GET(
   const { code } = await params;
   const referrer = await getReferrerWithStats(code);
   if (!referrer) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const url = new URL(request.url);
-  const target = `${url.origin}/?ref=${encodeURIComponent(referrer.code)}`;
+  const target = `${PUBLIC_SITE_ORIGIN}/?ref=${encodeURIComponent(referrer.code)}`;
   const qr = await QRCode.toString(target, {
     type: "svg",
     errorCorrectionLevel: "M",

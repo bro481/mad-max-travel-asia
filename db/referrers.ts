@@ -10,11 +10,17 @@ export type ReferrerRecord = {
   status: ReferrerStatus;
   visits: number;
   inquiries: number;
+  deals: number;
+  dealAmount: number;
   createdAt: string;
   updatedAt: string;
 };
 
-type ReferrerRow = Record<string, unknown> & { inquiry_count?: number };
+type ReferrerRow = Record<string, unknown> & {
+  inquiry_count?: number;
+  deal_count?: number;
+  deal_amount?: number;
+};
 
 const createSql = `CREATE TABLE IF NOT EXISTS referrers (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +36,12 @@ export async function ensureReferrers() {
   await env.DB.prepare(createSql).run();
 }
 
-function mapReferrer(row: Record<string, unknown>, inquiries = 0): ReferrerRecord {
+function mapReferrer(
+  row: Record<string, unknown>,
+  inquiries = 0,
+  deals = 0,
+  dealAmount = 0,
+): ReferrerRecord {
   return {
     id: Number(row.id),
     code: String(row.code),
@@ -38,6 +49,8 @@ function mapReferrer(row: Record<string, unknown>, inquiries = 0): ReferrerRecor
     status: String(row.status || "active") === "inactive" ? "inactive" : "active",
     visits: Number(row.visits || 0),
     inquiries,
+    deals,
+    dealAmount,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at || row.created_at),
   };
@@ -50,13 +63,24 @@ export async function listReferrers() {
     `SELECT r.*,
       COALESCE((
         SELECT COUNT(*) FROM inquiry_requests i WHERE i.referrer_id = r.code
-      ), 0) AS inquiry_count
+      ), 0) AS inquiry_count,
+      COALESCE((
+        SELECT COUNT(*) FROM inquiry_requests i WHERE i.referrer_id = r.code AND i.status = '已成交'
+      ), 0) AS deal_count,
+      COALESCE((
+        SELECT SUM(i.deal_amount) FROM inquiry_requests i WHERE i.referrer_id = r.code AND i.status = '已成交'
+      ), 0) AS deal_amount
      FROM referrers r
      ORDER BY CAST(SUBSTR(r.code, 2) AS INTEGER), r.id`,
   ).all();
   return rows.results.map((row) => {
     const item = row as ReferrerRow;
-    return mapReferrer(item, Number(item.inquiry_count || 0));
+    return mapReferrer(
+      item,
+      Number(item.inquiry_count || 0),
+      Number(item.deal_count || 0),
+      Number(item.deal_amount || 0),
+    );
   });
 }
 
@@ -80,14 +104,25 @@ export async function getReferrerWithStats(code: string) {
     `SELECT r.*,
       COALESCE((
         SELECT COUNT(*) FROM inquiry_requests i WHERE i.referrer_id = r.code
-      ), 0) AS inquiry_count
+      ), 0) AS inquiry_count,
+      COALESCE((
+        SELECT COUNT(*) FROM inquiry_requests i WHERE i.referrer_id = r.code AND i.status = '已成交'
+      ), 0) AS deal_count,
+      COALESCE((
+        SELECT SUM(i.deal_amount) FROM inquiry_requests i WHERE i.referrer_id = r.code AND i.status = '已成交'
+      ), 0) AS deal_amount
      FROM referrers r
      WHERE r.code=?`,
   )
     .bind(normalizeReferrerCode(code))
     .first();
   return row
-    ? mapReferrer(row as ReferrerRow, Number((row as ReferrerRow).inquiry_count || 0))
+    ? mapReferrer(
+        row as ReferrerRow,
+        Number((row as ReferrerRow).inquiry_count || 0),
+        Number((row as ReferrerRow).deal_count || 0),
+        Number((row as ReferrerRow).deal_amount || 0),
+      )
     : null;
 }
 

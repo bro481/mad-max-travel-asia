@@ -15,6 +15,7 @@ export async function POST(request: Request) {
       referrerId?: string;
       referrerFirstUrl?: string;
       referrerFirstAt?: string;
+      inquiryChannel?: string;
     };
     if (!body.name || !body.contact)
       return NextResponse.json(
@@ -24,8 +25,9 @@ export async function POST(request: Request) {
     await ensureInquiries();
     const referrer = await validateReferrerForInquiry(body.referrerId);
     const source = referrer ? `${referrer.name} · ${referrer.code}` : "官网自然访问";
+    const channel = body.inquiryChannel || "官网";
     await env.DB.prepare(
-      "INSERT INTO inquiry_requests (name, contact, destinations, services, travel_time, message, status, source, referrer_id, referrer_name, referrer_first_url, referrer_first_at) VALUES (?, ?, ?, ?, ?, ?, '待回复', ?, ?, ?, ?, ?)",
+      "INSERT INTO inquiry_requests (name, contact, destinations, services, travel_time, message, status, source, inquiry_channel, referrer_type, referrer_id, referrer_name, referrer_first_url, referrer_first_at) VALUES (?, ?, ?, ?, ?, ?, '待回复', ?, ?, ?, ?, ?, ?, ?)",
     )
       .bind(
         body.name,
@@ -35,6 +37,8 @@ export async function POST(request: Request) {
         body.travelTime || null,
         body.message || "",
         source,
+        channel,
+        referrer ? "司机推广" : "",
         referrer?.code || "",
         referrer?.name || "",
         referrer ? body.referrerFirstUrl || "" : "",

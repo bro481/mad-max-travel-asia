@@ -24,7 +24,7 @@ export async function PUT(
   const { id } = await params;
   const b = await request.json();
   await env.DB.prepare(
-    `UPDATE inquiry_requests SET name=?,contact=?,destinations=?,services=?,travel_time=?,message=?,status=?,source=?,country=?,language=?,people=?,children=?,rooms=?,budget=?,tags=?,next_follow_up=?,followups=?,quotes=?,financials=?,deal_amount=?,deal_date=?,payment_status=?,referrer_id=?,referrer_name=?,referrer_first_url=?,referrer_first_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    `UPDATE inquiry_requests SET name=?,contact=?,destinations=?,services=?,travel_time=?,message=?,status=?,source=?,owner=?,inquiry_channel=?,referrer_type=?,country=?,language=?,people=?,children=?,rooms=?,budget=?,tags=?,next_follow_up=?,followups=?,quotes=?,quote_versions=?,financials=?,deal_amount=?,deal_date=?,payment_status=?,referrer_id=?,referrer_name=?,referrer_first_url=?,referrer_first_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
   )
     .bind(
       b.name,
@@ -35,6 +35,9 @@ export async function PUT(
       b.message || "",
       b.status || "待回复",
       b.source || "网站",
+      b.owner || "",
+      b.inquiryChannel || "官网",
+      b.referrerType || "",
       b.country || "",
       b.language || "中文",
       Number(b.people || 0),
@@ -45,6 +48,7 @@ export async function PUT(
       b.nextFollowUp || "",
       JSON.stringify(b.followups || []),
       JSON.stringify(b.quotes || []),
+      JSON.stringify(b.quoteVersions || []),
       JSON.stringify(b.financials || []),
       Number(b.dealAmount || 0),
       b.dealDate || "",

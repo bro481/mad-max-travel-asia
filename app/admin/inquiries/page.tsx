@@ -6,6 +6,7 @@ const statuses = [
   "全部",
   "待回复",
   "跟进中",
+  "已报价",
   "已成交",
   "已关闭",
 ];
@@ -41,9 +42,9 @@ export default function InquiriesPage() {
         (x) =>
           (filter === "全部" ||
             x.status === filter ||
-            (filter === "跟进中" && ["沟通中", "已报价", "待跟进"].includes(x.status))) &&
+            (filter === "跟进中" && ["沟通中", "待跟进"].includes(x.status))) &&
           (!query ||
-            [x.name, x.contact, x.message, x.source, x.referrerId, x.referrerName]
+            [x.name, x.contact, x.message, x.source, x.referrerId, x.referrerName, x.owner, x.inquiryChannel]
               .join(" ")
               .toLowerCase()
               .includes(query.toLowerCase())),
@@ -75,6 +76,10 @@ export default function InquiriesPage() {
               ).length
             }
           </b>
+        </div>
+        <div>
+          <span>已报价</span>
+          <b>{items.filter((x) => x.status === "已报价").length}</b>
         </div>
         <div>
           <span>本月成交</span>
@@ -115,7 +120,8 @@ export default function InquiriesPage() {
           <span>客户</span>
           <span>需求摘要</span>
           <span>出行信息</span>
-          <span>来源</span>
+          <span>推荐来源</span>
+          <span>负责人</span>
           <span>状态</span>
           <span>下次跟进</span>
           <span>更新时间</span>
@@ -144,10 +150,21 @@ export default function InquiriesPage() {
                 {x.people ? x.people + " 人" : ""} {x.travelTime}
               </small>
             </span>
-            <span>{x.source}</span>
+            <span>
+              <b>{x.referrerName || "自然咨询"}</b>
+              <small>
+                {x.referrerId
+                  ? `${x.referrerType || "司机推广"} · ${x.referrerId}`
+                  : x.inquiryChannel || "官网"}
+              </small>
+            </span>
+            <span>
+              <b>{x.owner || "未分配"}</b>
+              <small>{x.inquiryChannel || "官网"}</small>
+            </span>
             <span>
               <i className={`lead-status s-${x.status}`}>
-                {["沟通中", "已报价", "待跟进"].includes(x.status) ? "跟进中" : x.status}
+                {["沟通中", "待跟进"].includes(x.status) ? "跟进中" : x.status}
               </i>
             </span>
             <span

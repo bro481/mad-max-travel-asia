@@ -10,6 +10,9 @@ export type InquiryRecord = {
   message: string;
   status: string;
   source: string;
+  owner: string;
+  inquiryChannel: string;
+  referrerType: string;
   referrerId: string;
   referrerName: string;
   referrerFirstUrl: string;
@@ -28,6 +31,7 @@ export type InquiryRecord = {
   dealAmount: number;
   dealDate: string;
   paymentStatus: string;
+  quoteVersions: Record<string, unknown>[];
   createdAt: string;
   updatedAt: string;
 };
@@ -37,11 +41,15 @@ const createSql = `CREATE TABLE IF NOT EXISTS inquiry_requests (
  destinations TEXT NOT NULL DEFAULT '[]', services TEXT NOT NULL DEFAULT '[]',
  travel_time TEXT, message TEXT, status TEXT NOT NULL DEFAULT '待回复',
  source TEXT NOT NULL DEFAULT '网站', country TEXT NOT NULL DEFAULT '',
+ owner TEXT NOT NULL DEFAULT '',
+ inquiry_channel TEXT NOT NULL DEFAULT '官网',
+ referrer_type TEXT NOT NULL DEFAULT '',
  language TEXT NOT NULL DEFAULT '中文', people INTEGER NOT NULL DEFAULT 0,
  children INTEGER NOT NULL DEFAULT 0, rooms INTEGER NOT NULL DEFAULT 0,
  budget TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '[]',
  next_follow_up TEXT NOT NULL DEFAULT '', followups TEXT NOT NULL DEFAULT '[]',
  quotes TEXT NOT NULL DEFAULT '[]', financials TEXT NOT NULL DEFAULT '[]',
+ quote_versions TEXT NOT NULL DEFAULT '[]',
  deal_amount REAL NOT NULL DEFAULT 0, deal_date TEXT NOT NULL DEFAULT '',
  payment_status TEXT NOT NULL DEFAULT '未收款',
  referrer_id TEXT NOT NULL DEFAULT '',
@@ -54,6 +62,9 @@ const createSql = `CREATE TABLE IF NOT EXISTS inquiry_requests (
 const columns = [
   ["status", "TEXT NOT NULL DEFAULT '待回复'"],
   ["source", "TEXT NOT NULL DEFAULT '网站'"],
+  ["owner", "TEXT NOT NULL DEFAULT ''"],
+  ["inquiry_channel", "TEXT NOT NULL DEFAULT '官网'"],
+  ["referrer_type", "TEXT NOT NULL DEFAULT ''"],
   ["country", "TEXT NOT NULL DEFAULT ''"],
   ["language", "TEXT NOT NULL DEFAULT '中文'"],
   ["people", "INTEGER NOT NULL DEFAULT 0"],
@@ -64,6 +75,7 @@ const columns = [
   ["next_follow_up", "TEXT NOT NULL DEFAULT ''"],
   ["followups", "TEXT NOT NULL DEFAULT '[]'"],
   ["quotes", "TEXT NOT NULL DEFAULT '[]'"],
+  ["quote_versions", "TEXT NOT NULL DEFAULT '[]'"],
   ["financials", "TEXT NOT NULL DEFAULT '[]'"],
   ["deal_amount", "REAL NOT NULL DEFAULT 0"],
   ["deal_date", "TEXT NOT NULL DEFAULT ''"],
@@ -109,6 +121,9 @@ export function mapInquiry(row: Record<string, unknown>): InquiryRecord {
     message: String(row.message || ""),
     status: String(row.status || "待回复"),
     source: String(row.source || "网站"),
+    owner: String(row.owner || ""),
+    inquiryChannel: String(row.inquiry_channel || "官网"),
+    referrerType: String(row.referrer_type || ""),
     referrerId: String(row.referrer_id || ""),
     referrerName: String(row.referrer_name || ""),
     referrerFirstUrl: String(row.referrer_first_url || ""),
@@ -123,6 +138,7 @@ export function mapInquiry(row: Record<string, unknown>): InquiryRecord {
     nextFollowUp: String(row.next_follow_up || ""),
     followups: json(row.followups),
     quotes: json(row.quotes),
+    quoteVersions: json(row.quote_versions),
     financials: json(row.financials),
     dealAmount: Number(row.deal_amount || 0),
     dealDate: String(row.deal_date || ""),

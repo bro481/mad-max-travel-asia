@@ -30,6 +30,8 @@ export default function ReferrersPage() {
       active: items.filter((x) => x.status === "active").length,
       visits: items.reduce((sum, x) => sum + x.visits, 0),
       inquiries: items.reduce((sum, x) => sum + x.inquiries, 0),
+      deals: items.reduce((sum, x) => sum + x.deals, 0),
+      dealAmount: items.reduce((sum, x) => sum + x.dealAmount, 0),
     }),
     [items],
   );
@@ -74,6 +76,11 @@ export default function ReferrersPage() {
           <span>推广咨询</span>
           <b>{totals.inquiries}</b>
         </div>
+        <div>
+          <span>已成交</span>
+          <b>{totals.deals}</b>
+          <small>RM {totals.dealAmount.toFixed(0)}</small>
+        </div>
       </div>
 
       <div className="referrer-create">
@@ -98,6 +105,7 @@ export default function ReferrersPage() {
           <span>状态</span>
           <span>访问</span>
           <span>咨询</span>
+          <span>成交</span>
           <span />
         </div>
         {items.map((item) => (
@@ -111,6 +119,7 @@ export default function ReferrersPage() {
             <span>{item.status === "active" ? "已启用" : "已停用"}</span>
             <span>{item.visits}</span>
             <span>{item.inquiries}</span>
+            <span>{item.deals}</span>
             <em>查看</em>
           </Link>
         ))}

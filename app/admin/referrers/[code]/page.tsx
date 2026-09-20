@@ -5,12 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import type { ReferrerRecord } from "../../../../db/referrers";
 
+const PUBLIC_SITE_ORIGIN = "https://madmaxtravel.asia";
+
 export default function ReferrerDetailPage() {
   const params = useParams<{ code: string }>();
   const [item, setItem] = useState<ReferrerRecord | null>(null);
-  const [origin] = useState(() =>
-    typeof window === "undefined" ? "https://www.madmaxtravel.asia" : window.location.origin,
-  );
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -26,8 +25,8 @@ export default function ReferrerDetailPage() {
   }, [params.code]);
 
   const link = useMemo(
-    () => (item ? `${origin}/?ref=${encodeURIComponent(item.code)}` : ""),
-    [item, origin],
+    () => (item ? `${PUBLIC_SITE_ORIGIN}/?ref=${encodeURIComponent(item.code)}` : ""),
+    [item],
   );
 
   const copy = async () => {
@@ -83,6 +82,14 @@ export default function ReferrerDetailPage() {
             <div>
               <span>咨询</span>
               <b>{item.inquiries}</b>
+            </div>
+            <div>
+              <span>成交</span>
+              <b>{item.deals}</b>
+            </div>
+            <div>
+              <span>成交额</span>
+              <b>RM {item.dealAmount.toFixed(0)}</b>
             </div>
           </div>
         </section>
