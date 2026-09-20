@@ -5,7 +5,7 @@ import Link from "next/link";
 import { rooms } from "../../data";
 import { ServiceMenu } from "../../service-menu";
 import { InquiryModal } from "../../components/inquiry-modal";
-import type { TravelPackage, TravelPackageSchedule } from "../../../db/packages";
+import type { TravelPackage } from "../../../db/packages";
 import type { PropertyRecord } from "../../../db/properties";
 import type { ServiceItem } from "../../../db/service-items";
 
@@ -56,8 +56,12 @@ function isDefaultPackageDayImage(image = "") {
   return defaultPackageDayImageIds.some((id) => image.includes(id));
 }
 
-function compactFeeItems(items: string[]) {
-  return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
+function packageIncludeText(zh: boolean) {
+  return zh ? "行程规划 · 中文沟通协助 · 套餐内用车安排 · 住宿安排" : "Itinerary planning · Chinese support · Package vehicle · Stay arrangement";
+}
+
+function packageExcludeText(zh: boolean) {
+  return zh ? "机票 · 景点门票 · 个人消费 · 自费项目 · 旺季差价" : "Flights · Attraction tickets · Personal expenses · Optional items · Peak-season difference";
 }
 
 function packageHeroLine(item: TravelPackage, zh: boolean) {
@@ -77,16 +81,6 @@ function packageSubtitle(item: TravelPackage, zh: boolean) {
   const text = zh ? item.subtitleZh : item.subtitleEn;
   if (text?.trim()) return text.trim();
   return zh ? `${item.days}天${item.nights}晚 · 住宿 + 行程用车 + 中文协助` : `${item.days}D${item.nights}N · Stay + car + Chinese support`;
-}
-
-function linkedCountNote(count = 0, zh: boolean, zhLabel: string, enLabel: string) {
-  if (!count) return "";
-  return zh ? `已关联 ${count} 个${zhLabel}，可按实际日期和人数确认。` : `${count} linked ${enLabel} option${count > 1 ? "s" : ""} can be confirmed by dates and group size.`;
-}
-
-function linkedReferenceNote(names: string[], count = 0, zh: boolean, zhLabel: string, enLabel: string) {
-  if (names.length) return zh ? `已关联：${names.join("、")}` : `Linked: ${names.join(", ")}`;
-  return linkedCountNote(count, zh, zhLabel, enLabel);
 }
 
 function formatPriceTier(tier: NonNullable<TravelPackage["priceTiers"]>[number], zh: boolean) {
@@ -124,19 +118,19 @@ function dayDetailSections(day: TravelPackage["itinerary"][number], index: numbe
   if (index === 0 && /(抵达|到达|接机)/.test(title + description)) {
     return {
       sections: [
-        { title: "抵达后", text: "司机在机场接机，前往吉隆坡市区住宿，先把行李和入住安排处理好。" },
-        { title: "晚上", text: "不安排固定行程，可以根据抵达时间自行吃饭、逛街或回住宿休息。" },
+        { title: "抵达后", text: "机场接机，前往市区住宿，办理入住。" },
+        { title: "晚上", text: "自由活动，可自行吃饭、逛街或回住宿休息。" },
       ],
-      meta: "接机安排 · 市区住宿 · 晚上自由活动",
+      meta: "时间灵活 · 抵达后先入住，晚上不赶固定行程",
     };
   }
   if (index === total - 1 && /(退房|送机|返程|离开)/.test(title + description)) {
     return {
       sections: [
         { title: "退房前", text: "根据航班时间保留轻松节奏，可安排简单用餐、购物或在住宿附近休息。" },
-        { title: "送机", text: "司机按约定时间送往机场；如果航班较晚，也可以再加购半日路线。" },
+        { title: "送机", text: "司机按约定时间送往机场；如航班较晚，也可以提前安排半日自由活动。" },
       ],
-      meta: "按航班送机 · 时间灵活 · 可补充半日路线",
+      meta: "按航班送机 · 时间灵活 · 半日自由活动可提前安排",
     };
   }
   if (/马六甲|Malacca|Melaka/.test(title + description)) {
@@ -240,44 +234,13 @@ function dayContent(day: TravelPackage["itinerary"][number], index: number, tota
   };
 }
 
-function scheduleNodeIcon(type?: TravelPackageSchedule["nodeType"]) {
-  if (type === "transport") return "🚗";
-  if (type === "stay") return "🏨";
-  if (type === "experience") return "🌴";
-  if (type === "food") return "🍴";
-  if (type === "flight") return "✈";
-  if (type === "free") return "☀";
-  return "📍";
-}
-
-function fallbackScheduleNodes(day: TravelPackage["itinerary"][number], zh: boolean): TravelPackageSchedule[] {
-  const title = zh ? day.titleZh : day.titleEn;
-  const summary = zh ? day.summaryZh || day.descriptionZh : day.summaryEn || day.descriptionEn;
-  const text = `${title} ${summary} ${day.descriptionZh} ${day.descriptionEn}`;
-  const nodes: TravelPackageSchedule[] = [];
-  if (/(接机|接送|专车|用车|transfer|car|pickup)/i.test(text)) {
-    nodes.push({
-      nodeType: "transport",
-      time: zh ? "抵达后" : "After arrival",
-      titleZh: "专车接送",
-      titleEn: "Private transfer",
-      descriptionZh: "根据抵达时间和当天路线安排接送。",
-      descriptionEn: "Transfer is arranged around arrival time and the route of the day.",
-      sortOrder: 1,
-    });
-  }
-  if (/(入住|住宿|酒店|公寓|stay|hotel|apartment)/i.test(text)) {
-    nodes.push({
-      nodeType: "stay",
-      time: zh ? "当天" : "This day",
-      titleZh: "住宿安排",
-      titleEn: "Stay arrangement",
-      descriptionZh: summary || "住宿及房型会根据人数、日期和实际库存确认。",
-      descriptionEn: summary || "The stay and room type are confirmed by group size, dates and availability.",
-      sortOrder: 2,
-    });
-  }
-  return nodes;
+function flexibleDayNote(day: TravelPackage["itinerary"][number], index: number, total: number, zh: boolean) {
+  const detail = dayContent(day, index, total, zh);
+  const text = `${zh ? day.titleZh : day.titleEn} ${zh ? day.descriptionZh : day.descriptionEn}`;
+  if (!zh) return detail.meta;
+  if (index === 0 && /(抵达|到达|接机)/.test(text)) return "抵达后先入住，晚上不赶固定行程，吃饭、逛街或休息都可以自己安排。";
+  if (index === total - 1 && /(退房|送机|返程|离开)/.test(text)) return "按航班时间安排送机；如航班较晚，也可以提前安排半日自由活动。";
+  return detail.meta;
 }
 
 function InlineSwipeGallery({
@@ -346,8 +309,6 @@ function InlineSwipeGallery({
 
 export function PackageDetailPage({
   item,
-  properties = [],
-  services = [],
 }: {
   item: TravelPackage;
   properties?: PackageReferenceProperty[];
@@ -375,23 +336,12 @@ export function PackageDetailPage({
   const title = zh ? item.nameZh : item.nameEn;
   const inquiryTitle = packageInquiryTitle(item, zh);
   const heroLine = packageHeroLine(item, zh);
-  const includeItems = compactFeeItems(item.includes || []);
-  const excludeItems = compactFeeItems(item.excludes || []);
-  const includeText = includeItems.join(" · ") || (zh ? "住宿 · 行程用车 · 中文沟通协助" : "Stay · Route vehicle · Chinese support");
-  const excludeText = excludeItems.join(" · ") || (zh ? "机票 · 餐食 · 门票 · 个人消费" : "Flights · Meals · Tickets · Personal expenses");
+  const includeText = packageIncludeText(zh);
+  const excludeText = packageExcludeText(zh);
   const visiblePriceTiers = (item.priceTiers || []).filter((tier) => tier.visible !== false && (tier.label || tier.price));
-  const visibleTags = (item.tags || []).filter(Boolean).slice(0, 4);
   const stay = item.arrangements?.stay;
   const vehicle = item.arrangements?.vehicle;
   const support = item.arrangements?.support;
-  const stayPropertyNames = (stay?.propertyIds || [])
-    .map((id) => properties.find((property) => property.id === id))
-    .filter((property): property is PackageReferenceProperty => Boolean(property))
-    .map((property) => (zh ? property.nameZh : property.nameEn) || property.nameZh);
-  const vehicleServiceNames = (vehicle?.serviceIds || [])
-    .map((id) => services.find((service) => service.id === id))
-    .filter((service): service is PackageReferenceService => Boolean(service))
-    .map((service) => (zh ? service.nameZh : service.nameEn) || service.nameZh);
   const stayGallery = uniqueImages([...(stay?.images || []), ...stayImages]);
   const vehicleGallery = uniqueImages([...(vehicle?.images || []), ...vehicleImages]);
   const arrangementRows = [
@@ -399,11 +349,8 @@ export function PackageDetailPage({
       key: "stay",
       eyebrow: zh ? "住宿" : "Stay",
       title: (zh ? stay?.titleZh : stay?.titleEn) || (zh ? "吉隆坡市区舒适住宿" : "Comfortable Kuala Lumpur city stay"),
-      description: [
-        (zh ? stay?.nights || `${item.nights}晚` : `${item.nights} nights`),
-        (zh ? stay?.descriptionZh : stay?.descriptionEn) || (zh ? "根据人数安排合适房型" : "Room type matched to group size"),
-      ].filter(Boolean).join(" · "),
-      note: [(zh ? stay?.noteZh : stay?.noteEn), linkedReferenceNote(stayPropertyNames, stay?.propertyIds?.length, zh, "住宿选择", "stay")].filter(Boolean).join(" "),
+      description: zh ? `${item.nights}晚 · 根据人数与预算安排合适房型` : `${item.nights} nights · Room type matched to budget and group size`,
+      note: "",
       images: stayGallery,
       link: true,
     },
@@ -411,8 +358,8 @@ export function PackageDetailPage({
       key: "vehicle",
       eyebrow: zh ? "行程用车" : "Private car",
       title: (zh ? vehicle?.titleZh : vehicle?.titleEn) || (zh ? "按人数安排合适车型" : "Vehicle matched to your group"),
-      description: [(zh ? vehicle?.scopeZh : vehicle?.scopeEn), (zh ? vehicle?.descriptionZh : vehicle?.descriptionEn)].filter(Boolean).join(" · "),
-      note: linkedReferenceNote(vehicleServiceNames, vehicle?.serviceIds?.length, zh, "当地服务", "local service"),
+      description: (zh ? vehicle?.scopeZh : vehicle?.scopeEn) || (zh ? "接机 · 市区行程 · 马六甲往返 · 1–14人可安排" : "Airport pickup · City route · Melaka return · 1–14 guests"),
+      note: "",
       images: vehicleGallery,
       link: false,
     },
@@ -420,7 +367,7 @@ export function PackageDetailPage({
       key: "support",
       eyebrow: zh ? "中文协助" : "Chinese support",
       title: (zh ? support?.titleZh : support?.titleEn) || (zh ? "全程中文协助" : "Chinese support throughout"),
-      description: (zh ? support?.descriptionZh : support?.descriptionEn) || (zh ? "从抵达到返程，住宿、用车及行程问题均可沟通。" : "From arrival to departure, we can help with stay, vehicle and itinerary questions."),
+      description: (zh ? support?.descriptionZh : support?.descriptionEn) || (zh ? "住宿、用车与行程安排，都可以直接沟通" : "Stay, vehicle and route questions can be discussed directly"),
       note: "",
       images: [] as string[],
       link: false,
@@ -453,7 +400,7 @@ export function PackageDetailPage({
             <i />
             <button className={!zh ? "active" : ""} onClick={() => setLang("en")}>English</button>
           </div>
-          <Link className="button header-cta" href="/#contact">{zh ? "提交咨询" : "Inquire"}</Link>
+          <Link className="button header-cta" href="/#contact">{zh ? "咨询" : "Inquire"}</Link>
         </div>
       </header>
 
@@ -470,7 +417,6 @@ export function PackageDetailPage({
             <p className="package-full-eyebrow">{zh ? item.cityComboEn.toUpperCase() : item.cityComboZh}</p>
             <h1>{title}</h1>
             <p>{packageSummary(item, zh)}</p>
-            {displayOptions.tags && visibleTags.length > 0 && <p className="package-full-fit">{visibleTags.join(" · ")}</p>}
           </div>
           <aside>
             <b>¥{money(item.startingPrice)}</b><span>{zh ? "起/人" : " / person from"}</span>
@@ -490,11 +436,6 @@ export function PackageDetailPage({
               const dayTitle = displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh);
               const daySummary = compactDaySummary((zh ? day.summaryZh : day.summaryEn) || (zh ? day.descriptionZh : day.descriptionEn));
               const dayDetails = dayContent(day, index, item.itinerary.length, zh);
-              const savedScheduleNodes = (day.schedule || [])
-                .slice()
-                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-                .filter((slot) => slot.titleZh || slot.titleEn || slot.descriptionZh || slot.descriptionEn || slot.time || slot.image || slot.sourceLabel);
-              const scheduleNodes = savedScheduleNodes.length ? savedScheduleNodes : fallbackScheduleNodes(day, zh);
               const scheduleImages = (day.schedule || []).map((slot) => slot.image || "").filter((image) => image && !isDefaultPackageDayImage(image));
               const dayImages = uniqueImages([cover, ...(day.galleryImages || []), ...scheduleImages, ...fallbackImages]);
               const activeDayImage = dayImageIndex[index] || 0;
@@ -518,26 +459,10 @@ export function PackageDetailPage({
                         </div>
                       ))}
                     </div>
-                    {scheduleNodes.length > 0 && (
-                      <div className="package-day-node-list">
-                        {scheduleNodes.map((slot, slotIndex) => {
-                          const nodeTitle = (zh ? slot.titleZh : slot.titleEn) || slot.titleZh || slot.titleEn;
-                          const nodeDescription = (zh ? slot.descriptionZh : slot.descriptionEn) || slot.descriptionZh || slot.descriptionEn;
-                          return (
-                            <article key={`${nodeTitle}-${slotIndex}`}>
-                              <span>{scheduleNodeIcon(slot.nodeType)}</span>
-                              <div>
-                                <small>{slot.time || (zh ? "时间灵活" : "Flexible time")}</small>
-                                <b>{nodeTitle}</b>
-                                {nodeDescription && <p>{nodeDescription}</p>}
-                                {slot.sourceLabel && <em>{zh ? "引用" : "Linked"}：{slot.sourceLabel}</em>}
-                              </div>
-                              {slot.image && !isDefaultPackageDayImage(slot.image) && <img src={slot.image} alt="" />}
-                            </article>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <div className="package-day-flex-note">
+                      <b>{zh ? "时间灵活" : "Flexible pace"}</b>
+                      <p>{flexibleDayNote(day, index, item.itinerary.length, zh)}</p>
+                    </div>
                     <InlineSwipeGallery
                       images={dayImages}
                       index={activeDayImage}
