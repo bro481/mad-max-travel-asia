@@ -62,7 +62,7 @@ export function TravelGuidePage({ articles, settings }: { articles: TravelGuideA
             <i />
             <button className={!zh ? "active" : ""} onClick={() => setLang("en")}>English</button>
           </div>
-          <Link className="button header-cta" href="/#contact">{zh ? "提交咨询" : "Inquire"}</Link>
+          <Link className="button header-cta" href="/#contact">{zh ? "咨询" : "Inquire"}</Link>
         </div>
       </header>
 
