@@ -27,7 +27,7 @@ type ImageTarget =
 
 const nodeTypes = [
   { value: "transport", label: "交通", icon: "🚗" },
-  { value: "stay", label: "住宿", icon: "🏨" },
+  { value: "stay", label: "入住动作", icon: "🏨" },
   { value: "experience", label: "体验", icon: "🌴" },
   { value: "food", label: "餐饮", icon: "🍴" },
   { value: "flight", label: "航班", icon: "✈️" },
@@ -36,8 +36,8 @@ const nodeTypes = [
 ] as const;
 
 const tagOptions = ["中文服务", "私人接送", "精选住宿", "家庭友好", "轻松行程", "海岛体验"];
-const includeTemplate = ["住宿", "行程内接送", "行程所列体验", "中文旅行顾问服务"];
-const excludeTemplate = ["往返机票", "未列明餐食", "个人消费", "旅游保险"];
+const includeTemplate = ["行程规划", "中文沟通协助", "套餐内用车安排", "住宿安排"];
+const excludeTemplate = ["机票", "景点门票", "个人消费", "自费项目", "旺季差价"];
 const defaultNotes = {
   accommodation: "酒店及项目以最终确认预订时实时库存为准。",
   transfer: "行程可能根据天气、交通及当地实际情况调整。",
@@ -63,7 +63,7 @@ const emptyArrangements: TravelPackageArrangements = {
     titleZh: "吉隆坡市区舒适住宿",
     titleEn: "Comfortable Kuala Lumpur city stay",
     nights: "3晚",
-    descriptionZh: "根据人数安排合适房型",
+    descriptionZh: "根据人数与预算安排合适房型",
     descriptionEn: "Room type matched to group size",
     noteZh: "实际住宿及房型根据人数、入住日期确认。",
     noteEn: "Final stay and room type are confirmed by group size and dates.",
@@ -74,7 +74,7 @@ const emptyArrangements: TravelPackageArrangements = {
     visible: true,
     titleZh: "按人数安排合适车型",
     titleEn: "Vehicle matched to your group",
-    scopeZh: "接机 · 市区行程 · 马六甲往返",
+    scopeZh: "接送机 · 吉隆坡市区 · 马六甲往返",
     scopeEn: "Airport pickup · City route · Malacca return",
     descriptionZh: "1–14人均可安排，根据人数与行李安排合适车型。",
     descriptionEn: "1-14 guests can be arranged, with vehicle matched to group size and luggage.",
@@ -83,9 +83,9 @@ const emptyArrangements: TravelPackageArrangements = {
   },
   support: {
     visible: true,
-    titleZh: "全程中文协助",
+    titleZh: "全程中文沟通",
     titleEn: "Chinese support throughout",
-    descriptionZh: "从抵达到返程，住宿、用车及行程问题均可沟通。",
+    descriptionZh: "住宿、用车与行程安排，都可以直接咨询。",
     descriptionEn: "From arrival to departure, we can help with stay, vehicle and itinerary questions.",
   },
 };
@@ -715,8 +715,8 @@ export default function AdminPackagesPage() {
                           <div className="admin-form-grid">
                             <label><span>主题标题</span><input value={day.titleZh} onChange={(event) => updateDay(index, { titleZh: event.target.value })} placeholder="海岛的一天" /></label>
                             <label><span>城市</span><input value={draft.cityComboZh} readOnly /></label>
-                            <label className="wide"><span>折叠摘要</span><input value={day.summaryZh || day.descriptionZh} onChange={(event) => updateDay(index, { summaryZh: event.target.value })} placeholder="专车接机 · 入住市区住宿 · 晚上自由探索" /></label>
-                            <label className="wide"><span>副标题 / 旧版说明</span><input value={day.descriptionZh} onChange={(event) => updateDay(index, { descriptionZh: event.target.value })} placeholder="清澈的海水，治愈的蓝" /></label>
+                            <label className="wide"><span>折叠摘要</span><input value={day.summaryZh || day.descriptionZh} onChange={(event) => updateDay(index, { summaryZh: event.target.value })} placeholder="专车接机 · 抵达市区 · 晚上自由探索" /></label>
+                            <label className="wide"><span>当天概述</span><input value={day.descriptionZh} onChange={(event) => updateDay(index, { descriptionZh: event.target.value })} placeholder="这一天发生什么，不填写具体房源或车型配置" /></label>
                           </div>
                           <ImageCard title="当天主图" image={day.coverImage || ""} onFile={(event) => uploadImage(event, { type: "day", dayIndex: index })} helper="推荐填写；节点图片只给重点体验使用。" />
                           <ContentBlockEditor
@@ -744,8 +744,8 @@ export default function AdminPackagesPage() {
                               updateDay(index, { coverImage: next[0] || "", galleryImages: next });
                             }}
                           />
-                          <label className="package-caption-field"><span>图片说明</span><input value={day.galleryCaptionZh || ""} onChange={(event) => updateDay(index, { galleryCaptionZh: event.target.value })} placeholder="接机安排 · 市区住宿 · 晚上自由活动" /></label>
-                          <ScheduleEditor day={day} dayIndex={index} properties={sourceProperties} services={sourceServices} updateSlot={updateSlot} updateDay={updateDay} uploadImage={uploadImage} />
+                          <label className="package-caption-field"><span>图片说明</span><input value={day.galleryCaptionZh || ""} onChange={(event) => updateDay(index, { galleryCaptionZh: event.target.value })} placeholder="接机安排 · 抵达市区 · 晚上自由活动" /></label>
+                          <ScheduleEditor day={day} dayIndex={index} services={sourceServices} updateSlot={updateSlot} updateDay={updateDay} uploadImage={uploadImage} />
                           <div className="day-card-actions">
                             <button type="button" onClick={() => moveDay(index, index - 1)}>上移</button>
                             <button type="button" onClick={() => moveDay(index, index + 1)}>下移</button>
@@ -1134,36 +1134,21 @@ function PriceTierEditor({
   );
 }
 
-function ScheduleEditor({ day, dayIndex, properties, services, updateSlot, updateDay, uploadImage }: {
+function ScheduleEditor({ day, dayIndex, services, updateSlot, updateDay, uploadImage }: {
   day: TravelPackageDay;
   dayIndex: number;
-  properties: PropertyRecord[];
   services: ServiceItem[];
   updateSlot: (dayIndex: number, slotIndex: number, patch: Partial<TravelPackageSchedule>) => void;
   updateDay: (index: number, patch: Partial<TravelPackageDay>) => void;
   uploadImage: (event: ChangeEvent<HTMLInputElement>, target: ImageTarget) => void;
 }) {
   const schedule = day.schedule || [];
+  const itineraryServices = services.filter((service) => service.templateType !== "transfer" && !/接送|包车|用车|车辆|transfer|car/i.test(`${service.nameZh} ${service.subtitleZh} ${service.nameEn}`));
   const addSource = (slotIndex: number, raw: string) => {
     if (!raw) return;
     const [kind, id] = raw.split(":");
-    if (kind === "property") {
-      const item = properties.find((property) => String(property.id) === id);
-      if (!item) return;
-      updateSlot(dayIndex, slotIndex, {
-        sourceType: "property",
-        sourceId: item.id,
-        sourceLabel: item.nameZh,
-        nodeType: "stay",
-        titleZh: item.nameZh,
-        titleEn: item.nameEn,
-        descriptionZh: [item.areaZh, `${item.bedrooms}房`, `${item.guests}人`].filter(Boolean).join(" · "),
-        descriptionEn: item.descriptionEn,
-        image: item.images[0] || "",
-      });
-    }
     if (kind === "service") {
-      const item = services.find((service) => String(service.id) === id);
+      const item = itineraryServices.find((service) => String(service.id) === id);
       if (!item) return;
       updateSlot(dayIndex, slotIndex, {
         sourceType: "service",
@@ -1182,15 +1167,15 @@ function ScheduleEditor({ day, dayIndex, properties, services, updateSlot, updat
   return (
     <div className="schedule-editor">
       <h3>行程安排</h3>
+      <small>这里只写当天发生什么：接机、前往景点、自由活动、返回市区等。具体房源、车型和中文协助请放到「这趟已经帮你安排好」。</small>
       {schedule.map((slot, slotIndex) => (
         <article key={slotIndex} className="schedule-node">
           <div className="schedule-node-head">
             <select value={slot.nodeType || "note"} onChange={(event) => updateSlot(dayIndex, slotIndex, { nodeType: event.target.value as TravelPackageSchedule["nodeType"] })}>{nodeTypes.map((type) => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}</select>
             <input value={slot.time || ""} onChange={(event) => updateSlot(dayIndex, slotIndex, { time: event.target.value })} placeholder="07:00 / 上午 / 晚上 / 可留空" />
             <select value="" onChange={(event) => addSource(slotIndex, event.target.value)}>
-              <option value="">内容来源：手动 / 已有服务 / 已有房源</option>
-              <optgroup label="已有房源">{properties.map((property) => <option key={property.id} value={`property:${property.id}`}>{property.city} · {property.nameZh}</option>)}</optgroup>
-              <optgroup label="当地服务">{services.map((service) => <option key={service.id} value={`service:${service.id}`}>{service.city} · {service.nameZh}</option>)}</optgroup>
+              <option value="">内容来源：手动 / 已有体验服务</option>
+              <optgroup label="已有体验服务">{itineraryServices.map((service) => <option key={service.id} value={`service:${service.id}`}>{service.city} · {service.nameZh}</option>)}</optgroup>
             </select>
           </div>
           <div className="admin-form-grid">

@@ -96,11 +96,21 @@ function displayDayTitle(title: string, index: number, total: number, zh: boolea
 
 function compactDaySummary(text: string) {
   return text
+    .replace(/伊顿公寓[^，。·]*/g, "市区住宿")
+    .replace(/两室两卫|塔景房|KLCC\s*·\s*2房\s*·\s*5人/g, "")
+    .replace(/7座商务车|丰田\s*Alphard|车型配置/g, "专车")
     .replace(/[，,、]/g, " · ")
     .replace(/[。.!！]/g, "")
     .replace(/\s*·\s*/g, " · ")
     .replace(/与/g, " · ")
     .trim();
+}
+
+function isPackageConfigSlot(slot: NonNullable<TravelPackage["itinerary"][number]["schedule"]>[number]) {
+  if (slot.sourceType === "property") return true;
+  if (slot.nodeType === "stay" && slot.sourceType && slot.sourceType !== "manual") return true;
+  if (slot.nodeType === "transport" && slot.sourceType === "service") return true;
+  return false;
 }
 
 function dayDetailSections(day: TravelPackage["itinerary"][number], index: number, total: number, zh: boolean) {
@@ -118,8 +128,8 @@ function dayDetailSections(day: TravelPackage["itinerary"][number], index: numbe
   if (index === 0 && /(抵达|到达|接机)/.test(title + description)) {
     return {
       sections: [
-        { title: "抵达后", text: "机场接机，前往市区住宿，办理入住。" },
-        { title: "晚上", text: "自由活动，可自行吃饭、逛街或回住宿休息。" },
+        { title: "抵达后", text: "机场接机，前往吉隆坡市区。" },
+        { title: "晚上", text: "抵达住宿后自由安排，可以吃饭、逛街，也可以直接休息。" },
       ],
       meta: "时间灵活 · 抵达后先入住，晚上不赶固定行程",
     };
@@ -145,9 +155,9 @@ function dayDetailSections(day: TravelPackage["itinerary"][number], index: numbe
   }
   return {
     sections: [
-      { title: "上午", text: "住宿出发，前往双子塔、国家皇宫及国家清真寺等城市地标。" },
+      { title: "上午", text: "从市区出发，前往双子塔、国家皇宫及国家清真寺等城市地标。" },
       { title: "下午", text: "继续前往独立广场、城市画廊与老城区，根据当天路线灵活调整顺序。" },
-      { title: "结束后", text: "专车送回住宿，晚上自由安排用餐、购物或休息。" },
+      { title: "结束后", text: "返回市区，晚上自由安排用餐、购物或休息。" },
     ],
     meta: "约 8 小时 · 专车出行 · 行程顺序可调整",
   };
@@ -211,6 +221,7 @@ function dayContent(day: TravelPackage["itinerary"][number], index: number, tota
   const scheduleSections = (day.schedule || [])
     .slice()
     .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    .filter((slot) => !isPackageConfigSlot(slot))
     .map((slot) => {
       const nodeTitle = (zh ? slot.titleZh : slot.titleEn) || slot.titleZh || slot.titleEn;
       const nodeText = (zh ? slot.descriptionZh : slot.descriptionEn) || slot.descriptionZh || slot.descriptionEn || "";
@@ -238,7 +249,7 @@ function flexibleDayNote(day: TravelPackage["itinerary"][number], index: number,
   const detail = dayContent(day, index, total, zh);
   const text = `${zh ? day.titleZh : day.titleEn} ${zh ? day.descriptionZh : day.descriptionEn}`;
   if (!zh) return detail.meta;
-  if (index === 0 && /(抵达|到达|接机)/.test(text)) return "抵达后先入住，晚上不赶固定行程，吃饭、逛街或休息都可以自己安排。";
+  if (index === 0 && /(抵达|到达|接机)/.test(text)) return "根据航班抵达时间调整当天安排，晚上不赶固定行程。";
   if (index === total - 1 && /(退房|送机|返程|离开)/.test(text)) return "按航班时间安排送机；如航班较晚，也可以提前安排半日自由活动。";
   return detail.meta;
 }
@@ -358,7 +369,10 @@ export function PackageDetailPage({
       key: "vehicle",
       eyebrow: zh ? "行程用车" : "Private car",
       title: (zh ? vehicle?.titleZh : vehicle?.titleEn) || (zh ? "按人数安排合适车型" : "Vehicle matched to your group"),
-      description: (zh ? vehicle?.scopeZh : vehicle?.scopeEn) || (zh ? "接机 · 市区行程 · 马六甲往返 · 1–14人可安排" : "Airport pickup · City route · Melaka return · 1–14 guests"),
+      description: [
+        (zh ? vehicle?.scopeZh : vehicle?.scopeEn) || (zh ? "接送机 · 吉隆坡市区 · 马六甲往返" : "Airport transfer · Kuala Lumpur city · Melaka return"),
+        (zh ? vehicle?.descriptionZh : vehicle?.descriptionEn) || (zh ? "1–14人均可安排，具体车型根据人数与行李确认。" : "Vehicle is confirmed by group size and luggage."),
+      ].filter(Boolean).join(" · "),
       note: "",
       images: vehicleGallery,
       link: false,
@@ -436,7 +450,10 @@ export function PackageDetailPage({
               const dayTitle = displayDayTitle(zh ? day.titleZh : day.titleEn, index, item.itinerary.length, zh);
               const daySummary = compactDaySummary((zh ? day.summaryZh : day.summaryEn) || (zh ? day.descriptionZh : day.descriptionEn));
               const dayDetails = dayContent(day, index, item.itinerary.length, zh);
-              const scheduleImages = (day.schedule || []).map((slot) => slot.image || "").filter((image) => image && !isDefaultPackageDayImage(image));
+              const scheduleImages = (day.schedule || [])
+                .filter((slot) => !isPackageConfigSlot(slot) && slot.nodeType !== "transport" && slot.nodeType !== "flight")
+                .map((slot) => slot.image || "")
+                .filter((image) => image && !isDefaultPackageDayImage(image));
               const dayImages = uniqueImages([cover, ...(day.galleryImages || []), ...scheduleImages, ...fallbackImages]);
               const activeDayImage = dayImageIndex[index] || 0;
               return (
@@ -482,7 +499,7 @@ export function PackageDetailPage({
 
         {displayOptions.arrangements && arrangementRows.length > 0 && (
         <section className="package-value-section">
-          <p className="package-value-kicker">{zh ? "这趟已经帮你安排好" : "Already arranged"}</p>
+          <p className="package-value-kicker">{zh ? "这一趟，已经帮你安排好了" : "Already arranged for this trip"}</p>
           {arrangementRows.map((row, index) => {
             const activeIndex = arrangementImageIndex[row.key] || 0;
             return (

@@ -211,10 +211,10 @@ const packageSeeds = [
     startingPrice: 1880,
     peakPrice: null,
     itinerary: [
-      ["抵达吉隆坡", "Arrival in Kuala Lumpur", "专车接机，入住市区住宿，晚上自由探索。", "Private airport transfer, check in and free evening."],
+      ["抵达吉隆坡", "Arrival in Kuala Lumpur", "专车接机，抵达市区，晚上自由探索。", "Private airport transfer, arrive in the city and free evening."],
       ["吉隆坡经典一日游", "Kuala Lumpur city highlights", "双子塔、国家皇宫、国家清真寺、独立广场与城市画廊。", "Twin Towers, palace, mosque, Merdeka Square and city gallery."],
       ["马六甲一日往返", "Malacca day trip", "鸡场街、荷兰红屋、河畔街区与当地小吃。", "Jonker Street, Dutch Square, riverside lanes and local bites."],
-      ["轻松退房送机", "Departure day", "按航班时间安排送机，也可延后加购半日路线。", "Airport transfer by flight time, with optional half-day add-on."],
+      ["轻松退房送机", "Departure day", "按航班时间安排送机；如航班较晚，也可以提前安排半日自由活动。", "Airport transfer by flight time; if your flight is later, a relaxed half-day can be arranged in advance."],
     ],
   },
   {
@@ -251,7 +251,7 @@ const packageSeeds = [
     startingPrice: 1680,
     peakPrice: null,
     itinerary: [
-      ["抵达亚庇", "Arrive in Kota Kinabalu", "专车接机，入住市区住宿。", "Private transfer and city stay check-in."],
+      ["抵达亚庇", "Arrive in Kota Kinabalu", "专车接机，抵达市区后自由安排。", "Private transfer to the city, then free time."],
       ["神山或红树林", "Kinabalu or mangrove route", "根据季节与体力选择自然路线。", "Choose a nature route based on season and pace."],
       ["海岛轻体验", "Island day", "出海、浮潜或沙滩休闲。", "Boat trip, snorkelling or a relaxed beach day."],
       ["自由活动与送机", "Free time and departure", "自由安排咖啡、美食或商场，随后送机。", "Free time for food, coffee or shopping before airport transfer."],
@@ -392,8 +392,8 @@ const packageSeeds = [
   },
 ] as const;
 
-const defaultIncludes = ["行程规划", "当地中文沟通协助", "路线内接送安排建议", "住宿与服务组合建议"];
-const defaultExcludes = ["国际/国内机票", "个人消费", "景点门票及自费项目", "旺季价格差额"];
+const defaultIncludes = ["行程规划", "中文沟通协助", "套餐内用车安排", "住宿安排"];
+const defaultExcludes = ["机票", "景点门票", "个人消费", "自费项目", "旺季差价"];
 const defaultTags = ["城市地标", "历史文化", "美食探索", "适合家庭 / 情侣"];
 const dayImages = [
   "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=800&q=84",
@@ -410,7 +410,7 @@ function defaultArrangements(item: Partial<TravelPackage>): TravelPackageArrange
       titleZh: "吉隆坡市区舒适住宿",
       titleEn: "Comfortable Kuala Lumpur city stay",
       nights: `${nights}晚`,
-      descriptionZh: "根据人数安排合适房型",
+      descriptionZh: "根据人数与预算安排合适房型",
       descriptionEn: "Room type matched to group size",
       noteZh: item.accommodationNoteZh || "实际住宿及房型根据人数、入住日期确认。",
       noteEn: item.accommodationNoteEn || "Final stay and room type are confirmed by group size and dates.",
@@ -421,7 +421,7 @@ function defaultArrangements(item: Partial<TravelPackage>): TravelPackageArrange
       visible: true,
       titleZh: "按人数安排合适车型",
       titleEn: "Vehicle matched to your group",
-      scopeZh: "接机 · 市区行程 · 马六甲往返",
+      scopeZh: "接送机 · 吉隆坡市区 · 马六甲往返",
       scopeEn: "Airport pickup · City route · Malacca return",
       descriptionZh: "1–14人均可安排，根据人数与行李安排合适车型。",
       descriptionEn: "1-14 guests can be arranged, with vehicle matched to group size and luggage.",
@@ -430,9 +430,9 @@ function defaultArrangements(item: Partial<TravelPackage>): TravelPackageArrange
     },
     support: {
       visible: true,
-      titleZh: "全程中文协助",
+      titleZh: "全程中文沟通",
       titleEn: "Chinese support throughout",
-      descriptionZh: "从抵达到返程，住宿、用车及行程问题均可沟通。",
+      descriptionZh: "住宿、用车与行程安排，都可以直接咨询。",
       descriptionEn: "From arrival to departure, we can help with stay, vehicle and itinerary questions.",
     },
   };
@@ -477,7 +477,7 @@ function normalizeItinerary(days: TravelPackageDay[], coverImage: string) {
     contentBlocks: (day.contentBlocks || []).map((block, blockIndex) => ({ ...block, sortOrder: block.sortOrder ?? blockIndex + 1 })),
     schedule: (day.schedule && day.schedule.length ? day.schedule : [
       { titleZh: day.descriptionZh || day.titleZh, titleEn: day.descriptionEn || day.titleEn, image: day.coverImage || dayImages[index % dayImages.length], sortOrder: 1 },
-      { titleZh: index === days.length - 1 ? "根据航班时间安排送机" : "自由活动或返回酒店", titleEn: index === days.length - 1 ? "Airport transfer by flight time" : "Free time or return to hotel", sortOrder: 2 },
+      { titleZh: index === days.length - 1 ? "根据航班时间安排送机" : "返回市区或自由活动", titleEn: index === days.length - 1 ? "Airport transfer by flight time" : "Return to the city or free time", sortOrder: 2 },
     ]).map((slot, slotIndex) => ({ ...slot, sortOrder: slot.sortOrder ?? slotIndex + 1 })),
   }));
 }
