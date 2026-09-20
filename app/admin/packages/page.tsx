@@ -515,6 +515,16 @@ export default function AdminPackagesPage() {
   const updatePriceTier = (index: number, patch: Partial<TravelPackagePriceTier>) => {
     setField("priceTiers", draft.priceTiers.map((tier, tierIndex) => (tierIndex === index ? { ...tier, ...patch } : tier)));
   };
+  const duplicateDay = (index: number) => {
+    setField("itinerary", [...draft.itinerary.slice(0, index + 1), clone(draft.itinerary[index]), ...draft.itinerary.slice(index + 1)]);
+    setActiveDay(index + 1);
+  };
+  const deleteDay = (index: number) => {
+    const label = draft.itinerary[index]?.titleZh || `DAY ${String(index + 1).padStart(2, "0")}`;
+    if (!confirm(`确定删除「${label}」吗？\n删除后无法恢复。`)) return;
+    setField("itinerary", draft.itinerary.filter((_, i) => i !== index));
+    setActiveDay(Math.max(0, index - 1));
+  };
   const moveDay = (from: number, to: number) => {
     if (to < 0 || to >= draft.itinerary.length || from === to) return;
     updateDraft((current) => {
@@ -692,13 +702,33 @@ export default function AdminPackagesPage() {
                 <button type="button" disabled>从其他套餐导入</button>
                 <small>导入结构已预留，后续可接套餐 Day 复用。</small>
               </div>
+              <nav className="day-jump-nav" aria-label="Day 快速导航">
+                {draft.itinerary.map((day, index) => (
+                  <button
+                    key={index}
+                    className={activeDay === index ? "active" : ""}
+                    type="button"
+                    onClick={() => {
+                      setActiveDay(index);
+                      window.requestAnimationFrame(() => document.getElementById(`package-day-${index}`)?.scrollIntoView({ block: "start", behavior: "smooth" }));
+                    }}
+                  >
+                    D{index + 1}
+                    <span>{day.titleZh || "未命名"}</span>
+                  </button>
+                ))}
+              </nav>
               <div className="day-card-list">
                 {draft.itinerary.map((day, index) => {
                   const open = activeDay === index;
                   const dayIssues = [!day.titleZh && "缺标题", !day.coverImage && "缺主图"].filter(Boolean);
+                  const schedule = day.schedule || [];
+                  const stayCount = schedule.filter((slot) => slot.nodeType === "stay" || slot.sourceType === "property").length;
+                  const imageCount = Array.from(new Set([day.coverImage || "", ...(day.galleryImages || [])].filter(Boolean))).length;
                   return (
                     <article
                       key={index}
+                      id={`package-day-${index}`}
                       className={open ? "day-card open" : "day-card"}
                       draggable
                       onDragStart={() => setDragDay(index)}
@@ -706,24 +736,36 @@ export default function AdminPackagesPage() {
                       onDrop={() => { if (dragDay !== null) moveDay(dragDay, index); setDragDay(null); }}
                     >
                       <button className="day-card-summary" type="button" onClick={() => setActiveDay(open ? -1 : index)}>
+                        <i aria-hidden="true">⠿</i>
                         <b>DAY {String(index + 1).padStart(2, "0")}</b>
-                        <span>{day.titleZh || "未命名的一天"}</span>
-                        <em>{dayIssues.length ? `⚠ ${dayIssues.join(" / ")}` : "✓"}</em>
+                        <span>
+                          {day.titleZh || "未命名的一天"}
+                          <small>{draft.cityComboZh || "未选择城市"} · {schedule.length} 个行程 · {stayCount ? `${stayCount} 个住宿` : "未加住宿"} · {imageCount} 张图</small>
+                        </span>
+                        <em>{dayIssues.length ? `⚠ ${dayIssues.join(" / ")}` : "✓"} {open ? "⌃" : "⌄"}</em>
                       </button>
                       {open && (
                         <div className="day-card-body">
                           <div className="admin-form-grid">
                             <label><span>主题标题</span><input value={day.titleZh} onChange={(event) => updateDay(index, { titleZh: event.target.value })} placeholder="海岛的一天" /></label>
                             <label><span>城市</span><input value={draft.cityComboZh} readOnly /></label>
-                            <label className="wide"><span>折叠摘要</span><input value={day.summaryZh || day.descriptionZh} onChange={(event) => updateDay(index, { summaryZh: event.target.value })} placeholder="专车接机 · 抵达市区 · 晚上自由探索" /></label>
-                            <label className="wide"><span>当天概述</span><input value={day.descriptionZh} onChange={(event) => updateDay(index, { descriptionZh: event.target.value })} placeholder="这一天发生什么，不填写具体房源或车型配置" /></label>
+                            <label className="wide"><span>Day 简介</span><input value={day.summaryZh || day.descriptionZh} onChange={(event) => updateDay(index, { summaryZh: event.target.value })} placeholder="专车接机 · 抵达市区 · 晚上自由探索" /></label>
                           </div>
-                          <ImageCard title="当天主图" image={day.coverImage || ""} onFile={(event) => uploadImage(event, { type: "day", dayIndex: index })} helper="推荐填写；节点图片只给重点体验使用。" />
-                          <ContentBlockEditor
-                            blocks={day.contentBlocks || []}
-                            onChange={(blocks) => updateDay(index, { contentBlocks: blocks })}
-                            updateBlock={(blockIndex, patch) => updateContentBlock(index, blockIndex, patch)}
-                          />
+                          <details className="package-collapse compact">
+                            <summary>更多设置</summary>
+                            <div className="admin-form-grid">
+                              <label className="wide"><span>旧版当天概述</span><input value={day.descriptionZh} onChange={(event) => updateDay(index, { descriptionZh: event.target.value })} placeholder="兼容旧数据；前台优先显示内容段和行程节点" /></label>
+                              <label className="wide"><span>图片说明</span><input value={day.galleryCaptionZh || ""} onChange={(event) => updateDay(index, { galleryCaptionZh: event.target.value })} placeholder="接机安排 · 抵达市区 · 晚上自由活动" /></label>
+                            </div>
+                          </details>
+                          <details className="package-collapse compact">
+                            <summary>详细内容段</summary>
+                            <ContentBlockEditor
+                              blocks={day.contentBlocks || []}
+                              onChange={(blocks) => updateDay(index, { contentBlocks: blocks })}
+                              updateBlock={(blockIndex, patch) => updateContentBlock(index, blockIndex, patch)}
+                            />
+                          </details>
                           <ImageListEditor
                             title="当日图片"
                             helper="第一张默认作为折叠状态小缩略图；展开后作为当天图片轮播。"
@@ -744,13 +786,15 @@ export default function AdminPackagesPage() {
                               updateDay(index, { coverImage: next[0] || "", galleryImages: next });
                             }}
                           />
-                          <label className="package-caption-field"><span>图片说明</span><input value={day.galleryCaptionZh || ""} onChange={(event) => updateDay(index, { galleryCaptionZh: event.target.value })} placeholder="接机安排 · 抵达市区 · 晚上自由活动" /></label>
-                          <ScheduleEditor day={day} dayIndex={index} services={sourceServices} updateSlot={updateSlot} updateDay={updateDay} uploadImage={uploadImage} />
+                          <ScheduleEditor day={day} dayIndex={index} services={sourceServices} properties={sourceProperties} updateSlot={updateSlot} updateDay={updateDay} uploadImage={uploadImage} />
                           <div className="day-card-actions">
-                            <button type="button" onClick={() => moveDay(index, index - 1)}>上移</button>
-                            <button type="button" onClick={() => moveDay(index, index + 1)}>下移</button>
-                            <button type="button" onClick={() => setField("itinerary", [...draft.itinerary.slice(0, index + 1), clone(day), ...draft.itinerary.slice(index + 1)])}>复制这一天</button>
-                            <button type="button" onClick={() => { setField("itinerary", draft.itinerary.filter((_, i) => i !== index)); setActiveDay(Math.max(0, index - 1)); }}>删除这一天</button>
+                            <button type="button" onClick={() => duplicateDay(index)}>复制 Day</button>
+                            <details className="day-action-menu">
+                              <summary>•••</summary>
+                              <button type="button" onClick={() => moveDay(index, index - 1)}>上移</button>
+                              <button type="button" onClick={() => moveDay(index, index + 1)}>下移</button>
+                              <button className="danger" type="button" onClick={() => deleteDay(index)}>删除这一天</button>
+                            </details>
                           </div>
                         </div>
                       )}
@@ -1134,21 +1178,29 @@ function PriceTierEditor({
   );
 }
 
-function ScheduleEditor({ day, dayIndex, services, updateSlot, updateDay, uploadImage }: {
+function ScheduleEditor({ day, dayIndex, services, properties, updateSlot, updateDay, uploadImage }: {
   day: TravelPackageDay;
   dayIndex: number;
   services: ServiceItem[];
+  properties: PropertyRecord[];
   updateSlot: (dayIndex: number, slotIndex: number, patch: Partial<TravelPackageSchedule>) => void;
   updateDay: (index: number, patch: Partial<TravelPackageDay>) => void;
   uploadImage: (event: ChangeEvent<HTMLInputElement>, target: ImageTarget) => void;
 }) {
   const schedule = day.schedule || [];
+  const [editingSlot, setEditingSlot] = useState<number | null>(schedule.length ? null : 0);
   const itineraryServices = services.filter((service) => service.templateType !== "transfer" && !/接送|包车|用车|车辆|transfer|car/i.test(`${service.nameZh} ${service.subtitleZh} ${service.nameEn}`));
+  const serviceSources = services.filter((service) => service.templateType === "transfer" || /接送|包车|用车|车辆|transfer|car/i.test(`${service.nameZh} ${service.subtitleZh} ${service.nameEn}`) ? true : itineraryServices.includes(service));
+  const nodeMeta = (slot: TravelPackageSchedule) => nodeTypes.find((type) => type.value === (slot.nodeType || "note")) || nodeTypes[nodeTypes.length - 1];
+  const addSlot = (nodeType: TravelPackageSchedule["nodeType"] = "note") => {
+    updateDay(dayIndex, { schedule: [...schedule, { ...emptySchedule, nodeType, sortOrder: schedule.length + 1 }] });
+    setEditingSlot(schedule.length);
+  };
   const addSource = (slotIndex: number, raw: string) => {
     if (!raw) return;
     const [kind, id] = raw.split(":");
     if (kind === "service") {
-      const item = itineraryServices.find((service) => String(service.id) === id);
+      const item = serviceSources.find((service) => String(service.id) === id);
       if (!item) return;
       updateSlot(dayIndex, slotIndex, {
         sourceType: "service",
@@ -1162,35 +1214,75 @@ function ScheduleEditor({ day, dayIndex, services, updateSlot, updateDay, upload
         image: item.coverImage || item.images[0] || "",
       });
     }
+    if (kind === "property") {
+      const item = properties.find((property) => String(property.id) === id);
+      if (!item) return;
+      updateSlot(dayIndex, slotIndex, {
+        sourceType: "property",
+        sourceId: item.id,
+        sourceLabel: item.nameZh,
+        nodeType: "stay",
+        titleZh: item.nameZh,
+        titleEn: item.nameEn,
+        descriptionZh: `${item.areaZh || item.city} · ${item.bedrooms || 0}房 · ${item.guests || 0}人`,
+        descriptionEn: `${item.areaEn || item.city} · ${item.bedrooms || 0} bedrooms · ${item.guests || 0} guests`,
+        image: item.images?.[0] || "",
+      });
+    }
   };
 
   return (
     <div className="schedule-editor">
       <h3>行程安排</h3>
-      <small>这里只写当天发生什么：接机、前往景点、自由活动、返回市区等。具体房源、车型和中文协助请放到「这趟已经帮你安排好」。</small>
-      {schedule.map((slot, slotIndex) => (
-        <article key={slotIndex} className="schedule-node">
-          <div className="schedule-node-head">
-            <select value={slot.nodeType || "note"} onChange={(event) => updateSlot(dayIndex, slotIndex, { nodeType: event.target.value as TravelPackageSchedule["nodeType"] })}>{nodeTypes.map((type) => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}</select>
-            <input value={slot.time || ""} onChange={(event) => updateSlot(dayIndex, slotIndex, { time: event.target.value })} placeholder="07:00 / 上午 / 晚上 / 可留空" />
-            <select value="" onChange={(event) => addSource(slotIndex, event.target.value)}>
-              <option value="">内容来源：手动 / 已有体验服务</option>
-              <optgroup label="已有体验服务">{itineraryServices.map((service) => <option key={service.id} value={`service:${service.id}`}>{service.city} · {service.nameZh}</option>)}</optgroup>
-            </select>
-          </div>
-          <div className="admin-form-grid">
-            <label><span>项目名称</span><input value={slot.titleZh} onChange={(event) => updateSlot(dayIndex, slotIndex, { titleZh: event.target.value, sourceType: slot.sourceType || "manual" })} placeholder="环滩岛一日游" /></label>
-            <label><span>简短说明</span><input value={slot.descriptionZh || ""} onChange={(event) => updateSlot(dayIndex, slotIndex, { descriptionZh: event.target.value })} placeholder="浮潜、海岛午餐、自由活动" /></label>
-          </div>
-          <div className="schedule-node-foot">
-            {slot.image ? <img src={slot.image} alt="" /> : <span>节点图片可选</span>}
-            <label>上传图片<input type="file" accept="image/*" onChange={(event) => uploadImage(event, { type: "slot", dayIndex, slotIndex })} /></label>
-            {slot.sourceLabel && <small>引用：{slot.sourceLabel}</small>}
-            <button type="button" onClick={() => updateDay(dayIndex, { schedule: schedule.filter((_, i) => i !== slotIndex) })}>删除</button>
-          </div>
-        </article>
-      ))}
-      <button type="button" onClick={() => updateDay(dayIndex, { schedule: [...schedule, { ...emptySchedule, sortOrder: schedule.length + 1 }] })}>+ 添加行程</button>
+      <small>默认只显示当天清单；点开某条再编辑具体内容。住宿和服务优先关联已有数据，减少重复填写。</small>
+      <div className="schedule-node-list">
+        {schedule.map((slot, slotIndex) => {
+          const meta = nodeMeta(slot);
+          const open = editingSlot === slotIndex;
+          return (
+            <article key={slotIndex} className={open ? "schedule-node open" : "schedule-node"}>
+              <button className="schedule-node-summary" type="button" onClick={() => setEditingSlot(open ? null : slotIndex)}>
+                <span>{meta.icon}</span>
+                <b>{slot.time || meta.label}</b>
+                <strong>{slot.titleZh || "未命名行程"}</strong>
+                <small>{slot.descriptionZh || "未填写简短说明"}</small>
+                <em>{slot.sourceType === "property" ? "已关联房源" : slot.sourceType === "service" ? "已关联服务" : "手动"}</em>
+                {slot.image ? <img src={slot.image} alt="" /> : <i>图片可选</i>}
+              </button>
+              {open && (
+                <div className="schedule-node-edit">
+                  <div className="schedule-node-head">
+                    <select value={slot.nodeType || "note"} onChange={(event) => updateSlot(dayIndex, slotIndex, { nodeType: event.target.value as TravelPackageSchedule["nodeType"] })}>{nodeTypes.map((type) => <option key={type.value} value={type.value}>{type.icon} {type.label}</option>)}</select>
+                    <input value={slot.time || ""} onChange={(event) => updateSlot(dayIndex, slotIndex, { time: event.target.value })} placeholder="07:00 / 上午 / 晚上 / 可留空" />
+                    <select value="" onChange={(event) => addSource(slotIndex, event.target.value)}>
+                      <option value="">选择已有内容</option>
+                      <optgroup label="已有房源">{properties.map((property) => <option key={property.id} value={`property:${property.id}`}>{property.city} · {property.nameZh}</option>)}</optgroup>
+                      <optgroup label="已有服务">{serviceSources.map((service) => <option key={service.id} value={`service:${service.id}`}>{service.city} · {service.nameZh}</option>)}</optgroup>
+                    </select>
+                  </div>
+                  <div className="admin-form-grid">
+                    <label><span>项目名称</span><input value={slot.titleZh} onChange={(event) => updateSlot(dayIndex, slotIndex, { titleZh: event.target.value, sourceType: slot.sourceType || "manual" })} placeholder="环滩岛一日游" /></label>
+                    <label><span>简短说明</span><input value={slot.descriptionZh || ""} onChange={(event) => updateSlot(dayIndex, slotIndex, { descriptionZh: event.target.value })} placeholder="浮潜、海岛午餐、自由活动" /></label>
+                  </div>
+                  <div className="schedule-node-foot">
+                    {slot.image ? <img src={slot.image} alt="" /> : <span>节点图片可选</span>}
+                    <label>上传图片<input type="file" accept="image/*" onChange={(event) => uploadImage(event, { type: "slot", dayIndex, slotIndex })} /></label>
+                    {slot.sourceLabel && <small>引用：{slot.sourceLabel}</small>}
+                    <button type="button" onClick={() => {
+                      updateDay(dayIndex, { schedule: schedule.filter((_, i) => i !== slotIndex) });
+                      setEditingSlot(null);
+                    }}>删除</button>
+                  </div>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+      <div className="schedule-add-row">
+        <span>+ 添加行程</span>
+        {nodeTypes.map((type) => <button key={type.value} type="button" onClick={() => addSlot(type.value as TravelPackageSchedule["nodeType"])}>{type.icon} {type.label}</button>)}
+      </div>
     </div>
   );
 }
