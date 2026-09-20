@@ -2786,25 +2786,26 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 /* Travel guide detail utility layer: readable, scannable, still editorial. */
 .guide-detail-tags{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 10px}
 .guide-detail-tags span{border-radius:999px;background:#f1e7db;color:#a77b4d;padding:5px 9px;font-size:11px;font-weight:500}
-.guide-route-overview{margin:3px auto 26px;padding:17px 0 18px;border-top:1px solid rgba(205,184,160,.22);border-bottom:1px solid rgba(205,184,160,.22)}
-.guide-route-overview b{display:block;margin-bottom:6px;color:#14304a;font:600 18px/1.25 var(--serif)}
-.guide-route-overview p{margin:0 0 11px;color:#52677a;font-size:14px;line-height:1.55}
+.guide-route-overview{margin:12px auto 17px;padding:13px 0 14px;border-top:1px solid rgba(205,184,160,.2);border-bottom:1px solid rgba(205,184,160,.2)}
+.guide-route-overview b{display:block;margin-bottom:5px;color:#b17b48;font-size:11px;font-weight:650;letter-spacing:.1em}
+.guide-route-overview p{margin:0 0 4px;color:#14304a;font:600 18px/1.35 var(--serif)}
+.guide-route-overview small{display:block;margin-bottom:10px;color:#84929e;font-size:12px;line-height:1.45}
 .guide-route-overview div{display:flex;flex-wrap:wrap;gap:7px}
-.guide-route-overview a{border-radius:999px;background:rgba(241,231,219,.72);color:#a77b4d;padding:6px 10px;font-size:12px;font-weight:600;text-decoration:none}
+.guide-route-overview a{border-radius:999px;background:rgba(241,231,219,.66);color:#a77b4d;padding:6px 10px;font-size:12px;font-weight:600;text-decoration:none}
 .guide-place-heading{scroll-margin-top:82px}
 .guide-detail-body>p{margin-bottom:12px;line-height:1.72}
-.guide-info-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px;border-radius:10px;background:rgba(246,239,230,.66)}
-.guide-info-list li{padding-left:0}
+.guide-info-list{grid-template-columns:1fr;gap:6px;padding:11px 13px;border-radius:10px;background:rgba(246,239,230,.54)}
+.guide-info-list li{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:baseline;padding-left:0}
 .guide-info-list li:before{display:none}
-.guide-info-list li b{display:block;margin-bottom:3px;color:#b17b48;font-size:10px;letter-spacing:.08em}
-.guide-info-list li span{display:block}
+.guide-info-list li b{display:block;color:#a97845;font-size:11px;font-weight:650;letter-spacing:.04em}
+.guide-info-list li span{display:block;color:#52677a}
 .guide-local-note{padding:15px 16px;border:1px solid rgba(205,184,160,.25);border-radius:10px;background:rgba(255,253,249,.54)}
-.guide-soft-link{padding:22px 22px 21px;border:1px solid rgba(205,184,160,.24);border-radius:12px;background:#f6efe6}
+.guide-soft-link{padding:23px 22px 22px;border:1px solid rgba(205,184,160,.2);border-radius:18px;background:#f6efe6}
 .guide-soft-link small{display:block;margin-bottom:7px;color:#9a8979;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
 .guide-soft-link p b{color:#40586d;font-weight:600}
-.guide-related>div{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:4px;border-top:0}
-.guide-related a{scroll-snap-align:start;grid-template-columns:132px minmax(0,1fr) 16px;flex:0 0 min(390px,88vw);gap:14px;padding:10px 0;border-bottom:0}
-.guide-related img{width:132px;height:94px}
+.guide-related>div{display:grid;gap:0;overflow:visible;padding-bottom:0;border-top:1px solid rgba(205,184,160,.22)}
+.guide-related a{grid-template-columns:minmax(112px,34%) minmax(0,1fr) 16px;gap:14px;min-height:104px;padding:13px 0;border-bottom:1px solid rgba(205,184,160,.22)}
+.guide-related img{width:100%;height:88px}
 .guide-detail-gallery>div{background:linear-gradient(100deg,#eee5db 0%,#f7f0e7 48%,#eee5db 100%)}
 
 @media(max-width:700px){
@@ -2812,18 +2813,29 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .guide-detail-head h1{font-size:30px}
   .guide-detail-tags{gap:6px;margin:10px 0 9px}
   .guide-detail-tags span{padding:4px 8px;font-size:10px}
-  .guide-route-overview{margin-bottom:22px;padding:14px 0 15px}
-  .guide-route-overview b{font-size:16px}
-  .guide-route-overview p{font-size:12.5px}
+  header.compact-guide-header{height:56px;padding:0 14px}
+  header.compact-guide-header nav{top:56px}
+  header.compact-guide-header .logo{gap:8px}
+  header.compact-guide-header .logo-mark{width:30px;height:30px;font-size:19px}
+  header.compact-guide-header .logo b{font-size:10px}
+  header.compact-guide-header .logo small{display:none}
+  header.compact-guide-header .menu-btn{height:30px;margin-right:8px;font-size:12px}
+  header.compact-guide-header .header-cta{min-height:30px;padding:0 9px;font-size:10px}
+  .guide-route-overview{margin:10px auto 16px;padding:12px 0 13px}
+  .guide-route-overview b{font-size:10px}
+  .guide-route-overview p{font-size:15px}
+  .guide-route-overview small{margin-bottom:9px;font-size:11px}
   .guide-route-overview a{font-size:10.5px;padding:5px 8px}
   .guide-place-heading{scroll-margin-top:70px}
   .guide-detail-body>p{margin-bottom:10px;line-height:1.66}
-  .guide-info-list{grid-template-columns:1fr 1fr;padding:10px;gap:7px}
-  .guide-info-list li{font-size:11.5px;line-height:1.42}
-  .guide-info-list li b{font-size:9.5px}
+  .guide-info-list{grid-template-columns:1fr;padding:10px 12px;gap:6px}
+  .guide-info-list li{grid-template-columns:64px minmax(0,1fr);gap:9px;font-size:11.5px;line-height:1.42}
+  .guide-info-list li b{font-size:10px}
   .guide-local-note{padding:13px 14px}
   .guide-local-note p{line-height:1.62}
   .guide-soft-link{padding:19px 18px 18px}
-  .guide-related a{grid-template-columns:112px minmax(0,1fr) 14px;flex-basis:86vw;gap:12px}
-  .guide-related img{width:112px;height:80px}
+  .guide-related a{grid-template-columns:minmax(108px,34%) minmax(0,1fr) 14px;gap:12px;min-height:102px}
+  .guide-related img{height:78px}
+  .guide-related small{font-size:9.5px}
+  .guide-related b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 }

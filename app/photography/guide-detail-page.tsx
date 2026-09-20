@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ServiceMenu } from "../service-menu";
 import type { TravelGuideArticle, TravelGuideBlock } from "../../db/travel-guide-shared";
 import { guideCities, guideDefaultImages } from "../../db/travel-guide-shared";
@@ -15,6 +15,16 @@ type PlaceHeading = {
   id: string;
   number: string;
   title: string;
+};
+
+const guideAtmosphereImages: Record<string, string> = {
+  "first-time-kuala-lumpur": "https://images.unsplash.com/photo-1508964942454-1a56651d54ac?auto=format&fit=crop&w=1400&q=86",
+};
+
+const placeSubtitleMap: Record<string, string> = {
+  双子塔: "Petronas Twin Towers · KLCC",
+  茨厂街: "Petaling Street · Chinatown",
+  武吉免登: "Bukit Bintang",
 };
 
 function Logo() {
@@ -46,6 +56,10 @@ function guideImage(item: TravelGuideArticle) {
   return item.coverImage || defaultImage || "";
 }
 
+function guideHeroImage(item: TravelGuideArticle) {
+  return guideAtmosphereImages[item.slug] || guideImage(item);
+}
+
 function defaultBlocks(article: TravelGuideArticle): TravelGuideBlock[] {
   const cover = guideImage(article);
   if (article.slug === "first-time-kuala-lumpur") {
@@ -53,16 +67,16 @@ function defaultBlocks(article: TravelGuideArticle): TravelGuideBlock[] {
       { type: "heading", text: "双子塔 KLCC" },
       { type: "gallery", images: [cover], caption: "KLCC · EVENING" },
       { type: "paragraph", text: "第一次来吉隆坡，建议把 KLCC 留到傍晚。白天看看城市，吃完饭以后等亮灯，晚上氛围会比白天更好。" },
-      { type: "list", items: ["建议时间：17:00–21:00", "建议停留：1.5–2小时", "门票：外围免费", "顺路安排：KLCC Park · Pavilion · 武吉免登"] },
+      { type: "list", items: ["建议时间：17:00–21:00", "建议停留：1.5–2小时", "顺路安排：KLCC Park · Pavilion"] },
       { type: "quote", text: "如果主要想拍照，不用太晚才到。亮灯前后人会变多，提前一点反而更从容。" },
       { type: "heading", text: "茨厂街 Chinatown" },
       { type: "gallery", images: [guideDefaultImages["kl-chinatown-slow-walk"] || cover], caption: "CHINATOWN · EVENING WALK" },
       { type: "paragraph", text: "茨厂街不只适合打卡。附近的鬼仔巷、中央艺术坊和独立广场可以一起安排，下午慢慢过去会比较舒服。" },
-      { type: "list", items: ["建议时间：15:00–19:00", "建议停留：1–1.5小时", "门票：街区免费", "顺路安排：鬼仔巷 · 中央艺术坊 · 独立广场"] },
+      { type: "list", items: ["建议时间：15:00–19:00", "建议停留：1–2小时", "顺路安排：鬼仔巷 · 中央艺术坊 · 独立广场"] },
       { type: "heading", text: "武吉免登 Bukit Bintang" },
       { type: "gallery", images: ["https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg/1280px-Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg"], caption: "BUKIT BINTANG · NIGHT WALK" },
       { type: "paragraph", text: "如果你喜欢晚上吃饭、逛街方便，武吉免登会比想象中实用。它不是最安静的区域，但第一次来很好上手。" },
-      { type: "list", items: ["建议时间：晚餐后", "建议停留：1–2小时", "门票：街区免费", "顺路安排：Pavilion · Jalan Alor · TRX"] },
+      { type: "list", items: ["建议时间：晚餐后", "建议停留：2–3小时", "顺路安排：Pavilion · Jalan Alor · TRX"] },
       { type: "paragraph", text: "吉隆坡不需要一次把所有地方都走完。第一次来，把几个区域串顺，留一点时间吃饭、散步，体验反而会更舒服。" },
     ];
   }
@@ -97,6 +111,17 @@ function collectPlaceHeadings(blocks: TravelGuideBlock[]): PlaceHeading[] {
 
 function placeDisplayName(text: string) {
   return text.replace(/\s+[A-Za-z][A-Za-z\s&.'-]+$/, "").trim() || text;
+}
+
+function placeSubtitle(text: string) {
+  const name = placeDisplayName(text);
+  return placeSubtitleMap[name] || text.replace(name, "").trim();
+}
+
+function routeMeta(article: TravelGuideArticle) {
+  if (article.slug === "first-time-kuala-lumpur") return "约半天～1天 · 建议下午出发 · 晚上结束";
+  if (article.category === "行程参考") return "按当天节奏安排 · 可根据天气调整";
+  return "轻松慢走 · 适合自由行";
 }
 
 function splitInfoItem(item: string) {
@@ -152,19 +177,19 @@ function RelatedGuide({ item }: { item: TravelGuideArticle }) {
 }
 
 function PlaceTitle({ text }: { text: string }) {
-  const match = text.match(/^(.*?)(\s+[A-Za-z][A-Za-z\s&.'-]+)$/);
-  const english = match?.[2]?.trim() || "";
-  if (!match || !english) return <>{text}</>;
+  const name = placeDisplayName(text);
+  const subtitle = placeSubtitle(text);
   return (
     <>
-      <span>{match[1].trim()}</span>
-      <em>{english}</em>
+      <span>{name}</span>
+      {subtitle && <em>{subtitle}</em>}
     </>
   );
 }
 
 export function GuideDetailPage({ article, related }: { article: TravelGuideArticle; related: TravelGuideArticle[] }) {
   const [menu, setMenu] = useState(false);
+  const [compactHeader, setCompactHeader] = useState(false);
   const city = guideCities.find((item) => item.key === article.city);
   const blocks = useMemo(() => (hasRealContent(article.contentBlocks) ? article.contentBlocks : defaultBlocks(article)), [article]);
   const placeHeadings = useMemo(() => collectPlaceHeadings(blocks), [blocks]);
@@ -173,9 +198,16 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     [blocks],
   );
 
+  useEffect(() => {
+    const onScroll = () => setCompactHeader(window.scrollY > 180);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <>
-      <header>
+      <header className={compactHeader ? "compact-guide-header" : ""}>
         <Logo />
         <button className="menu-btn" onClick={() => setMenu(!menu)} aria-label={menu ? "关闭菜单" : "打开菜单"}>
           {menu ? "关闭" : "☰ 菜单"}
@@ -203,16 +235,17 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
             {guideTags(article).map((tag) => <span key={tag}>{tag}</span>)}
           </div>
           <span>约 {article.readMinutes || 4} 分钟阅读{city ? ` · ${city.zh}` : ""}</span>
-          <Gallery images={[guideImage(article)]} caption={article.imageLabel || city?.en?.toUpperCase()} />
           {placeHeadings.length > 1 && (
             <nav className="guide-route-overview" aria-label="这篇攻略">
-              <b>路线一览</b>
+              <b>本篇路线</b>
               <p>{placeHeadings.map((item) => placeDisplayName(item.title)).join(" → ")}</p>
+              <small>{routeMeta(article)}</small>
               <div>
                 {placeHeadings.map((item) => <a href={`#${item.id}`} key={item.id}>{item.number} {placeDisplayName(item.title)}</a>)}
               </div>
             </nav>
           )}
+          <Gallery images={[guideHeroImage(article)]} caption={article.imageLabel || city?.en?.toUpperCase()} />
         </section>
 
         <article className="guide-detail-body">
@@ -243,8 +276,8 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
 
         <section className="guide-soft-link">
           <small>Malaysia local travel support</small>
-          <h2>还没安排好马来西亚行程？</h2>
-          <p><b>住宿 · 接送机 · 包车 · 一日游</b><br />告诉我们日期和人数，我们帮你一起看看。</p>
+          <h2>还在安排马来西亚行程？</h2>
+          <p>告诉我们日期和人数，住宿、接送机、包车和当地行程可以一起看看。</p>
           <Link href="/#contact">提交行程需求 →</Link>
         </section>
 
