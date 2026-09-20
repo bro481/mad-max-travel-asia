@@ -24,7 +24,7 @@ export async function PUT(
   const { id } = await params;
   const b = await request.json();
   await env.DB.prepare(
-    `UPDATE inquiry_requests SET name=?,contact=?,destinations=?,services=?,travel_time=?,message=?,status=?,source=?,country=?,language=?,people=?,children=?,rooms=?,budget=?,tags=?,next_follow_up=?,followups=?,quotes=?,financials=?,deal_amount=?,deal_date=?,payment_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    `UPDATE inquiry_requests SET name=?,contact=?,destinations=?,services=?,travel_time=?,message=?,status=?,source=?,country=?,language=?,people=?,children=?,rooms=?,budget=?,tags=?,next_follow_up=?,followups=?,quotes=?,financials=?,deal_amount=?,deal_date=?,payment_status=?,referrer_id=?,referrer_name=?,referrer_first_url=?,referrer_first_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
   )
     .bind(
       b.name,
@@ -49,6 +49,10 @@ export async function PUT(
       Number(b.dealAmount || 0),
       b.dealDate || "",
       b.paymentStatus || "未收款",
+      b.referrerId || "",
+      b.referrerName || "",
+      b.referrerFirstUrl || "",
+      b.referrerFirstAt || "",
       Number(id),
     )
     .run();

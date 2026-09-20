@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { ensureInquiries } from "../../../db/inquiries";
+import { validateReferrerForInquiry } from "../../../db/referrers";
 
 export async function POST(request: Request) {
   try {
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
       services?: string[];
       travelTime?: string;
       message?: string;
+      referrerId?: string;
+      referrerFirstUrl?: string;
+      referrerFirstAt?: string;
     };
     if (!body.name || !body.contact)
       return NextResponse.json(
@@ -18,8 +22,10 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     await ensureInquiries();
+    const referrer = await validateReferrerForInquiry(body.referrerId);
+    const source = referrer ? `${referrer.name} · ${referrer.code}` : "官网自然访问";
     await env.DB.prepare(
-      "INSERT INTO inquiry_requests (name, contact, destinations, services, travel_time, message, status, source) VALUES (?, ?, ?, ?, ?, ?, '待回复', '网站')",
+      "INSERT INTO inquiry_requests (name, contact, destinations, services, travel_time, message, status, source, referrer_id, referrer_name, referrer_first_url, referrer_first_at) VALUES (?, ?, ?, ?, ?, ?, '待回复', ?, ?, ?, ?, ?)",
     )
       .bind(
         body.name,
@@ -28,6 +34,11 @@ export async function POST(request: Request) {
         JSON.stringify(body.services || []),
         body.travelTime || null,
         body.message || "",
+        source,
+        referrer?.code || "",
+        referrer?.name || "",
+        referrer ? body.referrerFirstUrl || "" : "",
+        referrer ? body.referrerFirstAt || "" : "",
       )
       .run();
     return NextResponse.json({ ok: true }, { status: 201 });

@@ -786,6 +786,37 @@ export function ServiceDetail({
     });
     return [cover, ...relatedImages.slice(0, 3)].filter(Boolean);
   };
+  const isLegacyPlaceholderImage = (image?: string) =>
+    Boolean(image && /images\.unsplash\.com/.test(image));
+  const uniqueImages = (images: Array<string | undefined>) =>
+    Array.from(new Set(images.filter(Boolean) as string[]));
+  const serviceImages = (item?: ServiceItem) =>
+    item
+      ? uniqueImages([
+          ...item.images,
+          item.coverImage,
+          ...(item.gallery || []),
+          ...item.routes.flatMap((route) => [
+            route.coverImage,
+            route.image,
+            ...(route.imageLibrary || []),
+            ...(route.nodes || []).map((node) => node.image),
+          ]),
+        ])
+      : [];
+  const routeCoverImage = (plan?: ServiceRoutePlan) => {
+    const firstUploaded =
+      plan?.nodes?.map((node) => node.image).find(Boolean) ||
+      plan?.imageLibrary?.find(Boolean) ||
+      "";
+    if (plan?.coverImage && !isLegacyPlaceholderImage(plan.coverImage)) {
+      return plan.coverImage;
+    }
+    if (plan?.image && !isLegacyPlaceholderImage(plan.image)) {
+      return plan.image;
+    }
+    return firstUploaded || plan?.coverImage || plan?.image || "";
+  };
   const cityName = city === "kl" ? "吉隆坡" : city === "melaka" ? "马六甲" : "亚庇";
   const managedForCity = managedServices
     .filter((item) => item.city === cityName)
@@ -804,7 +835,7 @@ export function ServiceDetail({
           .map((name) => name.trim())
           .filter(Boolean)
           .map((name) => ({ nameZh: name } as ServiceRouteNode));
-    const cover = plan?.coverImage || plan?.image || "";
+    const cover = routeCoverImage(plan);
     const durationKey = String(plan?.duration || "").replace(/\s+/g, "");
     const tags = (plan?.tags?.length ? plan.tags : [plan?.tag].filter(Boolean) as string[])
       .filter((tag) => String(tag).replace(/\s+/g, "") !== durationKey)
@@ -874,6 +905,7 @@ export function ServiceDetail({
     : routes;
   const displayRoutes = managedCards.length ? managedCards : staticDisplayRoutes;
   const heroImage = activeManagedService?.coverImage || activeManagedService?.images?.[0] || service.image || photo("photo-1549317661-bd32c8ce0db2");
+  const managedFootageImages = serviceImages(activeManagedService).slice(0, 8);
   const heroTitle = zh
     ? activeManagedService?.nameZh || cityInfo.hero[0]
     : activeManagedService?.nameEn || activeManagedService?.nameZh || cityInfo.hero[1];
@@ -1052,13 +1084,21 @@ export function ServiceDetail({
             </h2>
           </div>
           <div>
-            {footage.map((id, i) => (
-              <img
-                key={id}
-                src={photo(id, 700)}
-                alt={`${cityInfo.name[l]} ${zh ? "旅行实拍" : "travel"} ${i + 1}`}
-              />
-            ))}
+            {managedFootageImages.length
+              ? managedFootageImages.map((image, i) => (
+                  <img
+                    key={`${image}-${i}`}
+                    src={image}
+                    alt={`${cityInfo.name[l]} ${zh ? "旅行实拍" : "travel"} ${i + 1}`}
+                  />
+                ))
+              : footage.map((id, i) => (
+                  <img
+                    key={id}
+                    src={photo(id, 700)}
+                    alt={`${cityInfo.name[l]} ${zh ? "旅行实拍" : "travel"} ${i + 1}`}
+                  />
+                ))}
           </div>
         </section>
         <section className="detail-final-cta">

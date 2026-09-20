@@ -8,10 +8,16 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const fallbackArticle = () => staticTravelGuides().find((item) => item.slug === slug) || null;
-  const [article, articles] = await Promise.all([
-    withPublicDataTimeout(getTravelGuide(slug), fallbackArticle, `Public travel guide detail query: ${slug}`),
-    withPublicDataTimeout(listTravelGuides(), () => staticTravelGuides(), "Public related travel guides query"),
-  ]);
+  const article = await withPublicDataTimeout(
+    getTravelGuide(slug),
+    fallbackArticle,
+    `Public travel guide detail query: ${slug}`,
+  );
+  const articles = await withPublicDataTimeout(
+    listTravelGuides(),
+    () => staticTravelGuides(),
+    "Public related travel guides query",
+  );
   if (!article) notFound();
   const related = articles.filter((item) => item.status === "published" && item.city === article.city && item.slug !== article.slug);
 

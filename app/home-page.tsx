@@ -7,6 +7,7 @@ import { ServiceMenu } from "./service-menu";
 import { InquiryModal } from "./components/inquiry-modal";
 import { MobileScrollHint } from "./components/mobile-scroll-hint";
 import { DateInput } from "./components/date-input";
+import { referrerPayload } from "./components/referrer-attribution";
 
 const fallbackDestinations: DestinationRecord[] = [
   { id: 1, slug: "kuala-lumpur", nameZh: "吉隆坡", nameEn: "Kuala Lumpur", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 1, serviceSort: 1, onlyShowWithContent: true, status: "visible", updatedAt: "" },
@@ -615,6 +616,7 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
       services: fd.getAll("services"),
       travelTime: fd.get("travelTime"),
       message: fd.get("message"),
+      ...referrerPayload(),
     };
     const res = await fetch("/api/inquiries", {
       method: "POST",

@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import "./inquiry-modal.css";
 import { DateInput } from "./date-input";
 import { useInquirySettings } from "./use-inquiry-settings";
+import { referrerPayload } from "./referrer-attribution";
 
 export type InquiryKind =
   | "accommodation"
@@ -88,6 +89,7 @@ export function InquiryModal({ kind, title, promptFields = [], maxGuests = 14, o
       setLogged(true);
       void fetch("/api/inquiries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
         name: "官网访客（未留联系方式）", contact: "待添加微信", services: [title || info.service], travelTime: form.date, message: requestText,
+        ...referrerPayload(),
       }) }).catch(() => setLogged(false));
     }
   };

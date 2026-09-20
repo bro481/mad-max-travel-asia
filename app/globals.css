@@ -2753,3 +2753,36 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .package-bottom-sheet dt{margin-bottom:5px;font-size:13.5px}
   .package-bottom-sheet dd{font-size:12.5px;line-height:1.62}
 }
+
+/* Final travel guide list alignment override. */
+.guide-row,
+.guide-row-featured{
+  grid-template-columns:214px minmax(0,1fr) 22px;
+  align-items:center;
+}
+.guide-row figure,
+.guide-row-featured figure{
+  width:214px;
+  height:162px;
+  aspect-ratio:auto;
+}
+.guide-row-copy b,
+.guide-row-featured .guide-row-copy b{
+  font-size:24px;
+}
+@media(max-width:700px){
+  .guide-row,
+  .guide-row-featured{
+    grid-template-columns:122px minmax(0,1fr) 14px;
+  }
+  .guide-row figure,
+  .guide-row-featured figure{
+    width:122px;
+    height:110px;
+    aspect-ratio:auto;
+  }
+  .guide-row-copy b,
+  .guide-row-featured .guide-row-copy b{
+    font-size:16.5px;
+  }
+}

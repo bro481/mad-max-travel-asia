@@ -43,7 +43,7 @@ export default function InquiriesPage() {
             x.status === filter ||
             (filter === "跟进中" && ["沟通中", "已报价", "待跟进"].includes(x.status))) &&
           (!query ||
-            [x.name, x.contact, x.message]
+            [x.name, x.contact, x.message, x.source, x.referrerId, x.referrerName]
               .join(" ")
               .toLowerCase()
               .includes(query.toLowerCase())),

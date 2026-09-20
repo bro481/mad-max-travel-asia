@@ -137,6 +137,20 @@ export default function InquiryDetail() {
               </button>
             ))}
           </div>
+          <h3>来源</h3>
+          <div className="lead-source-box">
+            <b>
+              {data.referrerId
+                ? `${data.referrerName || "司机来源"} · ${data.referrerId}`
+                : "官网自然访问"}
+            </b>
+            {data.referrerFirstAt && (
+              <small>
+                首次进入：{new Date(data.referrerFirstAt).toLocaleString("zh-CN")}
+              </small>
+            )}
+            {data.referrerFirstUrl && <code>{data.referrerFirstUrl}</code>}
+          </div>
         </aside>
         <main className="lead-card lead-demand">
           <h2>客户需求</h2>

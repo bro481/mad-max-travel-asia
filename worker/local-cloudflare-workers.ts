@@ -1,4 +1,6 @@
 import postgres from "postgres";
+import OSS from "ali-oss";
+import { setDefaultResultOrder } from "node:dns";
 
 type BoundValue = string | number | boolean | null | undefined;
 type StoragePutOptions = {
@@ -7,18 +9,21 @@ type StoragePutOptions = {
 };
 
 let client: ReturnType<typeof postgres> | null = null;
+let ossClient: OSS | null = null;
 
 function getClient() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not configured.");
   }
+  setDefaultResultOrder("ipv4first");
   client ??= postgres(process.env.DATABASE_URL, {
     // Admin pages load properties and destination options together. A single
     // connection makes the second query wait behind a cold Supabase connect.
-    max: 2,
+    max: 3,
     prepare: false,
-    connect_timeout: 4,
-    idle_timeout: 20,
+    ssl: "require",
+    connect_timeout: 20,
+    idle_timeout: 30,
   });
   return client;
 }
@@ -58,6 +63,39 @@ function requireSupabaseEnv() {
     );
   }
   return { url: cleanUrl, key: key.trim(), bucket: cleanBucket };
+}
+
+function getOssConfig() {
+  const bucket = process.env.ALIYUN_OSS_BUCKET?.trim();
+  const region = process.env.ALIYUN_OSS_REGION?.trim();
+  const accessKeyId = process.env.ALIYUN_ACCESS_KEY_ID?.trim();
+  const accessKeySecret = process.env.ALIYUN_ACCESS_KEY_SECRET?.trim();
+  const endpoint = (
+    process.env.ALIYUN_OSS_INTERNAL_ENDPOINT ||
+    process.env.ALIYUN_OSS_ENDPOINT ||
+    ""
+  ).trim();
+  if (!bucket || !region || !accessKeyId || !accessKeySecret || !endpoint) {
+    return null;
+  }
+  return {
+    bucket,
+    region,
+    accessKeyId,
+    accessKeySecret,
+    endpoint,
+  };
+}
+
+function getOssClient() {
+  const config = getOssConfig();
+  if (!config) return null;
+  ossClient ??= new OSS({
+    ...config,
+    secure: true,
+    timeout: "12s",
+  });
+  return ossClient;
 }
 
 function translatePlaceholders(sql: string) {
@@ -163,12 +201,70 @@ async function readStorageError(response: Response) {
   return text.replace(/\s+/g, " ").slice(0, 220);
 }
 
+function normalizeStorageKey(key: string) {
+  return key.replace(/^\/+/, "");
+}
+
+function getOssStatus(error: unknown) {
+  if (!error || typeof error !== "object") return undefined;
+  return (error as { status?: number; statusCode?: number }).status ??
+    (error as { status?: number; statusCode?: number }).statusCode;
+}
+
+async function readFromOss(key: string) {
+  const oss = getOssClient();
+  if (!oss) return null;
+  try {
+    const result = await oss.get(normalizeStorageKey(key));
+    return {
+      body: result.content.buffer.slice(
+        result.content.byteOffset,
+        result.content.byteOffset + result.content.byteLength,
+      ) as ArrayBuffer,
+      httpMetadata: {
+        contentType: result.res.headers["content-type"] as string | undefined,
+      },
+    };
+  } catch (error) {
+    if (getOssStatus(error) === 404) return null;
+    throw error;
+  }
+}
+
+async function writeToOss(
+  key: string,
+  body: ArrayBuffer,
+  options?: StoragePutOptions,
+) {
+  const oss = getOssClient();
+  if (!oss) {
+    throw new Error(
+      "ALIYUN_OSS_BUCKET, ALIYUN_OSS_REGION, ALIYUN_OSS_ENDPOINT, ALIYUN_ACCESS_KEY_ID and ALIYUN_ACCESS_KEY_SECRET are required.",
+    );
+  }
+  return oss.put(normalizeStorageKey(key), Buffer.from(body), {
+    headers: {
+      "Content-Type":
+        options?.httpMetadata?.contentType || "application/octet-stream",
+      ...Object.fromEntries(
+        Object.entries(options?.customMetadata || {}).map(([name, value]) => [
+          `x-oss-meta-${name}`,
+          value,
+        ]),
+      ),
+    },
+  });
+}
+
 export const env = {
   DB: {
     prepare: (sqlText: string) => makeStatement(sqlText),
   },
   IMAGES: {
     async get(key: string) {
+      const ossObject = await readFromOss(key);
+      if (ossObject) return ossObject;
+
       const response = await storageFetch(key);
       if (!response.ok) return null;
       return {
@@ -179,6 +275,10 @@ export const env = {
       };
     },
     async put(key: string, body: ArrayBuffer, options?: StoragePutOptions) {
+      if (getOssClient()) {
+        return writeToOss(key, body, options);
+      }
+
       const response = await storageFetch(key, {
         method: "POST",
         body,

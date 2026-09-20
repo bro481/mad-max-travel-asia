@@ -122,7 +122,7 @@ export default async function Page({
 }) {
   const { slug } = await params;
   const { city, service: previewService, route: previewRoute } = await searchParams;
-  const service =
+  const serviceFromDatabase =
     process.env.NODE_ENV === "development" ||
     process.env.LOCAL_BROWSER_PREVIEW === "1"
       ? staticServices.find((item) => item.slug === slug)
@@ -133,6 +133,10 @@ export default async function Page({
             `Public service detail query: ${slug}`,
           ),
         );
+  const service =
+    serviceFromDatabase ||
+    staticServices.find((fallback) => fallback.slug === slug) ||
+    null;
   if (!service)
     return (
       <main className="not-found">

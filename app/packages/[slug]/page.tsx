@@ -10,11 +10,21 @@ export const dynamic = "force-dynamic";
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const fallback = () => staticTravelPackages().find((pkg) => pkg.slug === slug) || null;
-  const [item, properties, services] = await Promise.all([
-    withPublicDataTimeout(getTravelPackage(slug), fallback, `Public package detail query: ${slug}`),
-    withPublicDataTimeout(listProperties(), () => staticPropertyRecords(), "Public package linked properties query"),
-    withPublicDataTimeout(listServiceItems(), () => staticServiceItemRecords(), "Public package linked services query"),
-  ]);
+  const item = await withPublicDataTimeout(
+    getTravelPackage(slug),
+    fallback,
+    `Public package detail query: ${slug}`,
+  );
+  const properties = await withPublicDataTimeout(
+    listProperties(),
+    () => staticPropertyRecords(),
+    "Public package linked properties query",
+  );
+  const services = await withPublicDataTimeout(
+    listServiceItems(),
+    () => staticServiceItemRecords(),
+    "Public package linked services query",
+  );
   if (!item) notFound();
   return (
     <PackageDetailPage

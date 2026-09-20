@@ -10,6 +10,10 @@ export type InquiryRecord = {
   message: string;
   status: string;
   source: string;
+  referrerId: string;
+  referrerName: string;
+  referrerFirstUrl: string;
+  referrerFirstAt: string;
   country: string;
   language: string;
   people: number;
@@ -40,6 +44,10 @@ const createSql = `CREATE TABLE IF NOT EXISTS inquiry_requests (
  quotes TEXT NOT NULL DEFAULT '[]', financials TEXT NOT NULL DEFAULT '[]',
  deal_amount REAL NOT NULL DEFAULT 0, deal_date TEXT NOT NULL DEFAULT '',
  payment_status TEXT NOT NULL DEFAULT '未收款',
+ referrer_id TEXT NOT NULL DEFAULT '',
+ referrer_name TEXT NOT NULL DEFAULT '',
+ referrer_first_url TEXT NOT NULL DEFAULT '',
+ referrer_first_at TEXT NOT NULL DEFAULT '',
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`;
@@ -60,6 +68,10 @@ const columns = [
   ["deal_amount", "REAL NOT NULL DEFAULT 0"],
   ["deal_date", "TEXT NOT NULL DEFAULT ''"],
   ["payment_status", "TEXT NOT NULL DEFAULT '未收款'"],
+  ["referrer_id", "TEXT NOT NULL DEFAULT ''"],
+  ["referrer_name", "TEXT NOT NULL DEFAULT ''"],
+  ["referrer_first_url", "TEXT NOT NULL DEFAULT ''"],
+  ["referrer_first_at", "TEXT NOT NULL DEFAULT ''"],
   ["updated_at", "TEXT NOT NULL DEFAULT ''"],
 ] as const;
 
@@ -97,6 +109,10 @@ export function mapInquiry(row: Record<string, unknown>): InquiryRecord {
     message: String(row.message || ""),
     status: String(row.status || "待回复"),
     source: String(row.source || "网站"),
+    referrerId: String(row.referrer_id || ""),
+    referrerName: String(row.referrer_name || ""),
+    referrerFirstUrl: String(row.referrer_first_url || ""),
+    referrerFirstAt: String(row.referrer_first_at || ""),
     country: String(row.country || ""),
     language: String(row.language || "中文"),
     people: Number(row.people || 0),

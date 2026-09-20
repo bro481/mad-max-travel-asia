@@ -43,6 +43,9 @@ export default async function AdminLayout({
           <Link href="/admin/inquiries">
             ☏ <span>客户咨询</span>
           </Link>
+          <Link href="/admin/referrers">
+            ◎ <span>司机推广</span>
+          </Link>
           <Link href="/admin/content">
             ▤ <span>内容管理</span>
           </Link>

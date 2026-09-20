@@ -44,6 +44,12 @@ const routePlanNodes = (route: ServiceRoutePlan): PrivateRouteDetailStop[] => {
   }));
 };
 
+const isLegacyPlaceholderImage = (image?: string) =>
+  Boolean(image && /images\.unsplash\.com/.test(image));
+
+const firstRouteNodeImage = (route: ServiceRoutePlan) =>
+  route.nodes?.map((node) => node.image).find(Boolean) || "";
+
 export function routePlanToPrivateRoute(
   route: ServiceRoutePlan,
   service: ServiceItem,
@@ -56,7 +62,10 @@ export function routePlanToPrivateRoute(
     desc: textPair(descZh, route.descriptionEn, descZh),
     duration: textPair(route.duration || "时间灵活", route.duration || "Flexible duration"),
     tags: routePlanTags(route),
-    image: route.coverImage || route.image || "",
+    image:
+      route.coverImage ||
+      (isLegacyPlaceholderImage(route.image) ? firstRouteNodeImage(route) : route.image) ||
+      firstRouteNodeImage(route),
     stops: routePlanNodes(route),
   };
 }

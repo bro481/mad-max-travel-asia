@@ -1,5 +1,4 @@
 import { ServicesPage } from "./services-page";
-import { unstable_cache } from "next/cache";
 import type { DestinationRecord } from "../../db/destinations";
 import type { ServiceCategory } from "../../db/services";
 import type { ServiceItem } from "../../db/service-items";
@@ -7,29 +6,35 @@ import { withPublicDataTimeout } from "../../lib/public-data-timeout";
 
 export const dynamic = "force-dynamic";
 
-const loadPublicServices = unstable_cache(
-  async () => {
-    const { listServices, staticServiceCategories } = await import("../../db/services");
-    const { listDestinations, staticDestinations } = await import("../../db/destinations");
-    const { listServiceItems } = await import("../../db/service-items");
-    const [services, destinationSettings, managed] = await Promise.all([
-      withPublicDataTimeout(listServices(), () => staticServiceCategories(), "Public services categories query"),
-      withPublicDataTimeout(listDestinations(true), staticDestinations, "Public services destinations query"),
-      withPublicDataTimeout(listServiceItems(), [], "Public service items query"),
-    ]);
-    return {
-      services,
-      destinationSettings,
-      managed,
-    } satisfies {
-      services: ServiceCategory[];
-      destinationSettings: DestinationRecord[];
-      managed: ServiceItem[];
-    };
-  },
-  ["public-services-page-data"],
-  { revalidate: 300, tags: ["public-services-page-data"] },
-);
+async function loadPublicServices() {
+  const { listServices, staticServiceCategories } = await import("../../db/services");
+  const { listDestinations, staticDestinations } = await import("../../db/destinations");
+  const { listServiceItems } = await import("../../db/service-items");
+  const services = await withPublicDataTimeout(
+    listServices(),
+    () => staticServiceCategories(),
+    "Public services categories query",
+  );
+  const destinationSettings = await withPublicDataTimeout(
+    listDestinations(true),
+    staticDestinations,
+    "Public services destinations query",
+  );
+  const managed = await withPublicDataTimeout(
+    listServiceItems(),
+    [],
+    "Public service items query",
+  );
+  return {
+    services,
+    destinationSettings,
+    managed,
+  } satisfies {
+    services: ServiceCategory[];
+    destinationSettings: DestinationRecord[];
+    managed: ServiceItem[];
+  };
+}
 
 export default async function Page() {
   if (process.env.NODE_ENV === "development") {

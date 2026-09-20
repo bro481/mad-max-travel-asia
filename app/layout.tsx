@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import "./services/managed.css";
+import { ReferrerTracker } from "./components/referrer-tracker";
 
 export const preferredRegion = "sin1";
 
@@ -38,7 +39,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className={`${sans.variable} ${serif.variable}`}>{children}</body>
+      <body className={`${sans.variable} ${serif.variable}`}>
+        <ReferrerTracker />
+        {children}
+      </body>
     </html>
   );
 }

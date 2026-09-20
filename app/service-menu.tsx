@@ -18,6 +18,11 @@ const entries = {
       desc: "城市漫游 · 美食 · 住宿建议",
     },
     {
+      href: "/travel-photography",
+      title: "大马跟拍",
+      desc: "旅拍 · 城市照片 · 海岛记录",
+    },
+    {
       href: "/picks",
       title: "马来西亚好物",
       desc: "精选当地好物与伴手礼",
@@ -33,6 +38,11 @@ const entries = {
       href: "/photography",
       title: "Travel Guide",
       desc: "City walks · Food · Stay notes",
+    },
+    {
+      href: "/travel-photography",
+      title: "Travel Photography",
+      desc: "Portraits · City shoots · Island stories",
     },
     {
       href: "/picks",

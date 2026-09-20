@@ -84,6 +84,22 @@ const airportTransferGalleryImages = [
   img("photo-1515569067071-ec3b51335dd0"),
   img("photo-1544620347-c4fd4a3d5957"),
 ];
+const uniqueImages = (images: Array<string | undefined>) =>
+  Array.from(new Set(images.filter(Boolean) as string[]));
+
+const serviceGalleryImages = (service: ServiceItem, fallback?: string) =>
+  uniqueImages([
+    ...service.images,
+    service.coverImage,
+    ...(service.gallery || []),
+    ...service.routes.flatMap((route) => [
+      route.coverImage,
+      route.image,
+      ...(route.imageLibrary || []),
+      ...(route.nodes || []).map((node) => node.image),
+    ]),
+    fallback,
+  ]);
 const intercityGalleryImages = [
   img("photo-1515569067071-ec3b51335dd0"),
   img("photo-1500530855697-b586d89ba3ee"),
@@ -1056,6 +1072,9 @@ export function ServicesPage({
           ),
         )
     : [];
+  const selectedPrivateCarImages = selectedPrivateCar
+    ? serviceGalleryImages(selectedPrivateCar, selectedOffer?.image)
+    : [];
   const isAirportTransfer = selectedOffer?.detail === "airport-transfer";
   const isIntercityTransfer =
     selectedOffer?.detail === "private-car" &&
@@ -1643,8 +1662,8 @@ export function ServicesPage({
             <div className="quick-modal-visual private-car-visual has-gallery">
               <GalleryCarousel
                 images={
-                  selectedPrivateCar.images.length
-                    ? selectedPrivateCar.images
+                  selectedPrivateCarImages.length
+                    ? selectedPrivateCarImages
                     : [selectedOffer.image]
                 }
                 alt={selectedOffer.title[l]}

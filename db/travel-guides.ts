@@ -234,9 +234,13 @@ async function readTravelGuidesWithSchemaFallback<T>(read: () => Promise<T>) {
 
 export async function listTravelGuides(all = false) {
   return readTravelGuidesWithSchemaFallback(async () => {
-    const result = await env.DB.prepare(
-      `SELECT * FROM travel_guide_articles ${all ? "" : "WHERE status='published'"} ORDER BY city, featured DESC, sort_order, id`,
-    ).all();
+    const query = `SELECT * FROM travel_guide_articles ${all ? "" : "WHERE status='published'"} ORDER BY city, featured DESC, sort_order, id`;
+    const result = await env.DB.prepare(query).all();
+    if (result.results.length === 0) {
+      await ensureTravelGuides();
+      const seededResult = await env.DB.prepare(query).all();
+      return seededResult.results.map((row) => mapArticle(row as Record<string, unknown>));
+    }
     return result.results.map((row) => mapArticle(row as Record<string, unknown>));
   });
 }
