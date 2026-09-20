@@ -245,15 +245,6 @@ function dayContent(day: TravelPackage["itinerary"][number], index: number, tota
   };
 }
 
-function flexibleDayNote(day: TravelPackage["itinerary"][number], index: number, total: number, zh: boolean) {
-  const detail = dayContent(day, index, total, zh);
-  const text = `${zh ? day.titleZh : day.titleEn} ${zh ? day.descriptionZh : day.descriptionEn}`;
-  if (!zh) return detail.meta;
-  if (index === 0 && /(抵达|到达|接机)/.test(text)) return "根据航班抵达时间调整当天安排，晚上不赶固定行程。";
-  if (index === total - 1 && /(退房|送机|返程|离开)/.test(text)) return "按航班时间安排送机；如航班较晚，也可以提前安排半日自由活动。";
-  return detail.meta;
-}
-
 function InlineSwipeGallery({
   images,
   index,
@@ -475,10 +466,6 @@ export function PackageDetailPage({
                           <p>{section.text}</p>
                         </div>
                       ))}
-                    </div>
-                    <div className="package-day-flex-note">
-                      <b>{zh ? "时间灵活" : "Flexible pace"}</b>
-                      <p>{flexibleDayNote(day, index, item.itinerary.length, zh)}</p>
                     </div>
                     <InlineSwipeGallery
                       images={dayImages}
