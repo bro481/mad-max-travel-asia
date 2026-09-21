@@ -2784,19 +2784,19 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 }
 
 /* Travel guide detail utility layer: readable, scannable, still editorial. */
-.guide-detail-tags{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 10px}
-.guide-detail-tags span{border-radius:999px;background:#f1e7db;color:#a77b4d;padding:5px 9px;font-size:11px;font-weight:500}
+.guide-detail-tags{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 0}
+.guide-detail-tags span{border-radius:15px;background:#f1e7db;color:#a77b4d;padding:6px 10px;font-size:12px;font-weight:500;line-height:1.25}
 .guide-detail-head>span{color:#8f9ba5;font-size:12px;letter-spacing:.01em}
-.guide-chapter-nav{width:min(820px,100%);margin:-3px auto 8px;padding:0 0 17px;border-bottom:1px solid rgba(205,184,160,.18)}
+.guide-chapter-nav{width:min(820px,100%);margin:20px auto 8px;padding:14px 0 17px;border-top:1px solid rgba(205,184,160,.18);border-bottom:1px solid rgba(205,184,160,.18)}
 .guide-chapter-nav p{margin:0 0 10px;color:#9a8979;font-size:11px;font-weight:650;letter-spacing:.12em}
 .guide-chapter-nav div{display:flex;gap:22px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .guide-chapter-nav div::-webkit-scrollbar{display:none}
 .guide-chapter-nav button{position:relative;flex:0 0 auto;padding:0 0 8px;border:0;background:transparent;color:#5f7183;font:600 13px/1.2 var(--serif);cursor:pointer}
 .guide-chapter-nav button span{margin-right:5px;color:#b17b48;font-size:10px;letter-spacing:.12em}
-.guide-chapter-nav button:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:#b17b48;opacity:0;transform:scaleX(.3);transition:opacity .18s ease,transform .18s ease}
-.guide-chapter-nav button.active{color:#14304a}
+.guide-chapter-nav button:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:#b17b48;opacity:0;transform:scaleX(.3);transition:opacity .18s ease,transform .18s ease}
+.guide-chapter-nav button.active{color:#14304a;font-weight:700}
 .guide-chapter-nav button.active:after{opacity:1;transform:scaleX(1)}
-.guide-chapter-nav.sticky{position:fixed;z-index:19;top:78px;left:0;right:0;width:100%;margin:0;padding:9px max(6vw,24px) 8px;border-bottom:1px solid rgba(205,184,160,.22);background:rgba(251,248,243,.94);backdrop-filter:blur(14px)}
+.guide-chapter-nav.sticky{position:fixed;z-index:19;top:78px;left:0;right:0;width:100%;margin:0;padding:9px max(6vw,24px) 8px;border-top:0;border-bottom:1px solid rgba(205,184,160,.22);background:rgba(251,248,243,.94);backdrop-filter:blur(14px)}
 .guide-chapter-nav.sticky div{width:min(820px,100%);margin:0 auto}
 .guide-chapter-nav.sticky button{padding-bottom:7px;font-size:12px}
 .guide-place-heading{scroll-margin-top:132px}
@@ -2817,9 +2817,11 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 
 @media(max-width:700px){
   .guide-detail-page{padding-top:28px}
-  .guide-detail-head h1{font-size:30px}
-  .guide-detail-tags{gap:6px;margin:10px 0 9px}
-  .guide-detail-tags span{padding:4px 8px;font-size:10px}
+  .guide-detail-head>p{font-size:13px}
+  .guide-detail-head h1{font-size:32px;line-height:1.18}
+  .guide-detail-head h2{font-size:16px;line-height:1.66}
+  .guide-detail-tags{gap:7px;margin-top:14px}
+  .guide-detail-tags span{padding:6px 10px;font-size:12px}
   header.compact-guide-header{height:56px;padding:0 14px}
   header.compact-guide-header nav{top:56px}
   header.compact-guide-header .logo{gap:8px}
@@ -2829,7 +2831,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   header.compact-guide-header .menu-btn{height:30px;margin-right:8px;font-size:12px}
   header.compact-guide-header .header-cta{min-height:30px;padding:0 9px;font-size:10px}
   .guide-detail-head>span{font-size:11px}
-  .guide-chapter-nav{margin:-1px auto 6px;padding-bottom:15px}
+  .guide-chapter-nav{margin:18px auto 6px;padding:13px 0 15px}
   .guide-chapter-nav p{margin-bottom:9px;font-size:10px}
   .guide-chapter-nav div{gap:18px}
   .guide-chapter-nav button{font-size:12px}

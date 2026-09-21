@@ -17,10 +17,6 @@ type PlaceHeading = {
   title: string;
 };
 
-const guideAtmosphereImages: Record<string, string> = {
-  "first-time-kuala-lumpur": "https://images.unsplash.com/photo-1508964942454-1a56651d54ac?auto=format&fit=crop&w=1400&q=86",
-};
-
 const placeSubtitleMap: Record<string, string> = {
   双子塔: "Petronas Twin Towers · KLCC",
   茨厂街: "Petaling Street · Chinatown",
@@ -54,10 +50,6 @@ function guideImage(item: TravelGuideArticle) {
   const defaultImage = guideDefaultImages[item.slug];
   if (defaultImage && item.coverImage.includes("photo-1584515933487-779824d29309")) return defaultImage;
   return item.coverImage || defaultImage || "";
-}
-
-function guideHeroImage(item: TravelGuideArticle) {
-  return guideAtmosphereImages[item.slug] || guideImage(item);
 }
 
 function defaultBlocks(article: TravelGuideArticle): TravelGuideBlock[] {
@@ -119,11 +111,13 @@ function placeSubtitle(text: string) {
 }
 
 function splitInfoItem(item: string) {
-  const [label, ...rest] = item.split(/[:：]/);
-  const normalizedLabel = (label || "").trim()
+  const colonIndex = item.search(/[:：]/);
+  const rawLabel = colonIndex >= 0 ? item.slice(0, colonIndex) : item;
+  const value = colonIndex >= 0 ? item.slice(colonIndex + 1).trim() : item;
+  const normalizedLabel = rawLabel.trim()
     .replace(/^建议时间$/, "适合时间")
     .replace(/^可以顺路$/, "顺路安排");
-  return { label: normalizedLabel, value: rest.join("：").trim() || item };
+  return { label: normalizedLabel, value: value || item };
 }
 
 function Gallery({ images, caption }: GalleryProps) {
@@ -197,6 +191,13 @@ function ChapterNav({
   navRef?: (node: HTMLElement | null) => void;
   onJump: (id: string) => void;
 }) {
+  const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    if (!activeId) return;
+    buttonRefs.current[activeId]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [activeId]);
+
   return (
     <section className={`guide-chapter-nav${sticky ? " sticky" : ""}`} ref={navRef}>
       {!sticky && <p>快速浏览</p>}
@@ -206,6 +207,7 @@ function ChapterNav({
             className={activeId === heading.id ? "active" : ""}
             type="button"
             key={heading.id}
+            ref={(node) => { buttonRefs.current[heading.id] = node; }}
             onClick={() => onJump(heading.id)}
           >
             <span>{heading.number}</span>
@@ -292,13 +294,12 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
       <main className="guide-detail-page">
         <section className="guide-detail-head">
           <Link href="/photography">← 返回旅行攻略</Link>
-          <p>{article.category}</p>
+          <p>{article.category}{city?.zh ? ` · ${city.zh}` : ""}</p>
           <h1>{article.titleZh}</h1>
           <h2>{article.summaryZh}</h2>
           <div className="guide-detail-tags">
             {guideTags(article).map((tag) => <span key={tag}>{tag}</span>)}
           </div>
-          <Gallery images={[guideHeroImage(article)]} caption={article.imageLabel || city?.en?.toUpperCase()} />
         </section>
 
         {showChapterNav && (
