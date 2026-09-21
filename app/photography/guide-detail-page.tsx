@@ -126,12 +126,6 @@ function splitInfoItem(item: string) {
   return { label: normalizedLabel, value: rest.join("：").trim() || item };
 }
 
-function quickMeta(article: TravelGuideArticle, cityName: string, placeCount: number) {
-  const readMinutes = article.readMinutes || 4;
-  if (article.slug === "first-time-kuala-lumpur") return `${cityName} · 半日～1日 · ${placeCount || 3}个地方 · 约${readMinutes}分钟阅读`;
-  return `${cityName} · ${placeCount || 1}个地方 · 约${readMinutes}分钟阅读`;
-}
-
 function Gallery({ images, caption }: GalleryProps) {
   const clean = images.filter(Boolean);
   const [index, setIndex] = useState(0);
@@ -237,7 +231,6 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
           <div className="guide-detail-tags">
             {guideTags(article).map((tag) => <span key={tag}>{tag}</span>)}
           </div>
-          <span>{quickMeta(article, city?.zh || "马来西亚", placeHeadings.length)}</span>
           <Gallery images={[guideHeroImage(article)]} caption={article.imageLabel || city?.en?.toUpperCase()} />
         </section>
 
