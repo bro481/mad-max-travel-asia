@@ -184,12 +184,49 @@ function PlaceTitle({ text }: { text: string }) {
   );
 }
 
+function ChapterNav({
+  headings,
+  activeId,
+  sticky = false,
+  navRef,
+  onJump,
+}: {
+  headings: PlaceHeading[];
+  activeId: string;
+  sticky?: boolean;
+  navRef?: (node: HTMLElement | null) => void;
+  onJump: (id: string) => void;
+}) {
+  return (
+    <section className={`guide-chapter-nav${sticky ? " sticky" : ""}`} ref={navRef}>
+      {!sticky && <p>快速浏览</p>}
+      <div>
+        {headings.map((heading) => (
+          <button
+            className={activeId === heading.id ? "active" : ""}
+            type="button"
+            key={heading.id}
+            onClick={() => onJump(heading.id)}
+          >
+            <span>{heading.number}</span>
+            {placeDisplayName(heading.title)}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function GuideDetailPage({ article, related }: { article: TravelGuideArticle; related: TravelGuideArticle[] }) {
   const [menu, setMenu] = useState(false);
   const [compactHeader, setCompactHeader] = useState(false);
+  const [activeHeadingId, setActiveHeadingId] = useState("");
+  const [showStickyChapters, setShowStickyChapters] = useState(false);
+  const chapterNavRef = useRef<HTMLElement | null>(null);
   const city = guideCities.find((item) => item.key === article.city);
   const blocks = useMemo(() => (hasRealContent(article.contentBlocks) ? article.contentBlocks : defaultBlocks(article)), [article]);
   const placeHeadings = useMemo(() => collectPlaceHeadings(blocks), [blocks]);
+  const showChapterNav = placeHeadings.length >= 3;
   const headingNumbers = useMemo(
     () => blocks.map((block, index) => (block.type === "heading" ? String(blocks.slice(0, index + 1).filter((item) => item.type === "heading").length).padStart(2, "0") : "")),
     [blocks],
@@ -201,6 +238,36 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (!showChapterNav) return;
+
+    const updateChapterNav = () => {
+      const stickyTop = window.innerWidth <= 700 ? 56 : 78;
+      const activeOffset = window.innerWidth <= 700 ? 116 : 132;
+      const navRect = chapterNavRef.current?.getBoundingClientRect();
+      setShowStickyChapters(Boolean(navRect && navRect.bottom <= stickyTop));
+
+      let current = placeHeadings[0]?.id || "";
+      for (const heading of placeHeadings) {
+        const element = document.getElementById(heading.id);
+        if (element && element.getBoundingClientRect().top <= activeOffset) current = heading.id;
+      }
+      setActiveHeadingId(current);
+    };
+
+    updateChapterNav();
+    window.addEventListener("scroll", updateChapterNav, { passive: true });
+    window.addEventListener("resize", updateChapterNav);
+    return () => {
+      window.removeEventListener("scroll", updateChapterNav);
+      window.removeEventListener("resize", updateChapterNav);
+    };
+  }, [placeHeadings, showChapterNav]);
+
+  const jumpToChapter = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <>
@@ -233,6 +300,25 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
           </div>
           <Gallery images={[guideHeroImage(article)]} caption={article.imageLabel || city?.en?.toUpperCase()} />
         </section>
+
+        {showChapterNav && (
+          <>
+            <ChapterNav
+              headings={placeHeadings}
+              activeId={activeHeadingId || placeHeadings[0]?.id || ""}
+              navRef={(node) => { chapterNavRef.current = node; }}
+              onJump={jumpToChapter}
+            />
+            {showStickyChapters && (
+              <ChapterNav
+                headings={placeHeadings}
+                activeId={activeHeadingId || placeHeadings[0]?.id || ""}
+                sticky
+                onJump={jumpToChapter}
+              />
+            )}
+          </>
+        )}
 
         <article className="guide-detail-body">
           {blocks.map((block, index) => {
