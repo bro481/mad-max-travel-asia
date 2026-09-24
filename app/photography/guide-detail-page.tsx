@@ -38,7 +38,7 @@ const kualaLumpurSpotGalleries: Record<string, { images: string[]; captions: str
       chinatownImage,
       bukitBintangImage,
     ],
-    captions: ["KLCC · EVENING", "ROUTE CONTEXT · CHINATOWN", "ROUTE CONTEXT · BUKIT BINTANG"],
+    captions: ["KLCC · EVENING", "CHINATOWN · EVENING WALK", "BUKIT BINTANG · NIGHT WALK"],
     alts: ["吉隆坡双子塔傍晚城市景观", "吉隆坡茨厂街街景", "吉隆坡武吉免登夜晚街区"],
   },
   茨厂街: {
@@ -47,7 +47,7 @@ const kualaLumpurSpotGalleries: Record<string, { images: string[]; captions: str
       klccImage,
       bukitBintangImage,
     ],
-    captions: ["CHINATOWN · EVENING WALK", "ROUTE CONTEXT · KLCC", "ROUTE CONTEXT · BUKIT BINTANG"],
+    captions: ["CHINATOWN · EVENING WALK", "KLCC · EVENING", "BUKIT BINTANG · NIGHT WALK"],
     alts: ["吉隆坡茨厂街街景", "吉隆坡双子塔傍晚城市景观", "吉隆坡武吉免登夜晚街区"],
   },
   武吉免登: {
@@ -56,7 +56,7 @@ const kualaLumpurSpotGalleries: Record<string, { images: string[]; captions: str
       klccImage,
       chinatownImage,
     ],
-    captions: ["BUKIT BINTANG · NIGHT WALK", "ROUTE CONTEXT · KLCC", "ROUTE CONTEXT · CHINATOWN"],
+    captions: ["BUKIT BINTANG · NIGHT WALK", "KLCC · EVENING", "CHINATOWN · EVENING WALK"],
     alts: ["吉隆坡武吉免登夜晚街区", "吉隆坡双子塔傍晚城市景观", "吉隆坡茨厂街街景"],
   },
 };
@@ -204,7 +204,8 @@ function Gallery({ images, caption, captions, alts }: GalleryProps) {
   const [index, setIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
-  const startX = useRef(0);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const scrollRaf = useRef<number | null>(null);
   const available = clean
     .map((image, originalIndex) => ({
       src: image,
@@ -212,33 +213,54 @@ function Gallery({ images, caption, captions, alts }: GalleryProps) {
       alt: alts?.[originalIndex]?.trim() || galleryCaptionAt(captions, caption, originalIndex),
     }))
     .filter((image) => !failed[image.src]);
+  useEffect(() => {
+    if (available.length && index > available.length - 1) setIndex(available.length - 1);
+  }, [available.length, index]);
   if (!available.length) return null;
   const safeIndex = Math.min(index, available.length - 1);
   const current = available[safeIndex];
-  const next = (dir: -1 | 1) => setIndex((current) => (current + dir + available.length) % available.length);
-  const handleSwipeStart = (clientX: number) => {
-    startX.current = clientX;
+  const scrollToIndex = (target: number) => {
+    if (available.length <= 1) return;
+    const nextIndex = (target + available.length) % available.length;
+    setIndex(nextIndex);
+    const scroller = scrollerRef.current;
+    const slide = scroller?.querySelectorAll<HTMLElement>(".guide-gallery-slide")[nextIndex];
+    if (scroller && slide) scroller.scrollTo({ left: slide.offsetLeft, behavior: "smooth" });
   };
-  const handleSwipeEnd = (clientX: number) => {
-    const delta = clientX - startX.current;
-    if (Math.abs(delta) > 36 && available.length > 1) next(delta > 0 ? -1 : 1);
+  const handleGalleryScroll = () => {
+    if (scrollRaf.current) window.cancelAnimationFrame(scrollRaf.current);
+    scrollRaf.current = window.requestAnimationFrame(() => {
+      const scroller = scrollerRef.current;
+      if (!scroller) return;
+      const slides = Array.from(scroller.querySelectorAll<HTMLElement>(".guide-gallery-slide"));
+      const closest = slides.reduce(
+        (best, slide, slideIndex) => {
+          const distance = Math.abs(slide.offsetLeft - scroller.scrollLeft);
+          return distance < best.distance ? { index: slideIndex, distance } : best;
+        },
+        { index: 0, distance: Number.POSITIVE_INFINITY },
+      );
+      setIndex(closest.index);
+    });
   };
 
   return (
     <>
       <figure
         className={`guide-detail-gallery${available.length > 1 ? " has-multiple" : ""}`}
-        onTouchStart={(event) => handleSwipeStart(event.touches[0]?.clientX || 0)}
-        onTouchEnd={(event) => handleSwipeEnd(event.changedTouches[0]?.clientX || 0)}
       >
-        <div>
-          <button className="guide-gallery-image-button" type="button" onClick={() => setViewerOpen(true)} aria-label="查看大图">
-            <img src={current.src} alt={current.alt} onError={() => setFailed((latest) => ({ ...latest, [current.src]: true }))} />
-          </button>
+        <div className="guide-gallery-frame">
+          <div className="guide-gallery-track" ref={scrollerRef} onScroll={handleGalleryScroll}>
+            {available.map((image, imageIndex) => (
+              <button className="guide-gallery-image-button guide-gallery-slide" type="button" onClick={() => { setIndex(imageIndex); setViewerOpen(true); }} aria-label="查看大图" key={`${image.src}-${imageIndex}`}>
+                <img src={image.src} alt={image.alt} onError={() => setFailed((latest) => ({ ...latest, [image.src]: true }))} />
+              </button>
+            ))}
+          </div>
           {available.length > 1 && (
             <>
-              <button className="prev" type="button" onClick={() => next(-1)} aria-label="上一张">‹</button>
-              <button className="next" type="button" onClick={() => next(1)} aria-label="下一张">›</button>
+              <button className="prev" type="button" onClick={() => scrollToIndex(safeIndex - 1)} aria-label="上一张">‹</button>
+              <button className="next" type="button" onClick={() => scrollToIndex(safeIndex + 1)} aria-label="下一张">›</button>
               <span>{formatGalleryCount(safeIndex + 1, available.length)}</span>
             </>
           )}
@@ -256,13 +278,11 @@ function Gallery({ images, caption, captions, alts }: GalleryProps) {
           role="dialog"
           aria-modal="true"
           onClick={() => setViewerOpen(false)}
-          onTouchStart={(event) => handleSwipeStart(event.touches[0]?.clientX || 0)}
-          onTouchEnd={(event) => handleSwipeEnd(event.changedTouches[0]?.clientX || 0)}
         >
           <button className="guide-photo-close" type="button" aria-label="关闭图片" onClick={() => setViewerOpen(false)}>×</button>
-          {available.length > 1 && <button className="guide-photo-prev" type="button" aria-label="上一张" onClick={(event) => { event.stopPropagation(); next(-1); }}>‹</button>}
+          {available.length > 1 && <button className="guide-photo-prev" type="button" aria-label="上一张" onClick={(event) => { event.stopPropagation(); scrollToIndex(safeIndex - 1); }}>‹</button>}
           <img src={current.src} alt={current.alt} onClick={(event) => event.stopPropagation()} />
-          {available.length > 1 && <button className="guide-photo-next" type="button" aria-label="下一张" onClick={(event) => { event.stopPropagation(); next(1); }}>›</button>}
+          {available.length > 1 && <button className="guide-photo-next" type="button" aria-label="下一张" onClick={(event) => { event.stopPropagation(); scrollToIndex(safeIndex + 1); }}>›</button>}
           <p onClick={(event) => event.stopPropagation()}>
             <b>{formatGalleryCount(safeIndex + 1, available.length)}</b>
             {current.caption && <span>{current.caption}</span>}
@@ -390,10 +410,10 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
       if (Date.now() < suppressSpyUntil.current) return;
 
       let current = placeHeadings[0]?.id || "";
-      const readingLine = chapterOffset() + Math.min(window.innerHeight * 0.28, 190);
+      const readingLine = window.scrollY + chapterOffset() + Math.min(window.innerHeight * 0.24, 170);
       for (const heading of placeHeadings) {
         const element = document.getElementById(heading.id);
-        if (element && element.getBoundingClientRect().top <= readingLine) current = heading.id;
+        if (element && element.getBoundingClientRect().top + window.scrollY <= readingLine) current = heading.id;
       }
       setActiveHeadingId(current);
     };
@@ -412,7 +432,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     const element = document.getElementById(id);
     if (!element) return;
     setActiveHeadingId(id);
-    suppressSpyUntil.current = Date.now() + 1400;
+    suppressSpyUntil.current = Date.now() + 2200;
     if (releaseSpyTimer.current) window.clearTimeout(releaseSpyTimer.current);
     const top = window.scrollY + element.getBoundingClientRect().top - chapterOffset();
     window.history.replaceState(null, "", `#${id}`);
@@ -420,7 +440,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     releaseSpyTimer.current = window.setTimeout(() => {
       suppressSpyUntil.current = 0;
       window.dispatchEvent(new Event("scroll"));
-    }, 1450);
+    }, 2250);
   };
 
   return (
