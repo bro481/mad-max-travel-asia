@@ -51,7 +51,7 @@ function slugify(value: string) {
 
 function newBlock(type: BlockType): TravelGuideBlock {
   if (type === "image") return { type, image: "", caption: "" };
-  if (type === "gallery") return { type, images: [""], caption: "" };
+  if (type === "gallery") return { type, images: [""], captions: [""], alts: [""] };
   if (type === "list") return { type, items: [""] };
   if (type === "divider") return { type };
   return { type, text: "" };
@@ -381,10 +381,20 @@ function BlockEditor({
       )}
       {block.type === "gallery" && (
         <div className="guide-gallery-editor">
-          {block.images.map((image, imageIndex) => (
-            <label key={imageIndex}><span>图 {imageIndex + 1}</span><input value={image} onChange={(event) => updateBlock(index, { ...block, images: block.images.map((item, i) => i === imageIndex ? event.target.value : item) })} /></label>
-          ))}
-          <button type="button" onClick={() => updateBlock(index, { ...block, images: [...block.images, ""] })}>添加图片</button>
+          {block.images.map((image, imageIndex) => {
+            const captions = block.captions || [];
+            const alts = block.alts || [];
+            return (
+              <div className="guide-gallery-image-editor" key={imageIndex}>
+                <label><span>图 {imageIndex + 1}</span><input value={image} onChange={(event) => updateBlock(index, { ...block, images: block.images.map((item, i) => i === imageIndex ? event.target.value : item) })} /></label>
+                <input type="file" accept="image/*" onChange={(event) => uploadImage(event, (url) => updateBlock(index, { ...block, images: block.images.map((item, i) => i === imageIndex ? url : item) }))} />
+                <label><span>Caption</span><input value={captions[imageIndex] || ""} onChange={(event) => updateBlock(index, { ...block, captions: block.images.map((_, i) => i === imageIndex ? event.target.value : captions[i] || "") })} placeholder="例如：KLCC · EVENING" /></label>
+                <label><span>ALT 描述</span><input value={alts[imageIndex] || ""} onChange={(event) => updateBlock(index, { ...block, alts: block.images.map((_, i) => i === imageIndex ? event.target.value : alts[i] || "") })} placeholder="给搜索引擎和无障碍阅读使用" /></label>
+                {block.images.length > 1 && <button type="button" onClick={() => updateBlock(index, { ...block, images: block.images.filter((_, i) => i !== imageIndex), captions: captions.filter((_, i) => i !== imageIndex), alts: alts.filter((_, i) => i !== imageIndex) })}>删除这张</button>}
+              </div>
+            );
+          })}
+          <button type="button" onClick={() => updateBlock(index, { ...block, images: [...block.images, ""], captions: [...(block.captions || []), ""], alts: [...(block.alts || []), ""] })}>添加图片</button>
         </div>
       )}
       {block.type === "list" && (

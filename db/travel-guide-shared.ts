@@ -6,7 +6,7 @@ export type TravelGuideBlock =
   | { type: "heading"; text: string }
   | { type: "paragraph"; text: string }
   | { type: "image"; image: string; caption?: string }
-  | { type: "gallery"; images: string[]; caption?: string }
+  | { type: "gallery"; images: string[]; caption?: string; captions?: string[]; alts?: string[] }
   | { type: "quote"; text: string }
   | { type: "list"; items: string[] }
   | { type: "divider" };

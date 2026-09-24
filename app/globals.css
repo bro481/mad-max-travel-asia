@@ -2787,7 +2787,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .guide-detail-tags{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 0}
 .guide-detail-tags span{border-radius:15px;background:#f1e7db;color:#a77b4d;padding:6px 10px;font-size:12px;font-weight:500;line-height:1.25}
 .guide-detail-head>span{color:#8f9ba5;font-size:12px;letter-spacing:.01em}
-.guide-chapter-nav{width:min(820px,100%);margin:20px auto 8px;padding:14px 0 17px;border-top:1px solid rgba(205,184,160,.18);border-bottom:1px solid rgba(205,184,160,.18)}
+.guide-chapter-nav{width:min(820px,100%);margin:16px auto 0;padding:12px 0 14px;border-top:1px solid rgba(205,184,160,.18);border-bottom:1px solid rgba(205,184,160,.18)}
 .guide-chapter-nav p{margin:0 0 10px;color:#9a8979;font-size:11px;font-weight:650;letter-spacing:.12em}
 .guide-chapter-nav div{display:flex;gap:22px;overflow-x:auto;white-space:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .guide-chapter-nav div::-webkit-scrollbar{display:none}
@@ -2799,7 +2799,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .guide-chapter-nav.sticky{position:fixed;z-index:19;top:78px;left:0;right:0;width:100%;margin:0;padding:9px max(6vw,24px) 8px;border-top:0;border-bottom:1px solid rgba(205,184,160,.22);background:rgba(251,248,243,.94);backdrop-filter:blur(14px)}
 .guide-chapter-nav.sticky div{width:min(820px,100%);margin:0 auto}
 .guide-chapter-nav.sticky button{padding-bottom:7px;font-size:12px}
-.guide-place-heading{scroll-margin-top:132px}
+.guide-place-heading{scroll-margin-top:146px}
 .guide-detail-body>p{margin-bottom:12px;line-height:1.72}
 .guide-info-list{grid-template-columns:1fr;gap:6px;padding:11px 13px;border-radius:10px;background:rgba(246,239,230,.54)}
 .guide-info-list li{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:baseline;padding-left:0}
@@ -2814,9 +2814,23 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .guide-related a{grid-template-columns:minmax(112px,34%) minmax(0,1fr) 16px;gap:14px;min-height:104px;padding:13px 0;border-bottom:1px solid rgba(205,184,160,.22)}
 .guide-related img{width:100%;height:88px}
 .guide-detail-gallery>div{background:linear-gradient(100deg,#eee5db 0%,#f7f0e7 48%,#eee5db 100%)}
+.guide-detail-gallery .guide-gallery-image-button{position:static;display:block;width:100%;height:100%;padding:0;border:0;border-radius:0;background:transparent;color:inherit;transform:none;cursor:zoom-in}
+.guide-detail-gallery .guide-gallery-image-button img{display:block}
+.guide-detail-gallery .prev,.guide-detail-gallery .next{position:absolute;z-index:2;top:50%;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(17,22,26,.28);color:rgba(255,255,255,.9);font-size:24px;line-height:1;transform:translateY(-50%);cursor:pointer}
+.guide-detail-gallery figcaption{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.guide-detail-gallery figcaption span{position:static;padding:0;border-radius:0;background:transparent;color:#8a98a4;font-size:12px;font-weight:400}
+.guide-detail-gallery figcaption b{flex:0 0 auto;color:#9aa6b0;font-size:11px;font-weight:600;letter-spacing:.02em}
+.guide-photo-viewer{position:fixed;z-index:80;inset:0;display:flex;align-items:center;justify-content:center;padding:56px 20px 86px;background:rgba(14,18,22,.92)}
+.guide-photo-viewer img{max-width:100%;max-height:78vh;border-radius:10px;object-fit:contain}
+.guide-photo-viewer button{position:absolute;border:0;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
+.guide-photo-close{top:18px;right:18px;width:38px;height:38px;border-radius:50%;font-size:28px;line-height:1}
+.guide-photo-prev,.guide-photo-next{top:50%;width:40px;height:40px;border-radius:50%;font-size:30px;line-height:1;transform:translateY(-50%)}
+.guide-photo-prev{left:16px}.guide-photo-next{right:16px}
+.guide-photo-viewer p{position:absolute;left:20px;right:20px;bottom:24px;display:flex;justify-content:center;gap:12px;align-items:center;margin:0;color:rgba(255,255,255,.86);font-size:12px;line-height:1.45;text-align:center}
+.guide-photo-viewer p b{font-size:11px;letter-spacing:.08em}
 
 @media(max-width:700px){
-  .guide-detail-page{padding-top:28px}
+  .guide-detail-page{padding-top:21px}
   .guide-detail-head>p{font-size:13px}
   .guide-detail-head h1{font-size:32px;line-height:1.18}
   .guide-detail-head h2{font-size:16px;line-height:1.66}
@@ -2831,13 +2845,16 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   header.compact-guide-header .menu-btn{height:30px;margin-right:8px;font-size:12px}
   header.compact-guide-header .header-cta{min-height:30px;padding:0 9px;font-size:10px}
   .guide-detail-head>span{font-size:11px}
-  .guide-chapter-nav{margin:18px auto 6px;padding:13px 0 15px}
+  .guide-chapter-nav{margin:14px auto 0;padding:11px 0 12px}
   .guide-chapter-nav p{margin-bottom:9px;font-size:10px}
   .guide-chapter-nav div{gap:18px}
   .guide-chapter-nav button{font-size:12px}
   .guide-chapter-nav button span{font-size:9.5px}
   .guide-chapter-nav.sticky{top:56px;padding:8px 24px 7px}
-  .guide-place-heading{scroll-margin-top:116px}
+  .guide-place-heading{scroll-margin-top:124px}
+  .guide-detail-gallery .prev,.guide-detail-gallery .next{width:28px;height:28px;font-size:22px;background:rgba(17,22,26,.25)}
+  .guide-photo-viewer{padding:50px 14px 78px}
+  .guide-photo-prev,.guide-photo-next{width:36px;height:36px;font-size:28px}
   .guide-detail-body>p{margin-bottom:10px;line-height:1.66}
   .guide-info-list{grid-template-columns:1fr;padding:10px 12px;gap:6px}
   .guide-info-list li{grid-template-columns:64px minmax(0,1fr);gap:9px;font-size:11.5px;line-height:1.42}

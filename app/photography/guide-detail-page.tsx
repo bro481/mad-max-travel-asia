@@ -9,12 +9,15 @@ import { guideCities, guideDefaultImages } from "../../db/travel-guide-shared";
 type GalleryProps = {
   images: string[];
   caption?: string;
+  captions?: string[];
+  alts?: string[];
 };
 
 type PlaceHeading = {
   id: string;
   number: string;
   title: string;
+  blockIndex: number;
 };
 
 const placeSubtitleMap: Record<string, string> = {
@@ -92,12 +95,24 @@ function slugifyHeading(text: string, index: number) {
   return ascii || `place-${index + 1}`;
 }
 
+function headingAnchorId(text: string, index: number) {
+  const name = placeDisplayName(text);
+  if (name === "双子塔") return "spot-klcc";
+  if (name === "茨厂街") return "spot-chinatown";
+  if (name === "武吉免登") return "spot-bukit-bintang";
+  return `spot-${slugifyHeading(text, index)}`;
+}
+
 function collectPlaceHeadings(blocks: TravelGuideBlock[]): PlaceHeading[] {
   let count = 0;
+  const seen: Record<string, number> = {};
   return blocks.flatMap((block, index) => {
     if (block.type !== "heading" || !block.text.trim()) return [];
     count += 1;
-    return [{ id: slugifyHeading(block.text, index), number: String(count).padStart(2, "0"), title: block.text.trim() }];
+    const baseId = headingAnchorId(block.text, index);
+    seen[baseId] = (seen[baseId] || 0) + 1;
+    const id = seen[baseId] > 1 ? `${baseId}-${seen[baseId]}` : baseId;
+    return [{ id, number: String(count).padStart(2, "0"), title: block.text.trim(), blockIndex: index }];
   });
 }
 
@@ -120,37 +135,85 @@ function splitInfoItem(item: string) {
   return { label: normalizedLabel, value: value || item };
 }
 
-function Gallery({ images, caption }: GalleryProps) {
+function formatGalleryCount(current: number, total: number) {
+  return `${String(current).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+}
+
+function galleryCaptionAt(captions: string[] | undefined, fallback: string | undefined, index: number) {
+  return captions?.[index]?.trim() || fallback || "";
+}
+
+function Gallery({ images, caption, captions, alts }: GalleryProps) {
   const clean = images.filter(Boolean);
   const [index, setIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
   const startX = useRef(0);
-  const available = clean.filter((image) => !failed[image]);
+  const available = clean
+    .map((image, originalIndex) => ({
+      src: image,
+      caption: galleryCaptionAt(captions, caption, originalIndex),
+      alt: alts?.[originalIndex]?.trim() || galleryCaptionAt(captions, caption, originalIndex),
+    }))
+    .filter((image) => !failed[image.src]);
   if (!available.length) return null;
   const safeIndex = Math.min(index, available.length - 1);
+  const current = available[safeIndex];
   const next = (dir: -1 | 1) => setIndex((current) => (current + dir + available.length) % available.length);
+  const handleSwipeStart = (clientX: number) => {
+    startX.current = clientX;
+  };
+  const handleSwipeEnd = (clientX: number) => {
+    const delta = clientX - startX.current;
+    if (Math.abs(delta) > 36 && available.length > 1) next(delta > 0 ? -1 : 1);
+  };
 
   return (
-    <figure
-      className="guide-detail-gallery"
-      onTouchStart={(event) => { startX.current = event.touches[0]?.clientX || 0; }}
-      onTouchEnd={(event) => {
-        const delta = (event.changedTouches[0]?.clientX || 0) - startX.current;
-        if (Math.abs(delta) > 36) next(delta > 0 ? -1 : 1);
-      }}
-    >
-      <div>
-        <img src={available[safeIndex]} alt="" onError={() => setFailed((current) => ({ ...current, [available[safeIndex]]: true }))} />
-        {available.length > 1 && (
-          <>
-            <button className="prev" type="button" onClick={() => next(-1)} aria-label="上一张">‹</button>
-            <button className="next" type="button" onClick={() => next(1)} aria-label="下一张">›</button>
-            <span>{safeIndex + 1} / {available.length}</span>
-          </>
+    <>
+      <figure
+        className={`guide-detail-gallery${available.length > 1 ? " has-multiple" : ""}`}
+        onTouchStart={(event) => handleSwipeStart(event.touches[0]?.clientX || 0)}
+        onTouchEnd={(event) => handleSwipeEnd(event.changedTouches[0]?.clientX || 0)}
+      >
+        <div>
+          <button className="guide-gallery-image-button" type="button" onClick={() => setViewerOpen(true)} aria-label="查看大图">
+            <img src={current.src} alt={current.alt} onError={() => setFailed((latest) => ({ ...latest, [current.src]: true }))} />
+          </button>
+          {available.length > 1 && (
+            <>
+              <button className="prev" type="button" onClick={() => next(-1)} aria-label="上一张">‹</button>
+              <button className="next" type="button" onClick={() => next(1)} aria-label="下一张">›</button>
+              <span>{formatGalleryCount(safeIndex + 1, available.length)}</span>
+            </>
+          )}
+        </div>
+        {(current.caption || available.length > 1) && (
+          <figcaption>
+            <span>{current.caption}</span>
+            {available.length > 1 && <b>{formatGalleryCount(safeIndex + 1, available.length)}</b>}
+          </figcaption>
         )}
-      </div>
-      {caption && <figcaption>{caption}</figcaption>}
-    </figure>
+      </figure>
+      {viewerOpen && (
+        <div
+          className="guide-photo-viewer"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setViewerOpen(false)}
+          onTouchStart={(event) => handleSwipeStart(event.touches[0]?.clientX || 0)}
+          onTouchEnd={(event) => handleSwipeEnd(event.changedTouches[0]?.clientX || 0)}
+        >
+          <button className="guide-photo-close" type="button" aria-label="关闭图片" onClick={() => setViewerOpen(false)}>×</button>
+          {available.length > 1 && <button className="guide-photo-prev" type="button" aria-label="上一张" onClick={(event) => { event.stopPropagation(); next(-1); }}>‹</button>}
+          <img src={current.src} alt={current.alt} onClick={(event) => event.stopPropagation()} />
+          {available.length > 1 && <button className="guide-photo-next" type="button" aria-label="下一张" onClick={(event) => { event.stopPropagation(); next(1); }}>›</button>}
+          <p onClick={(event) => event.stopPropagation()}>
+            <b>{formatGalleryCount(safeIndex + 1, available.length)}</b>
+            {current.caption && <span>{current.caption}</span>}
+          </p>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -225,14 +288,26 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
   const [activeHeadingId, setActiveHeadingId] = useState("");
   const [showStickyChapters, setShowStickyChapters] = useState(false);
   const chapterNavRef = useRef<HTMLElement | null>(null);
+  const suppressSpyUntil = useRef(0);
+  const releaseSpyTimer = useRef<number | null>(null);
   const city = guideCities.find((item) => item.key === article.city);
   const blocks = useMemo(() => (hasRealContent(article.contentBlocks) ? article.contentBlocks : defaultBlocks(article)), [article]);
   const placeHeadings = useMemo(() => collectPlaceHeadings(blocks), [blocks]);
   const showChapterNav = placeHeadings.length >= 3;
+  const headingByBlockIndex = useMemo(() => new Map(placeHeadings.map((heading) => [heading.blockIndex, heading])), [placeHeadings]);
   const headingNumbers = useMemo(
     () => blocks.map((block, index) => (block.type === "heading" ? String(blocks.slice(0, index + 1).filter((item) => item.type === "heading").length).padStart(2, "0") : "")),
     [blocks],
   );
+
+  const chapterOffset = () => {
+    if (typeof window === "undefined") return 132;
+    const mobile = window.innerWidth <= 700;
+    const headerHeight = mobile ? 56 : 78;
+    const stickyNav = document.querySelector<HTMLElement>(".guide-chapter-nav.sticky");
+    const navHeight = stickyNav?.getBoundingClientRect().height || (showChapterNav ? (mobile ? 44 : 48) : 0);
+    return headerHeight + navHeight + (mobile ? 18 : 20);
+  };
 
   useEffect(() => {
     const onScroll = () => setCompactHeader(window.scrollY > 180);
@@ -246,14 +321,15 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
 
     const updateChapterNav = () => {
       const stickyTop = window.innerWidth <= 700 ? 56 : 78;
-      const activeOffset = window.innerWidth <= 700 ? 116 : 132;
       const navRect = chapterNavRef.current?.getBoundingClientRect();
       setShowStickyChapters(Boolean(navRect && navRect.bottom <= stickyTop));
+      if (Date.now() < suppressSpyUntil.current) return;
 
       let current = placeHeadings[0]?.id || "";
+      const readingLine = chapterOffset() + Math.min(window.innerHeight * 0.28, 190);
       for (const heading of placeHeadings) {
         const element = document.getElementById(heading.id);
-        if (element && element.getBoundingClientRect().top <= activeOffset) current = heading.id;
+        if (element && element.getBoundingClientRect().top <= readingLine) current = heading.id;
       }
       setActiveHeadingId(current);
     };
@@ -264,11 +340,23 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     return () => {
       window.removeEventListener("scroll", updateChapterNav);
       window.removeEventListener("resize", updateChapterNav);
+      if (releaseSpyTimer.current) window.clearTimeout(releaseSpyTimer.current);
     };
   }, [placeHeadings, showChapterNav]);
 
   const jumpToChapter = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const element = document.getElementById(id);
+    if (!element) return;
+    setActiveHeadingId(id);
+    suppressSpyUntil.current = Date.now() + 850;
+    if (releaseSpyTimer.current) window.clearTimeout(releaseSpyTimer.current);
+    const top = window.scrollY + element.getBoundingClientRect().top - chapterOffset();
+    window.history.replaceState(null, "", `#${id}`);
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    releaseSpyTimer.current = window.setTimeout(() => {
+      suppressSpyUntil.current = 0;
+      window.dispatchEvent(new Event("scroll"));
+    }, 900);
   };
 
   return (
@@ -324,8 +412,9 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
         <article className="guide-detail-body">
           {blocks.map((block, index) => {
             if (block.type === "heading") {
+              const heading = headingByBlockIndex.get(index);
               return (
-                <section className="guide-place-heading" id={slugifyHeading(block.text, index)} key={index}>
+                <section className="guide-place-heading" id={heading?.id || headingAnchorId(block.text, index)} key={index}>
                   <small>{headingNumbers[index]}</small>
                   <h2><PlaceTitle text={block.text} /></h2>
                 </section>
@@ -333,7 +422,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
             }
             if (block.type === "paragraph") return <p key={index}>{block.text}</p>;
             if (block.type === "image") return <Gallery key={index} images={[block.image]} caption={block.caption} />;
-            if (block.type === "gallery") return <Gallery key={index} images={block.images} caption={block.caption} />;
+            if (block.type === "gallery") return <Gallery key={index} images={block.images} caption={block.caption} captions={block.captions} alts={block.alts} />;
             if (block.type === "quote") return <aside className="guide-local-note" key={index}><b>MAD MAX · 当地提醒</b><p>{block.text}</p></aside>;
             if (block.type === "list") return (
               <ul className="guide-info-list" key={index}>
