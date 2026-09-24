@@ -14,6 +14,7 @@ const fallbackDestinations: DestinationRecord[] = [
   { id: 2, slug: "kota-kinabalu", nameZh: "亚庇", nameEn: "Kota Kinabalu", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 2, serviceSort: 2, onlyShowWithContent: true, status: "visible", updatedAt: "" },
   { id: 3, slug: "semporna", nameZh: "仙本那", nameEn: "Semporna", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 3, serviceSort: 3, onlyShowWithContent: true, status: "visible", updatedAt: "" },
 ];
+const MEDIA_CACHE_VERSION = "20260924";
 const serviceOptions = {
   en: [
     "Accommodation",
@@ -98,6 +99,12 @@ function modalLocationLabel(room: Room, lang: Lang) {
     return room.area.en;
   }
   return `${room.area[lang]} · ${room.location[lang]}`;
+}
+
+function roomPhotoSrc(src: string, retry = 0) {
+  if (!src.startsWith("/api/media/")) return src;
+  const separator = src.includes("?") ? "&" : "?";
+  return `${src}${separator}v=${MEDIA_CACHE_VERSION}${retry ? `&retry=${retry}` : ""}`;
 }
 
 const c = {
@@ -248,17 +255,34 @@ function RoomCarousel({
   room,
   lang,
   onOpen,
+  priority = false,
 }: {
   room: Room;
   lang: Lang;
   onOpen: () => void;
+  priority?: boolean;
 }) {
   const [index, setIndex] = useState(0);
-  const images = room.images?.length ? room.images : [room.image];
+  const [failed, setFailed] = useState<Record<string, boolean>>({});
+  const [retry, setRetry] = useState(0);
+  const allImages = room.images?.length ? room.images : [room.image];
+  const images = allImages.filter((image) => image && !failed[image]);
+  const currentIndex = images.length ? index % images.length : 0;
   const move = (direction: number) =>
     setIndex(
       (current) => (current + direction + images.length) % images.length,
     );
+  const handleImageError = () => {
+    const current = images[currentIndex];
+    if (!current) return;
+    if (retry < 1) {
+      setRetry((value) => value + 1);
+      return;
+    }
+    setFailed((value) => ({ ...value, [current]: true }));
+    setRetry(0);
+    setIndex((value) => Math.max(0, Math.min(value, images.length - 2)));
+  };
   return (
     <div className="card-carousel">
       <button
@@ -267,7 +291,19 @@ function RoomCarousel({
         onClick={onOpen}
         aria-label={room.name[lang]}
       >
-        <img src={images[index]} alt={`${room.name[lang]} ${index + 1}`} loading="lazy" decoding="async" />
+        {images.length ? (
+          <img
+            src={roomPhotoSrc(images[currentIndex], retry)}
+            alt={`${room.name[lang]} ${currentIndex + 1}`}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={priority ? "high" : "auto"}
+            onError={handleImageError}
+            onLoad={() => setRetry(0)}
+          />
+        ) : (
+          <span className="room-image-fallback">{lang === "zh" ? "图片暂时无法加载" : "Photo unavailable"}</span>
+        )}
       </button>
       <span className="location-pill">{room.location[lang]}</span>
       {images.length > 1 && (
@@ -290,14 +326,14 @@ function RoomCarousel({
             {images.map((_, i) => (
               <button
                 key={i}
-                className={i === index ? "active" : ""}
-                onClick={() => setIndex(i)}
+                className={i === currentIndex ? "active" : ""}
+                onClick={() => { setRetry(0); setIndex(i); }}
                 aria-label={`Photo ${i + 1}`}
               />
             ))}
           </div>
           <span className="carousel-count">
-            {index + 1}/{images.length}
+            {currentIndex + 1}/{images.length}
           </span>
         </>
       )}
@@ -796,9 +832,9 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
             <span>{lang === "zh" ? "默认排序 ▾" : "Default order ▾"}</span>
           </div>
           <div className="room-grid stay-results-grid">
-            {visibleRooms.map((room) => (
+            {visibleRooms.map((room, index) => (
               <article className="room-card" key={room.id}>
-                <RoomCarousel room={room} lang={lang} onOpen={() => setSelectedRoom(room)} />
+                <RoomCarousel room={room} lang={lang} onOpen={() => setSelectedRoom(room)} priority={index < 2} />
                 <div className="card-body">
                   <h4>{room.name[lang]}</h4>
                   <div className="room-info-row">
