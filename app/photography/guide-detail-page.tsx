@@ -26,6 +26,41 @@ const placeSubtitleMap: Record<string, string> = {
   武吉免登: "Bukit Bintang",
 };
 
+const photo = (id: string, width = 1400) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=86`;
+const klccImage = photo("photo-1596422846543-75c6fc197f07");
+const chinatownImage = guideDefaultImages["kl-chinatown-slow-walk"] || photo("photo-1584515933487-779824d29309");
+const bukitBintangImage = "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg/1280px-Bukit_Bintang_in_Kuala_Lumpur%2C_Malaysia_-_03.jpg";
+
+const kualaLumpurSpotGalleries: Record<string, { images: string[]; captions: string[]; alts: string[] }> = {
+  双子塔: {
+    images: [
+      klccImage,
+      chinatownImage,
+      bukitBintangImage,
+    ],
+    captions: ["KLCC · EVENING", "ROUTE CONTEXT · CHINATOWN", "ROUTE CONTEXT · BUKIT BINTANG"],
+    alts: ["吉隆坡双子塔傍晚城市景观", "吉隆坡茨厂街街景", "吉隆坡武吉免登夜晚街区"],
+  },
+  茨厂街: {
+    images: [
+      chinatownImage,
+      klccImage,
+      bukitBintangImage,
+    ],
+    captions: ["CHINATOWN · EVENING WALK", "ROUTE CONTEXT · KLCC", "ROUTE CONTEXT · BUKIT BINTANG"],
+    alts: ["吉隆坡茨厂街街景", "吉隆坡双子塔傍晚城市景观", "吉隆坡武吉免登夜晚街区"],
+  },
+  武吉免登: {
+    images: [
+      bukitBintangImage,
+      klccImage,
+      chinatownImage,
+    ],
+    captions: ["BUKIT BINTANG · NIGHT WALK", "ROUTE CONTEXT · KLCC", "ROUTE CONTEXT · CHINATOWN"],
+    alts: ["吉隆坡武吉免登夜晚街区", "吉隆坡双子塔傍晚城市景观", "吉隆坡茨厂街街景"],
+  },
+};
+
 function Logo() {
   return (
     <Link className="logo" href="/">
@@ -88,6 +123,27 @@ function guideTags(article: TravelGuideArticle) {
   if (article.category === "住宿推荐") return ["住宿区域", "自由行", "按预算选择"];
   if (article.category === "行程参考") return ["路线参考", "时间安排", "适合自由行"];
   return ["当地建议", "轻松安排", "适合自由行"];
+}
+
+function enhanceKualaLumpurGalleries(blocks: TravelGuideBlock[], article: TravelGuideArticle): TravelGuideBlock[] {
+  if (article.slug !== "first-time-kuala-lumpur") return blocks;
+  let currentPlace = "";
+  return blocks.map((block) => {
+    if (block.type === "heading") {
+      currentPlace = placeDisplayName(block.text);
+      return block;
+    }
+    if (block.type !== "gallery") return block;
+    const fallback = kualaLumpurSpotGalleries[currentPlace];
+    if (!fallback || block.images.filter(Boolean).length > 1) return block;
+    const firstImage = block.images.find(Boolean) || fallback.images[0];
+    return {
+      ...block,
+      images: Array.from(new Set([firstImage, ...fallback.images])).slice(0, 4),
+      captions: block.captions?.length ? block.captions : fallback.captions,
+      alts: block.alts?.length ? block.alts : fallback.alts,
+    };
+  });
 }
 
 function slugifyHeading(text: string, index: number) {
@@ -255,16 +311,21 @@ function ChapterNav({
   onJump: (id: string) => void;
 }) {
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!activeId) return;
-    buttonRefs.current[activeId]?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    const button = buttonRefs.current[activeId];
+    const scroller = scrollerRef.current;
+    if (!button || !scroller) return;
+    const left = button.offsetLeft - (scroller.clientWidth - button.clientWidth) / 2;
+    scroller.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
   }, [activeId]);
 
   return (
     <section className={`guide-chapter-nav${sticky ? " sticky" : ""}`} ref={navRef}>
       {!sticky && <p>快速浏览</p>}
-      <div>
+      <div ref={scrollerRef}>
         {headings.map((heading) => (
           <button
             className={activeId === heading.id ? "active" : ""}
@@ -291,7 +352,10 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
   const suppressSpyUntil = useRef(0);
   const releaseSpyTimer = useRef<number | null>(null);
   const city = guideCities.find((item) => item.key === article.city);
-  const blocks = useMemo(() => (hasRealContent(article.contentBlocks) ? article.contentBlocks : defaultBlocks(article)), [article]);
+  const blocks = useMemo(() => {
+    const sourceBlocks = hasRealContent(article.contentBlocks) ? article.contentBlocks : defaultBlocks(article);
+    return enhanceKualaLumpurGalleries(sourceBlocks, article);
+  }, [article]);
   const placeHeadings = useMemo(() => collectPlaceHeadings(blocks), [blocks]);
   const showChapterNav = placeHeadings.length >= 3;
   const headingByBlockIndex = useMemo(() => new Map(placeHeadings.map((heading) => [heading.blockIndex, heading])), [placeHeadings]);
@@ -348,7 +412,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     const element = document.getElementById(id);
     if (!element) return;
     setActiveHeadingId(id);
-    suppressSpyUntil.current = Date.now() + 850;
+    suppressSpyUntil.current = Date.now() + 1400;
     if (releaseSpyTimer.current) window.clearTimeout(releaseSpyTimer.current);
     const top = window.scrollY + element.getBoundingClientRect().top - chapterOffset();
     window.history.replaceState(null, "", `#${id}`);
@@ -356,7 +420,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     releaseSpyTimer.current = window.setTimeout(() => {
       suppressSpyUntil.current = 0;
       window.dispatchEvent(new Event("scroll"));
-    }, 900);
+    }, 1450);
   };
 
   return (
