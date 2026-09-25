@@ -365,7 +365,7 @@ export function RoomDetailModal({
   const space = room.spaceConfig as (Room["spaceConfig"] & Record<string, any>) | undefined;
   const displayedPrice = roomPriceDisplay(room, lang);
   const priceNote = room.description[lang] ? space?.priceNote || (lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date") : "";
-  const roomShareUrl = `/rooms/${room.id}`;
+  const roomShareUrl = `/?room=${encodeURIComponent(room.id)}`;
   const roomShareText = `${room.bedrooms}房${room.bathrooms}卫 · ${room.location[lang]} · ${room.area[lang]}`;
   const coreAmenityKeys = ["High-speed WiFi", "Air Conditioning", "Fully Equipped Kitchen", "Washer"];
   const coreAmenities = coreAmenityKeys
@@ -574,7 +574,16 @@ export function RoomDetailModal({
   );
 }
 
-export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms: Room[]; destinations?: DestinationRecord[] }) {
+export function HomePage({
+  rooms,
+  destinations = fallbackDestinations,
+  initialRoomId,
+}: {
+  rooms: Room[];
+  destinations?: DestinationRecord[];
+  initialRoomId?: string;
+}) {
+  const initialRoom = initialRoomId ? rooms.find((room) => room.id === initialRoomId) || null : null;
   const [lang, setLang] = useState<Lang>("zh"),
     [status, setStatus] = useState(""),
     [sent, setSent] = useState(false),
@@ -582,7 +591,7 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
     [layout, setLayout] = useState("all"),
     [selectedLocation, setSelectedLocation] = useState("all"),
     [timeMode, setTimeMode] = useState(""),
-    [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+    [selectedRoom, setSelectedRoom] = useState<Room | null>(initialRoom);
   useEffect(() => {
     if (!selectedRoom) return;
     const close = (event: KeyboardEvent) => event.key === "Escape" && setSelectedRoom(null);
@@ -592,6 +601,21 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
       document.body.style.overflow = "";
       window.removeEventListener("keydown", close);
     };
+  }, [selectedRoom]);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (selectedRoom) {
+      if (url.searchParams.get("room") !== selectedRoom.id) {
+        url.searchParams.set("room", selectedRoom.id);
+        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+      return;
+    }
+    if (url.searchParams.has("room")) {
+      url.searchParams.delete("room");
+      const nextSearch = url.searchParams.toString();
+      window.history.replaceState(null, "", `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`);
+    }
   }, [selectedRoom]);
   const t = c[lang];
   const configuredDestinationOptions = destinations
