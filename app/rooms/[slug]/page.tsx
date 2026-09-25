@@ -28,10 +28,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = room.name.zh;
   const description = `${room.bedrooms}房${room.bathrooms}卫 · ${room.area.zh} · 最多${room.guests}人`;
   const image = room.images[0] || "/og.png";
+  const url = `/rooms/${slug}`;
   return {
     title: `${title} | MAD MAX`,
     description,
-    openGraph: { title, description, images: [{ url: image, width: 1200, height: 630 }] },
+    alternates: { canonical: url },
+    openGraph: { title, description, url, images: [{ url: image, width: 1200, height: 630 }] },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }

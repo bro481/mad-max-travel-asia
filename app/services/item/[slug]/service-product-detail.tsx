@@ -3,7 +3,6 @@ import { FormEvent, useState } from "react";
 import type { ServiceItem } from "../../../../db/service-items";
 import { ServiceMenu } from "../../../service-menu";
 import { InquiryModal, type InquiryKind } from "../../../components/inquiry-modal";
-import { ShareButton } from "../../../components/share-button";
 export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
   const [sent, setSent] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
@@ -60,7 +59,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
             <p>
               {s.city} · {s.category}
             </p>
-            <div className="service-product-title-row"><h1>{s.nameZh}</h1><ShareButton title={s.nameZh} text={s.subtitleZh || s.introZh}/></div>
+            <h1>{s.nameZh}</h1>
             <h2>{s.subtitleZh}</h2>
             <div>
               {s.tags.map((x) => (

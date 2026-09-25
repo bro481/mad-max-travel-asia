@@ -5,7 +5,6 @@ import Link from "next/link";
 import { rooms } from "../../data";
 import { ServiceMenu } from "../../service-menu";
 import { InquiryModal } from "../../components/inquiry-modal";
-import { ShareButton } from "../../components/share-button";
 import type { TravelPackage } from "../../../db/packages";
 import type { PropertyRecord } from "../../../db/properties";
 import type { ServiceItem } from "../../../db/service-items";
@@ -421,7 +420,7 @@ export function PackageDetailPage({
         <section className="package-full-summary">
           <div>
             <p className="package-full-eyebrow">{zh ? item.cityComboEn.toUpperCase() : item.cityComboZh}</p>
-            <div className="package-title-row"><h1>{title}</h1><ShareButton title={title} text={packageSummary(item, zh)} /></div>
+            <h1>{title}</h1>
             <p>{packageSummary(item, zh)}</p>
           </div>
           <aside>

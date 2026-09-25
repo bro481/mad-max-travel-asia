@@ -3,95 +3,52 @@
 import { useEffect, useMemo, useState } from "react";
 
 type ProductType = "stay" | "service" | "route" | "package";
-type ProductOption = {
-  key: string;
-  type: ProductType;
-  label: string;
-  subtitle: string;
-};
-type ShareRecord = {
-  code: string;
-  status: "draft" | "shared" | "viewed" | "confirmed" | "expired";
-  productType: ProductType;
-  productId: string;
-  title: string;
-  subtitle: string;
-  image: string;
-  payload: SharePayload;
-  createdAt: string;
-  viewedAt: string;
-};
-type SharePayload = {
-  customerName?: string;
-  startDate?: string;
-  endDate?: string;
-  useDate?: string;
-  people?: string;
-  quoteAmount?: string;
-  quoteUnit?: string;
-  quoteCurrency?: string;
-  validUntil?: string;
-  note?: string;
-  showQuote?: boolean;
-  showDates?: boolean;
-  showDetails?: boolean;
-};
+type Stage = "first" | "quoted" | "comparing" | "booking";
+type Tone = "normal" | "shorter" | "warmer";
+type ProductOption = { key: string; type: ProductType; label: string; subtitle: string; image?: string };
+type Generated = { text: string; url: string; content: { title: string; subtitle: string; image: string } };
 
-const statusLabels: Record<ShareRecord["status"], string> = {
-  draft: "草稿",
-  shared: "已分享",
-  viewed: "已查看",
-  confirmed: "已确认",
-  expired: "已失效",
-};
-
-const typeLabels: Record<ProductType, string> = {
-  stay: "住宿",
-  service: "服务",
-  route: "路线",
-  package: "套餐",
-};
-
-const emptyPayload: SharePayload = {
-  customerName: "",
-  startDate: "",
-  endDate: "",
-  useDate: "",
-  people: "1",
-  quoteAmount: "",
-  quoteUnit: "晚",
-  quoteCurrency: "RM",
-  validUntil: "",
-  note: "",
-  showQuote: true,
-  showDates: true,
-  showDetails: true,
+const typeLabels: Record<ProductType, string> = { stay: "住宿 / 房型", service: "包车 / 接送 / 服务", route: "路线", package: "套餐" };
+const stageLabels: Record<Stage, string> = { first: "第一次推荐", quoted: "已经问过价格", comparing: "正在比较", booking: "准备预订" };
+const concernMap: Record<ProductType, string[]> = {
+  stay: ["预算", "景观", "位置", "泳池", "空间", "交通", "亲子", "方便", "安静"],
+  service: ["预算", "中文沟通", "酒店接送", "方便", "行程轻松", "人数", "行李", "时间"],
+  route: ["预算", "中文沟通", "行程轻松", "景点", "亲子", "拍照", "时间", "交通"],
+  package: ["预算", "住宿", "交通", "行程轻松", "亲子", "时间", "城市", "方便"],
 };
 
 export default function CustomerSharesAdminPage() {
-  const [shares, setShares] = useState<ShareRecord[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [productType, setProductType] = useState<ProductType>("stay");
   const [productId, setProductId] = useState("");
-  const [payload, setPayload] = useState<SharePayload>(emptyPayload);
+  const [customerName, setCustomerName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [useDate, setUseDate] = useState("");
+  const [people, setPeople] = useState("1人");
+  const [quoteText, setQuoteText] = useState("");
+  const [stage, setStage] = useState<Stage>("first");
+  const [concerns, setConcerns] = useState<string[]>([]);
+  const [context, setContext] = useState("");
+  const [generated, setGenerated] = useState<Generated | null>(null);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
 
   const shownProducts = useMemo(() => products.filter((item) => item.type === productType), [products, productType]);
+  const selected = shownProducts.find((item) => item.key === productId);
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/admin/customer-shares", { cache: "no-store" }).then(readJson),
       fetch("/api/admin/properties", { cache: "no-store" }).then(readJson),
       fetch("/api/admin/service-items", { cache: "no-store" }).then(readJson),
       fetch("/api/admin/packages", { cache: "no-store" }).then(readJson),
-    ]).then(([shareData, propertyData, serviceData, packageData]) => {
-      setShares(Array.isArray(shareData) ? shareData : []);
+    ]).then(([propertyData, serviceData, packageData]) => {
       const stayOptions = (Array.isArray(propertyData) ? propertyData : []).filter((item: any) => item.status === "published").map((item: any) => ({
         type: "stay" as const,
         key: item.slug,
         label: item.nameZh,
         subtitle: [item.city, item.areaZh || item.spaceConfig?.locationDisplayZh].filter(Boolean).join(" · "),
+        image: item.images?.[0],
       }));
       const serviceOptions = (Array.isArray(serviceData) ? serviceData : []).filter((item: any) => item.status === "published").flatMap((item: any) => {
         const base = [{
@@ -99,12 +56,14 @@ export default function CustomerSharesAdminPage() {
           key: item.slug,
           label: item.nameZh,
           subtitle: [item.city, item.subtitleZh].filter(Boolean).join(" · "),
+          image: item.coverImage || item.images?.[0],
         }];
         const routes = (item.routes || []).filter((route: any) => route.visible !== false).map((route: any, index: number) => ({
           type: "route" as const,
           key: `${item.slug}:${index}`,
           label: route.nameZh || route.name || `${item.nameZh}路线 ${index + 1}`,
           subtitle: [item.nameZh, route.duration].filter(Boolean).join(" · "),
+          image: route.coverImage || route.image || route.nodes?.find((node: any) => node.image)?.image || item.coverImage || item.images?.[0],
         }));
         return [...base, ...routes];
       });
@@ -113,6 +72,7 @@ export default function CustomerSharesAdminPage() {
         key: item.slug,
         label: item.nameZh,
         subtitle: [`${item.days}天${item.nights}晚`, item.cityComboZh].filter(Boolean).join(" · "),
+        image: item.coverImage || item.galleryImages?.[0],
       }));
       const nextProducts = [...stayOptions, ...serviceOptions, ...packageOptions];
       setProducts(nextProducts);
@@ -123,7 +83,8 @@ export default function CustomerSharesAdminPage() {
   useEffect(() => {
     const first = shownProducts[0]?.key || "";
     if (!shownProducts.some((item) => item.key === productId)) setProductId(first);
-    setPayload((current) => ({ ...current, quoteUnit: productType === "stay" ? "晚" : "次" }));
+    setConcerns([]);
+    setGenerated(null);
   }, [productType, shownProducts, productId]);
 
   async function readJson(response: Response) {
@@ -136,147 +97,120 @@ export default function CustomerSharesAdminPage() {
     return text ? JSON.parse(text) : [];
   }
 
-  function setField<K extends keyof SharePayload>(key: K, value: SharePayload[K]) {
-    setPayload((current) => ({ ...current, [key]: value }));
+  function toggleConcern(value: string) {
+    setConcerns((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
   }
 
-  async function createShare(status: "draft" | "shared" = "shared") {
-    if (!productId) return setMessage("请先选择要分享的内容。");
-    setBusy(status === "draft" ? "保存草稿中..." : "生成分享中...");
+  async function generate(tone: Tone = "normal") {
+    if (!productId) return setMessage("请先选择要推荐给客户的内容。");
+    setBusy(tone === "shorter" ? "正在精简..." : tone === "warmer" ? "正在调整语气..." : "正在生成...");
     setMessage("");
     const response = await fetch("/api/admin/customer-shares", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productType, productId, payload, status }),
+      body: JSON.stringify({ productType, productId, customerName, startDate, endDate, useDate, people, quoteText, concerns, stage, context, tone }),
     });
     const data = await response.json();
     setBusy("");
-    if (!response.ok) return setMessage(data.error || "创建失败。");
-    setShares((current) => [data, ...current]);
-    setMessage("已生成客户分享。");
-    await navigator.clipboard?.writeText(`${location.origin}/share/${data.code}`).catch(() => {});
+    if (!response.ok) return setMessage(data.error || "生成失败。");
+    setGenerated(data);
+    setMessage("已生成，可以直接复制发送给客户。");
   }
 
-  async function copyLink(code: string) {
-    await navigator.clipboard?.writeText(`${location.origin}/share/${code}`);
-    setMessage("客户链接已复制。");
+  async function copy(value: string, label: string) {
+    await navigator.clipboard?.writeText(value);
+    setMessage(`${label}已复制。`);
   }
 
-  function reuse(item: ShareRecord) {
-    setProductType(item.productType);
-    setProductId(item.productId);
-    setPayload({ ...emptyPayload, ...item.payload });
-    scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  async function updateStatus(item: ShareRecord, status: ShareRecord["status"]) {
-    const response = await fetch(`/api/admin/customer-shares/${item.code}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (!response.ok) return;
-    const updated = await response.json();
-    setShares((current) => current.map((share) => (share.code === item.code ? updated : share)));
-  }
+  const fullText = generated ? `${generated.text}\n\n${generated.url}` : "";
 
   return (
-    <div className="customer-share-admin">
+    <div className="customer-share-admin send-assistant-admin">
       <div className="admin-head">
         <div>
           <p>私域销售工具</p>
-          <h1>客户分享</h1>
-          <span>找到内容，填写客户日期、人数和报价，生成可直接发微信/WhatsApp 的链接、分享卡和长图。</span>
+          <h1>客户发送助手</h1>
+          <span>选择一个真实内容，补充客户上下文，生成可直接发微信的自然介绍文字和详情页链接。</span>
         </div>
         <a className="admin-secondary" href="/admin">返回工作台</a>
       </div>
 
       {message && <div className="admin-inline-message">{message}</div>}
 
-      <section className="customer-share-builder">
-        <div className="share-type-tabs">
-          {(Object.keys(typeLabels) as ProductType[]).map((type) => (
-            <button type="button" className={productType === type ? "active" : ""} onClick={() => setProductType(type)} key={type}>
-              {typeLabels[type]}
-            </button>
-          ))}
-        </div>
-        <div className="share-builder-grid">
-          <label className="wide">
-            <span>分享内容</span>
-            <select value={productId} onChange={(event) => setProductId(event.target.value)}>
-              {shownProducts.map((item) => (
-                <option value={item.key} key={item.key}>
-                  {item.label} {item.subtitle ? `｜${item.subtitle}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Field label="客户称呼" value={payload.customerName || ""} onChange={(value) => setField("customerName", value)} />
-          {productType === "stay" ? (
-            <>
-              <Field label="入住日期" type="date" value={payload.startDate || ""} onChange={(value) => setField("startDate", value)} />
-              <Field label="退房日期" type="date" value={payload.endDate || ""} onChange={(value) => setField("endDate", value)} />
-            </>
-          ) : (
-            <Field label="使用日期" type="date" value={payload.useDate || ""} onChange={(value) => setField("useDate", value)} />
-          )}
-          <Field label="人数" type="number" value={payload.people || ""} onChange={(value) => setField("people", value)} />
-          <Field label="客户报价" type="number" value={payload.quoteAmount || ""} onChange={(value) => setField("quoteAmount", value)} />
-          <Field label="报价单位" value={payload.quoteUnit || ""} onChange={(value) => setField("quoteUnit", value)} />
-          <Field label="报价有效期" type="date" value={payload.validUntil || ""} onChange={(value) => setField("validUntil", value)} />
-          <label className="wide">
-            <span>销售备注</span>
-            <textarea rows={3} value={payload.note || ""} onChange={(event) => setField("note", event.target.value)} placeholder="例如：这个房型符合您的预算，塔景也比较好。" />
-          </label>
-          <div className="share-option-row wide">
-            <label><input type="checkbox" checked={payload.showQuote !== false} onChange={(event) => setField("showQuote", event.target.checked)} /> 显示客户报价</label>
-            <label><input type="checkbox" checked={payload.showDates !== false} onChange={(event) => setField("showDates", event.target.checked)} /> 显示日期</label>
-            <label><input type="checkbox" checked={payload.showDetails !== false} onChange={(event) => setField("showDetails", event.target.checked)} /> 显示详情</label>
+      <div className="send-assistant-layout">
+        <section className="customer-share-builder">
+          <div className="share-type-tabs">
+            {(Object.keys(typeLabels) as ProductType[]).map((type) => (
+              <button type="button" className={productType === type ? "active" : ""} onClick={() => setProductType(type)} key={type}>
+                {typeLabels[type]}
+              </button>
+            ))}
           </div>
-        </div>
-        <div className="share-builder-actions">
-          <button type="button" onClick={() => createShare("draft")} disabled={Boolean(busy)}>保存草稿</button>
-          <button className="admin-primary" type="button" onClick={() => createShare("shared")} disabled={Boolean(busy)}>{busy || "复制客户链接"}</button>
-        </div>
-      </section>
-
-      <section className="customer-share-list">
-        <div className="customer-share-list-head">
-          <h2>最近分享</h2>
-          <span>{shares.length} 条记录</span>
-        </div>
-        {shares.map((item) => (
-          <article key={item.code}>
-            {item.image ? <img src={item.image} alt="" /> : <span className="share-thumb-empty">MAD</span>}
-            <div>
-              <small>{typeLabels[item.productType]} · {item.payload.customerName || "未填写客户"} · {item.createdAt?.slice(0, 16).replace("T", " ")}</small>
-              <h3>{item.title}</h3>
-              <p>{[item.subtitle, item.payload.startDate && item.payload.endDate ? `${item.payload.startDate} - ${item.payload.endDate}` : item.payload.useDate, item.payload.people ? `${item.payload.people}人` : "", item.payload.quoteAmount ? `RM ${item.payload.quoteAmount}/${item.payload.quoteUnit || "次"}` : ""].filter(Boolean).join(" · ")}</p>
-            </div>
-            <b className={`share-status ${item.status}`}>{statusLabels[item.status]}</b>
-            <div className="share-row-actions">
-              <button onClick={() => copyLink(item.code)}>复制链接</button>
-              <a href={`/share/${item.code}`} target="_blank">查看</a>
-              <a href={`/share/${item.code}/card`} target="_blank">分享卡</a>
-              <a href={`/share/${item.code}/long-image`} target="_blank">长图</a>
-              <button onClick={() => reuse(item)}>复制一个新的</button>
-              <select value={item.status} onChange={(event) => updateStatus(item, event.target.value as ShareRecord["status"])}>
-                {Object.entries(statusLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          <div className="share-builder-grid">
+            <label className="wide">
+              <span>要发送给客户的内容</span>
+              <select value={productId} onChange={(event) => setProductId(event.target.value)}>
+                {shownProducts.map((item) => <option value={item.key} key={item.key}>{item.label}{item.subtitle ? `｜${item.subtitle}` : ""}</option>)}
               </select>
+            </label>
+            {selected && <div className="send-product-preview wide">{selected.image ? <img src={selected.image} alt="" /> : <span>MAD</span>}<div><b>{selected.label}</b><small>{selected.subtitle}</small></div></div>}
+            <Field label="客户称呼（选填）" value={customerName} onChange={setCustomerName} placeholder="王女士" />
+            {productType === "stay" ? (
+              <>
+                <Field label="入住日期" type="date" value={startDate} onChange={setStartDate} />
+                <Field label="退房日期" type="date" value={endDate} onChange={setEndDate} />
+              </>
+            ) : <Field label="使用日期" type="date" value={useDate} onChange={setUseDate} />}
+            <Field label="人数" value={people} onChange={setPeople} placeholder="1人 / 2成人1儿童" />
+            <Field label="客户报价（选填）" value={quoteText} onChange={setQuoteText} placeholder="RM500 / 晚" />
+            <label>
+              <span>当前沟通阶段</span>
+              <select value={stage} onChange={(event) => setStage(event.target.value as Stage)}>
+                {Object.entries(stageLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+              </select>
+            </label>
+            <div className="concern-picker wide">
+              <span>客户比较在意什么（多选）</span>
+              <div>{concernMap[productType].map((item) => <button className={concerns.includes(item) ? "active" : ""} type="button" onClick={() => toggleConcern(item)} key={item}>{item}</button>)}</div>
             </div>
-          </article>
-        ))}
-      </section>
+            <label className="wide">
+              <span>补充情况（选填）</span>
+              <textarea rows={3} value={context} onChange={(event) => setContext(event.target.value)} placeholder="例如：客户一个人旅行，希望安静一些，预算500左右。" />
+            </label>
+          </div>
+          <div className="share-builder-actions">
+            <button className="admin-primary" type="button" onClick={() => generate("normal")} disabled={Boolean(busy)}>{busy || "生成客户介绍文字"}</button>
+          </div>
+        </section>
+
+        <section className="send-result-panel">
+          <div className="customer-share-list-head">
+            <h2>客户介绍文字</h2>
+            {generated && <button type="button" onClick={() => generate("normal")}>重新生成</button>}
+          </div>
+          <textarea value={generated?.text || ""} onChange={(event) => setGenerated((current) => current ? { ...current, text: event.target.value } : current)} placeholder="生成后这里会出现可直接发给客户的微信介绍文字。" rows={15} />
+          <div className="share-row-actions">
+            <button type="button" onClick={() => generate("shorter")} disabled={!generated || Boolean(busy)}>精简一点</button>
+            <button type="button" onClick={() => generate("warmer")} disabled={!generated || Boolean(busy)}>更亲切一点</button>
+            <button type="button" onClick={() => generated && copy(generated.text, "文字")} disabled={!generated}>复制文字</button>
+          </div>
+          <div className="send-link-box">
+            <b>详情页链接</b>
+            <input readOnly value={generated?.url || ""} placeholder="生成后自动读取原始公开详情页链接" />
+            <button type="button" onClick={() => generated && copy(generated.url, "链接")} disabled={!generated}>复制链接</button>
+          </div>
+          <button className="admin-primary copy-all-button" type="button" onClick={() => copy(fullText, "文字和链接")} disabled={!generated}>复制全部</button>
+        </section>
+      </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+function Field({ label, value, onChange, type = "text", placeholder = "" }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {
   return (
     <label>
       <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
