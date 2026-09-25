@@ -845,7 +845,7 @@ const copy = {
     eyebrow: "当地服务",
     hero: "探索马来西亚的精彩体验",
     heroText:
-      "从舒适的私人包车接送，到迷人的海岛体验，以及贴近自然的生态探索，我们为你安排轻松自在的马来西亚旅程。",
+      "包车、接送、海岛与当地体验，按目的地慢慢选。",
     choose: "选择目的地",
     all: "全部",
     custom: "定制你的马来西亚旅程",
@@ -1336,7 +1336,7 @@ export function ServicesPage({
           <MobileScrollHint className="service-destination-scroll">
           <div className="destination-tabs">
             <button
-              className={destination === "all" ? "active" : ""}
+              className={`destination-all-tab ${destination === "all" ? "active" : ""}`}
               onClick={() => setDestination("all")}
             >
               <b>{t.all}</b>

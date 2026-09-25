@@ -23,6 +23,21 @@ function money(value: number) {
   return new Intl.NumberFormat("en-MY").format(value);
 }
 
+function scenicPackageImage(item: TravelPackage) {
+  const scheduleImage = item.itinerary
+    .flatMap((day) => [day.coverImage, ...(day.galleryImages || []), ...(day.schedule || []).map((node) => node.image)])
+    .find(Boolean);
+  const combo = `${item.cityComboZh} ${item.nameZh} ${item.cityComboEn}`.toLowerCase();
+  const fallback = combo.includes("马六甲") || combo.includes("malacca") || combo.includes("melaka")
+    ? "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=900&q=84"
+    : combo.includes("仙本那") || combo.includes("semporna")
+      ? "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=84"
+      : combo.includes("亚庇") || combo.includes("kota kinabalu")
+        ? "https://images.unsplash.com/photo-1516690561799-46d8f74f9abf?auto=format&fit=crop&w=900&q=84"
+        : "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=900&q=84";
+  return item.galleryImages[0] || scheduleImage || fallback || item.coverImage;
+}
+
 export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
   const [lang, setLang] = useState<Lang>("zh");
   const [menu, setMenu] = useState(false);
@@ -87,7 +102,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
         <section className="package-tabs-wrap">
           <div className="package-tabs-heading">
             <span />
-            <h2>{zh ? "选择行程天数" : "Choose trip length"}</h2>
+            <h2>{zh ? "按旅行天数选套餐" : "Choose packages by trip length"}</h2>
           </div>
           <div className="package-day-tabs" role="tablist" aria-label={zh ? "选择套餐天数" : "Choose package days"}>
             {days.map((day) => (
@@ -107,7 +122,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
           <div className="package-route-list">
             {current.map((item) => (
               <a className="package-route-row" key={item.id} href={`/packages/${item.slug}`}>
-                <img src={item.coverImage} alt={zh ? item.nameZh : item.nameEn} />
+                <img src={scenicPackageImage(item)} alt={zh ? item.nameZh : item.nameEn} />
                 <span className="package-row-copy">
                   <small>{zh ? item.cityComboEn.toUpperCase() : item.cityComboZh}</small>
                   <b>{zh ? item.nameZh : item.nameEn}</b>
@@ -115,7 +130,7 @@ export function PackagesPage({ packages }: { packages: TravelPackage[] }) {
                   <i>
                     {item.days}{zh ? "天" : "D"}{item.nights}{zh ? "晚" : "N"}
                     <span />
-                    {zh ? "¥" : "RMB"} <strong>{money(item.startingPrice)}</strong> {zh ? "起" : "from"}
+                    RM <strong>{money(item.startingPrice)}</strong> {zh ? "起" : "from"}
                   </i>
                 </span>
                 <span className="package-arrow">→</span>

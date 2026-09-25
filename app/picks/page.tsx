@@ -18,7 +18,7 @@ const copy = {
   zh: {
     rooms: "房源", about: "关于我们", contact: "联系我们", submit: "提交咨询",
     eyebrow: "MAD MAX · MALAYSIA PICKS", title: "马来西亚好物", subtitle: "带一点当地味道回家。",
-    desc: "我们在当地帮你挑选值得带走、适合送人，也值得再次回购的马来西亚好物。",
+    desc: "当地挑选，旅行可取，也可以寄回家。",
     explore: "探索好物", quality: [["当地精选", "帮你筛掉不好选的"], ["价格透明", "商品价格提前确认"], ["旅行可取 · 回国可寄", "根据你的情况安排"]],
     detail: "查看详情", bundleTitle: "懒得挑？我们已经搭配好了", includes: "包含",
     priceNote: "页面价格为参考价，实际价格及库存以咨询确认为准。",
@@ -92,7 +92,6 @@ export default function PicksPage() {
       <section className="picks-hero">
         <div className="picks-hero-copy">
           <p className="eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><h2>{t.subtitle}</h2><p>{t.desc}</p>
-          <div className="picks-hero-benefits">{t.quality.map((item, index) => <article key={item[0]}><i>{["◇", "□", "⌑"][index]}</i><div><b>{item[0]}</b><span>{item[1]}</span></div></article>)}</div>
         </div>
         <div className="picks-hero-visual"><img src="/malaysia-picks-hero-lifestyle-v2.png" alt={t.subtitle} /></div>
       </section>
