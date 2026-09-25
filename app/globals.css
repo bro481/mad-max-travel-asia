@@ -2248,12 +2248,12 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .route-explorer-track .route-card:hover{box-shadow:0 10px 28px rgba(67,50,33,.07)}
 .route-explorer-track .route-card-media{aspect-ratio:16/10}
 .route-explorer-track .route-card-body{display:flex;flex:1;min-height:0;flex-direction:column;padding:16px 18px}
-.route-explorer-track .route-card h3{display:-webkit-box;min-height:54px;margin:0 0 8px;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.route-explorer-track .route-card p{height:25px;margin:0 0 12px;overflow:hidden;flex-wrap:nowrap}
+.route-explorer-track .route-card h3{display:-webkit-box;min-height:0;margin:0 0 8px;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.route-explorer-track .route-card p{height:25px;margin:0 0 11px;overflow:hidden;flex-wrap:nowrap}
 .route-explorer-track .route-card small{display:-webkit-box;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.route-explorer-track .route-card-stops{margin-top:8px}
+.route-explorer-track .route-card-stops{margin-top:7px}
 .route-explorer-track .route-card-footer{align-items:center;margin-top:auto;padding-top:14px;border-top:1px solid #eee4da}
-.private-car-trust-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;width:min(1320px,calc(100% - 48px));margin:-4px auto 10px;padding:12px 0;border-top:1px solid #eadccf;border-bottom:1px solid #eadccf;color:#6b747c}
+.private-car-trust-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;width:min(1320px,calc(100% - 48px));margin:-8px auto 6px;padding:8px 0;border-top:1px solid #eadccf;border-bottom:1px solid #eadccf;color:#6b747c}
 .private-car-trust-strip span{display:grid;grid-template-columns:24px minmax(0,1fr);gap:2px 9px;align-items:center;padding:4px 16px;border-right:1px solid #eadfd4}
 .private-car-trust-strip span:last-child{border-right:0}
 .private-car-trust-strip i{grid-row:1/3;display:grid;place-items:center;width:21px;height:21px;border-radius:999px;background:#fff7ef;color:#b9783d;font-size:12px;font-style:normal;font-weight:900}
@@ -2272,24 +2272,24 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .route-scenery-card:hover img{transform:scale(1.025)}
 .route-scenery-card:after{content:"";position:absolute;inset:38% 0 0;background:linear-gradient(180deg,rgba(16,22,26,0),rgba(16,22,26,.64))}
 .route-scenery-card span,.route-scenery-card small{position:absolute;z-index:1;left:13px;text-shadow:0 1px 8px rgba(0,0,0,.32)}
-.route-scenery-card span{bottom:28px;font-size:12px;font-weight:800}
-.route-scenery-card small{bottom:11px;font-size:9px;font-weight:800;opacity:.88}
-.charter-info-section{display:grid;grid-template-columns:.8fr 1.2fr;gap:24px;align-items:start;padding:22px 0 28px;border-top:1px solid #eadfd4}
-.charter-info-section h2{margin:4px 0 0;font:600 29px var(--serif)}
-.charter-info-section>div>p{margin:11px 2px 0;color:#8a9298;font-size:10px}
+.route-scenery-card span{bottom:31px;font-size:12px;font-weight:800}
+.route-scenery-card small{right:13px;bottom:11px;font-size:8.5px;font-weight:800;line-height:1.25;opacity:.9}
+.charter-info-section{display:grid;grid-template-columns:.8fr 1.2fr;gap:22px;align-items:start;padding:18px 0 24px;border-top:1px solid #eadfd4}
+.charter-info-section h2{margin:2px 0 0;font:600 28px var(--serif)}
+.charter-info-section>div>p{margin:10px 2px 0;color:#8a9298;font-size:10px}
 .charter-info-card{overflow:hidden;border:1px solid #eadfd4;border-radius:15px;background:#fffaf5}
-.charter-info-card article{display:grid;grid-template-columns:26px minmax(0,1fr);gap:12px;align-items:start;padding:18px 20px}
+.charter-info-card article{display:grid;grid-template-columns:25px minmax(0,1fr);gap:11px;align-items:start;padding:16px 18px}
 .charter-info-card article+article{border-top:1px solid #eadfd4}
 .charter-info-card i{display:grid;place-items:center;width:23px;height:23px;border-radius:999px;background:#fff3e8;color:#b9783d;font-size:12px;font-style:normal;font-weight:900}
 .charter-info-card article:nth-child(2) i{background:#f5f1eb;color:#8d7f70}
-.charter-info-card b{display:block;margin-bottom:7px;color:#7a5a3c;font-size:13px}
+.charter-info-card b{display:block;margin-bottom:6px;color:#7a5a3c;font-size:13px}
 .charter-info-card span{display:block;color:#65717a;font-size:12px;line-height:1.55}
 .detail-final-cta{padding:22px 28px;margin-bottom:52px}
 .detail-final-cta h2{margin:6px 0;font-size:27px}
 .detail-final-cta .button{min-height:54px}
 .mobile-charter-sticky{display:none}
 @media(max-width:700px){
-  .car-detail{padding-bottom:68px}
+  .car-detail{padding-bottom:60px}
   .car-hero{height:272px}
   .car-hero:after{background:linear-gradient(180deg,rgba(250,247,243,1) 0%,rgba(250,247,243,.96) 44%,rgba(250,247,243,.32) 82%)}
   .car-hero-copy{top:22px}
@@ -2312,43 +2312,43 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .route-explorer-track .route-card{flex-basis:84%;height:390px;max-width:none}
   .route-explorer-track .route-card-media{aspect-ratio:16/10}
   .route-explorer-track .route-card-body{padding:14px 15px}
-  .route-explorer-track .route-card h3{min-height:48px;font-size:19px;margin-bottom:8px}
-  .route-explorer-track .route-card p{height:24px;margin-bottom:12px}
+  .route-explorer-track .route-card h3{min-height:0;font-size:19px;margin-bottom:8px}
+  .route-explorer-track .route-card p{height:24px;margin-bottom:10px}
   .route-explorer-track .route-card small{font-size:10px;line-height:1.55}
   .route-explorer-track .route-card-stops{margin-top:7px}
   .route-explorer-track .route-card-footer{padding-top:14px}
-  .private-car-trust-strip{grid-template-columns:repeat(2,minmax(0,1fr));width:calc(100% - 32px);min-height:0;margin:-2px auto 6px;padding:8px 0}
-  .private-car-trust-strip span{grid-template-columns:21px minmax(0,1fr);gap:1px 8px;padding:7px 10px}
+  .private-car-trust-strip{grid-template-columns:repeat(2,minmax(0,1fr));width:calc(100% - 32px);min-height:0;margin:-8px auto 4px;padding:5px 0}
+  .private-car-trust-strip span{grid-template-columns:21px minmax(0,1fr);gap:1px 8px;padding:5px 10px}
   .private-car-trust-strip span:nth-child(2n){border-right:0}
   .private-car-trust-strip span:nth-child(n+3){border-top:1px solid #eadfd4}
   .private-car-trust-strip i{width:19px;height:19px;font-size:11px}
   .private-car-trust-strip b{font-size:11px}
   .private-car-trust-strip small{font-size:9px}
   .route-scenery-section,.charter-info-section{width:calc(100% - 32px)}
-  .route-scenery-section{padding:20px 0 24px}
+  .route-scenery-section{padding:18px 0 22px}
   .route-scenery-head{align-items:start;margin-bottom:14px}
   .route-scenery-head h2{font-size:24px;margin-bottom:5px}
   .route-scenery-head p{font-size:12px;line-height:1.55}
   .route-scenery-head a{font-size:10px;padding-top:4px}
   .route-scenery-scroll{gap:10px;overflow-x:auto}
   .route-scenery-card{flex-basis:164px;height:112px;border-radius:13px}
-  .route-scenery-card span{left:11px;bottom:27px;font-size:11px}
-  .route-scenery-card small{left:11px;bottom:10px;font-size:8px}
-  .charter-info-section{display:block;padding:18px 0 22px}
-  .charter-info-section h2{font-size:24px;margin:0 0 12px}
-  .charter-info-card article{grid-template-columns:24px minmax(0,1fr);gap:10px;padding:18px 16px}
+  .route-scenery-card span{left:11px;bottom:31px;font-size:11px}
+  .route-scenery-card small{left:11px;right:10px;bottom:10px;font-size:7.5px;line-height:1.25}
+  .charter-info-section{display:block;padding:15px 0 19px}
+  .charter-info-section h2{font-size:23px;margin:0 0 10px}
+  .charter-info-card article{grid-template-columns:23px minmax(0,1fr);gap:9px;padding:15px 15px}
   .charter-info-card i{width:21px;height:21px}
   .charter-info-card b{margin-bottom:6px;font-size:12px}
   .charter-info-card span{font-size:11px;line-height:1.55}
-  .charter-info-section>div>p{margin-top:10px;font-size:9px}
+  .charter-info-section>div>p{margin-top:9px;font-size:9px}
   .detail-final-cta{margin:0 16px 22px;padding:18px 18px}
   .detail-final-cta h2{font-size:23px;margin:6px 0}
   .detail-final-cta p:last-child{font-size:10px;line-height:1.6}
   .detail-final-cta .button{height:52px;margin-top:14px}
-  .mobile-charter-sticky{position:fixed;z-index:60;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px calc(8px + env(safe-area-inset-bottom));border-top:1px solid #eadfd4;background:rgba(255,253,250,.96);backdrop-filter:blur(10px);box-shadow:0 -8px 26px rgba(37,32,27,.08);transition:transform .22s ease,opacity .22s ease}
+  .mobile-charter-sticky{position:fixed;z-index:60;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 14px calc(6px + env(safe-area-inset-bottom));border-top:1px solid #eadfd4;background:rgba(255,253,250,.96);backdrop-filter:blur(10px);box-shadow:0 -8px 26px rgba(37,32,27,.08);transition:transform .22s ease,opacity .22s ease}
   .mobile-charter-sticky.hidden{opacity:0;pointer-events:none;transform:translateY(100%)}
-  .mobile-charter-sticky span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#223241;font-size:13px;font-weight:800}
-  .mobile-charter-sticky button{flex:0 0 auto;min-height:48px;padding:9px 14px;border:0;border-radius:999px;background:#d4a265;color:#fff;font-size:12px;font-weight:800}
+  .mobile-charter-sticky span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#223241;font-size:12px;font-weight:800}
+  .mobile-charter-sticky button{flex:0 0 auto;min-height:42px;padding:8px 13px;border:0;border-radius:999px;background:#d4a265;color:#fff;font-size:11px;font-weight:800}
 }
 
 @media(max-width:700px){

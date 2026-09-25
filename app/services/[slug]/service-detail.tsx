@@ -928,11 +928,36 @@ export function ServiceDetail({
   const heroImage = activeManagedService?.coverImage || activeManagedService?.images?.[0] || service.image || photo("photo-1549317661-bd32c8ce0db2");
   const managedFootageImages = serviceImages(activeManagedService).slice(0, 8);
   const sceneryFallback = [
-    { label: zh ? "吉隆坡" : "Kuala Lumpur", image: managedFootageImages[0] || photo("photo-1596422846543-75c6fc197f07", 700), routeIndex: findRouteIndex(["经典", "吉隆坡"]) },
-    { label: zh ? "布城" : "Putrajaya", image: managedFootageImages[1] || photo("photo-1596422846543-75c6fc197f07", 701), routeIndex: findRouteIndex(["布城", "Putrajaya"]) },
-    { label: zh ? "马六甲" : "Melaka", image: managedFootageImages[2] || photo("photo-1507525428034-b723cf961d3e", 702), routeIndex: findRouteIndex(["马六甲", "Melaka"]) },
-    { label: zh ? "云顶" : "Genting", image: managedFootageImages[3] || photo("photo-1500530855697-b586d89ba3ee", 703), routeIndex: findRouteIndex(["云顶", "Genting"]) },
-    { label: zh ? "黑风洞" : "Batu Caves", image: managedFootageImages[4] || photo("photo-1552465011-b4e21bf6e79a", 704), routeIndex: findRouteIndex(["黑风洞", "Batu"]) },
+    {
+      label: zh ? "吉隆坡" : "Kuala Lumpur",
+      note: zh ? "市区地标 / 半日到一日" : "City icons / half to full day",
+      image: managedFootageImages[0] || photo("photo-1596422846543-75c6fc197f07", 700),
+      routeIndex: findRouteIndex(["经典", "吉隆坡"]),
+    },
+    {
+      label: zh ? "布城" : "Putrajaya",
+      note: zh ? "湖畔城市 / 半日可安排" : "Lakeside city / half-day friendly",
+      image: managedFootageImages[1] || photo("photo-1596422846543-75c6fc197f07", 701),
+      routeIndex: findRouteIndex(["布城", "Putrajaya"]),
+    },
+    {
+      label: zh ? "马六甲" : "Melaka",
+      note: zh ? "约2小时车程 / 一日往返" : "About 2 hours away / day trip",
+      image: managedFootageImages[2] || photo("photo-1507525428034-b723cf961d3e", 702),
+      routeIndex: findRouteIndex(["马六甲", "Melaka"]),
+    },
+    {
+      label: zh ? "云顶" : "Genting",
+      note: zh ? "高原休闲 / 可搭配黑风洞" : "Highland escape / pairs with Batu Caves",
+      image: managedFootageImages[3] || photo("photo-1500530855697-b586d89ba3ee", 703),
+      routeIndex: findRouteIndex(["云顶", "Genting"]),
+    },
+    {
+      label: zh ? "黑风洞" : "Batu Caves",
+      note: zh ? "吉隆坡周边 / 半日可安排" : "Near KL / half-day friendly",
+      image: managedFootageImages[4] || photo("photo-1552465011-b4e21bf6e79a", 704),
+      routeIndex: findRouteIndex(["黑风洞", "Batu"]),
+    },
   ];
   const heroTitle = zh
     ? activeManagedService?.nameZh || cityInfo.hero[0]
@@ -1150,10 +1175,10 @@ export function ServiceDetail({
         </section>
         <section className="private-car-trust-strip" aria-label={zh ? "包车服务亮点" : "Private driver benefits"}>
           {[
-            [zh ? "中文沟通" : "Chinese support", zh ? "沟通更省心" : "Easier planning"],
-            [zh ? "酒店接送" : "Hotel pickup", zh ? "从住处出发" : "Start from your stay"],
-            [zh ? "当地司机" : "Local driver", zh ? "熟悉当天路况" : "Knows the roads"],
-            [zh ? "路线可调" : "Flexible route", zh ? "按时间微调" : "Adjustable pace"],
+            [zh ? "中文沟通" : "Chinese support", zh ? "行程沟通更方便" : "Easier route planning"],
+            [zh ? "酒店接送" : "Hotel pickup", zh ? "可从住宿地点出发" : "Start from your stay"],
+            [zh ? "当地司机" : "Local driver", zh ? "熟悉路线与路况" : "Knows routes and roads"],
+            [zh ? "行程可调" : "Flexible itinerary", zh ? "按时间灵活调整" : "Adjust around your timing"],
           ].map((item) => (
             <span key={item[0]}>
               <i aria-hidden="true">✓</i>
@@ -1188,11 +1213,11 @@ export function ServiceDetail({
         <section className="route-scenery-section">
           <div className="route-scenery-head">
             <div>
-              <h2>{zh ? "一路上，不止这些风景" : "More than one view along the way"}</h2>
+              <h2>{zh ? "包车还能去这些地方" : "Private car can go beyond the city"}</h2>
               <p>
                 {zh
-                  ? "吉隆坡、布城、马六甲……按你的时间慢慢走。"
-                  : "Kuala Lumpur, Putrajaya, Melaka and more, paced around your day."}
+                  ? "不只市区，根据时间也可以安排周边路线。"
+                  : "Beyond the city, nearby routes can be shaped around your timing."}
               </p>
             </div>
             <a href="/photography">{zh ? "更多目的地" : "More places"} →</a>
@@ -1207,26 +1232,26 @@ export function ServiceDetail({
               >
                 <img src={item.image} alt={item.label} loading="lazy" decoding="async" />
                 <span>{item.label}</span>
-                <small>{zh ? "查看路线 →" : "View route →"}</small>
+                <small>{item.note}</small>
               </button>
             ))}
           </div>
         </section>
         <section className="charter-info-section">
-          <h2>{zh ? "包车费用说明" : "Private charter cost notes"}</h2>
+          <h2>{zh ? "费用说明" : "Cost notes"}</h2>
           <div>
             <div className="charter-info-card">
               <article>
                 <i aria-hidden="true">✓</i>
                 <div>
-                  <b>{zh ? "包车包含" : "Included"}</b>
-                  <span>{zh ? "私人车辆 · 司机服务 · 酒店接送 · 路线沟通" : "Private vehicle · Driver service · Hotel pickup · Route discussion"}</span>
+                  <b>{zh ? "费用包含" : "Included"}</b>
+                  <span>{zh ? "私人车辆 · 司机服务 · 酒店接送 · 行程沟通" : "Private vehicle · Driver service · Hotel pickup · Route planning"}</span>
                 </div>
               </article>
               <article>
                 <i aria-hidden="true">i</i>
                 <div>
-                  <b>{zh ? "可能额外产生" : "Possible extras"}</b>
+                  <b>{zh ? "可能另付" : "Possible extras"}</b>
                   <span>{zh ? "景点门票 · 停车费 · 高速费 · 超时费用" : "Tickets · Parking · Tolls · Overtime"}</span>
                 </div>
               </article>
