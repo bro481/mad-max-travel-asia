@@ -18,6 +18,7 @@ export type InquiryKind =
 type InquiryModalProps = {
   kind: InquiryKind;
   title?: string;
+  sourceId?: string;
   promptFields?: string[];
   maxGuests?: number;
   onClose: () => void;
@@ -41,7 +42,7 @@ async function copyText(text: string) {
   }
 }
 
-export function InquiryModal({ kind, title, promptFields = [], maxGuests = 14, onClose }: InquiryModalProps) {
+export function InquiryModal({ kind, title, sourceId, promptFields = [], maxGuests = 14, onClose }: InquiryModalProps) {
   const info = meta[kind];
   const globalSettings = useInquirySettings();
   const [generated, setGenerated] = useState(false);
@@ -64,7 +65,7 @@ export function InquiryModal({ kind, title, promptFields = [], maxGuests = 14, o
     const head = `【${globalSettings.copyRules.sourcePrefix || "官网咨询"}｜${title || info.service}】`;
     if (kind === "airport-transfer") return [head, `方向：${form.direction}`, `日期：${form.date || "待补充"}`, `航班：${form.flight || "稍后补充"}`, `接送地点：${form.place || "待补充"}`, `人数：${form.adults} 人`, `行李：${form.luggage} 件`];
     if (kind === "accommodation") return [head, `入住：${form.date || "待补充"}`, `退房：${form.endDate || "待补充"}`, `成人：${form.adults} 人`, `儿童：${form.children} 人`, title ? `正在咨询：${title}` : "", `补充需求：${form.wishes || "无"}`];
-    if (kind === "private-charter") return [head, `日期：${form.date || "待补充"}`, `人数：${form.adults} 人`, `出发地点：${form.place || "待补充"}`, title ? `已选择路线：${title}` : `安排方式：${form.routeMode}`, `想去的地方：${form.wishes || "待沟通"}`, `特殊需求：${form.special || "无"}`];
+    if (kind === "private-charter") return [head, sourceId ? `路线ID：${sourceId}` : "", `日期：${form.date || "待补充"}`, `人数：${form.adults} 人`, `出发地点：${form.place || "待补充"}`, title ? `已选择路线：${title}` : `安排方式：${form.routeMode}`, `想去的地方：${form.wishes || "待沟通"}`, `特殊需求：${form.special || "无"}`];
     if (kind === "package") {
       const fieldLines = promptFields.length
         ? promptFields.map((field) => {
@@ -81,7 +82,7 @@ export function InquiryModal({ kind, title, promptFields = [], maxGuests = 14, o
     }
     if (kind === "experience") return [head, title ? `已选择：${title}` : "", `出行日期：${form.date || "待补充"}`, `成人：${form.adults} 人`, `儿童：${form.children} 人`, `住宿地点：${form.place || "待补充"}`, `补充需求：${form.wishes || "无"}`];
     return [head, `商品：${title || "请推荐"} × ${form.quantity}`, `目前：${form.location}`, `获取方式：${form.delivery}`, form.location === "已经回国" ? `所在城市：${form.city || "待补充"}` : "", `备注：${form.wishes || "无"}`];
-  }, [form, globalSettings.copyRules.sourcePrefix, info.service, kind, promptFields, title]);
+  }, [form, globalSettings.copyRules.sourcePrefix, info.service, kind, promptFields, sourceId, title]);
   const requestText = lines.filter(Boolean).join("\n");
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setGenerated(true); setCopied(false);

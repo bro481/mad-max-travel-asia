@@ -446,6 +446,7 @@ const getManagedExperienceRouteDetail = (
     offer.image;
 
   return {
+    routeId: `${service.slug || service.city}-route-overview`,
     title: [service.nameZh || offer.title[0], service.nameEn || service.nameZh || offer.title[1]],
     desc: [
       service.introZh || service.subtitleZh || offer.desc[0],
@@ -936,7 +937,7 @@ export function ServicesPage({
     useState<PrivateRouteDetailData | null>(null);
   const [selectedRouteInquiryKind, setSelectedRouteInquiryKind] =
     useState<InquiryKind>("private-charter");
-  const [inquiry, setInquiry] = useState<{ kind: InquiryKind; title?: string } | null>(null);
+  const [inquiry, setInquiry] = useState<{ kind: InquiryKind; title?: string; sourceId?: string } | null>(null);
   const [experienceIndex, setExperienceIndex] = useState(0);
   const [intercityRequestOpen, setIntercityRequestOpen] = useState(false);
   const [intercityGenerated, setIntercityGenerated] = useState(false);
@@ -1764,7 +1765,7 @@ export function ServicesPage({
           route={selectedPrivateRoute}
           lang={lang}
           onClose={() => setSelectedPrivateRoute(null)}
-          onInquire={() => setInquiry({ kind: selectedRouteInquiryKind, title: selectedPrivateRoute.title[0] })}
+          onInquire={() => setInquiry({ kind: selectedRouteInquiryKind, title: selectedPrivateRoute.title[0], sourceId: selectedPrivateRoute.routeId })}
         />
       )}
       {selectedOffer && !isAirportTransfer && !experienceDetail && !selectedPrivateCar && (
@@ -2012,7 +2013,7 @@ export function ServicesPage({
           </div>
         </div>
       )}
-      {inquiry && <InquiryModal kind={inquiry.kind} title={inquiry.title} onClose={() => setInquiry(null)} />}
+      {inquiry && <InquiryModal kind={inquiry.kind} title={inquiry.title} sourceId={inquiry.sourceId} onClose={() => setInquiry(null)} />}
       <footer>
         <Logo />
         <p>MAD MAX Malaysia Stay · Local travel services</p>

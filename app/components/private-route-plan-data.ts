@@ -57,7 +57,12 @@ export function routePlanToPrivateRoute(
 ): PrivateRouteDetailData {
   const titleZh = routePlanTitle(route, `${service.city}推荐路线 ${index + 1}`);
   const descZh = routePlanDescription(route, "路线仅作参考，可根据您的时间与兴趣灵活调整。");
+  const routeKey = route.name || route.nameZh || titleZh;
   return {
+    routeId: `${service.slug || service.city}-${routeKey}-${index + 1}`
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+      .replace(/^-|-$/g, ""),
     title: textPair(titleZh, route.nameEn, titleZh),
     desc: textPair(descZh, route.descriptionEn, descZh),
     duration: textPair(route.duration || "时间灵活", route.duration || "Flexible duration"),

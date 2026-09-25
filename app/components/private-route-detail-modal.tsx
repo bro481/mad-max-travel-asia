@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GalleryCarousel } from "./gallery-carousel";
 
 export type PrivateRouteDetailStop = {
@@ -12,6 +12,7 @@ export type PrivateRouteDetailStop = {
 };
 
 export type PrivateRouteDetailData = {
+  routeId?: string;
   title: [string, string];
   desc: [string, string];
   duration: [string, string];
@@ -50,15 +51,52 @@ export function PrivateRouteDetailModal({
   onInquire?: () => void;
 }) {
   const languageIndex = lang === "zh" ? 0 : 1;
-  const stopRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const images = [route.image, ...route.stops.map((stop) => stop.image)].filter(Boolean);
+  const stopRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const galleryRef = useRef<HTMLDivElement | null>(null);
+  const highlightTimer = useRef<number | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [highlightedStop, setHighlightedStop] = useState<number | null>(focusStopIndex ?? null);
+  const imageItems = [
+    ...(route.image ? [{ image: route.image, stopIndex: null as number | null }] : []),
+    ...route.stops.flatMap((stop, index) => stop.image ? [{ image: stop.image, stopIndex: index }] : []),
+  ];
+  const images = imageItems.map((item) => item.image);
+
+  const highlightStop = useCallback((stopIndex: number, shouldScroll = true) => {
+    if (stopIndex < 0 || stopIndex >= route.stops.length) return;
+    setHighlightedStop(stopIndex);
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(() => setHighlightedStop(null), 1800);
+    if (!shouldScroll) return;
+    requestAnimationFrame(() => {
+      stopRefs.current[stopIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [route.stops.length]);
 
   useEffect(() => {
     if (focusStopIndex === null || focusStopIndex === undefined) return;
+    highlightStop(focusStopIndex);
+  }, [focusStopIndex, highlightStop]);
+
+  useEffect(() => () => {
+    if (highlightTimer.current) window.clearTimeout(highlightTimer.current);
+  }, []);
+
+  const handleGalleryIndexChange = (nextIndex: number) => {
+    setGalleryIndex(nextIndex);
+    const stopIndex = imageItems[nextIndex]?.stopIndex;
+    if (stopIndex !== null && stopIndex !== undefined) highlightStop(stopIndex);
+  };
+
+  const openStopInGallery = (stopIndex: number) => {
+    const mappedIndex = imageItems.findIndex((item) => item.stopIndex === stopIndex);
+    const nextIndex = mappedIndex >= 0 ? mappedIndex : Math.min(stopIndex + 1, Math.max(images.length - 1, 0));
+    setGalleryIndex(nextIndex);
+    highlightStop(stopIndex, false);
     requestAnimationFrame(() => {
-      stopRefs.current[focusStopIndex]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      galleryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
-  }, [focusStopIndex]);
+  };
 
   return (
     <div
@@ -86,18 +124,26 @@ export function PrivateRouteDetailModal({
             {lang === "zh" ? "酒店接送 · 私人用车 · 行程可调整" : "Hotel pickup · Private vehicle · Flexible route"}
           </p>
         </div>
-        <div className="modal-gallery experience-gallery">
+        <div className="modal-gallery experience-gallery" ref={galleryRef}>
           {images.length ? (
-            <GalleryCarousel images={images} alt={route.title[languageIndex]} blurredBackdrop />
+            <GalleryCarousel
+              images={images}
+              alt={route.title[languageIndex]}
+              blurredBackdrop
+              activeIndex={galleryIndex}
+              onIndexChange={handleGalleryIndexChange}
+              onImageClick={(imageIndex) => {
+                const stopIndex = imageItems[imageIndex]?.stopIndex;
+                if (stopIndex !== null && stopIndex !== undefined) highlightStop(stopIndex);
+              }}
+            />
           ) : (
             <div className="private-route-no-image">{lang === "zh" ? "暂未设置路线图片" : "No route images yet"}</div>
           )}
         </div>
         <div className="modal-route experience-modal-route private-route-itinerary-panel">
           <p className="modal-itinerary-title">
-            {lang === "zh"
-              ? `建议行程 · ${route.duration[0]}`
-              : `Suggested route · ${route.duration[1]}`}
+            {lang === "zh" ? "路线概览" : "Route overview"}
           </p>
           <p className="private-route-itinerary-intro">
             {lang === "zh"
@@ -106,12 +152,14 @@ export function PrivateRouteDetailModal({
           </p>
           <div className="timeline experience-timeline private-route-timeline">
             {route.stops.map((stop, index) => (
-              <div
-                className={focusStopIndex === index ? "preview-focused-stop" : ""}
+              <button
+                type="button"
+                className={highlightedStop === index ? "preview-focused-stop" : ""}
                 key={`${stop.title[0]}-${index}`}
                 ref={(element) => {
                   stopRefs.current[index] = element;
                 }}
+                onClick={() => openStopInGallery(index)}
               >
                 <time>{stopMeta(stop, lang, index)}</time>
                 <i />
@@ -122,7 +170,7 @@ export function PrivateRouteDetailModal({
                   </small>
                 </p>
                 {stop.image ? <img src={stop.image} alt="" /> : <span className="private-route-stop-no-image">暂无图片</span>}
-              </div>
+              </button>
             ))}
           </div>
           <p className="modal-best-for private-route-best-for">
@@ -137,6 +185,11 @@ export function PrivateRouteDetailModal({
             {lang === "zh"
               ? "价格根据日期、人数、车型和住宿位置确认。"
               : "Pricing is confirmed by date, group size, vehicle and pickup location."}
+          </p>
+          <p className="private-route-adjust-note">
+            {lang === "zh"
+              ? "行程顺序及停留时间会根据当天交通、景点开放情况及个人喜好灵活调整。"
+              : "The final order and stay time can be adjusted around traffic, opening hours and personal preferences."}
           </p>
           {onInquire ? (
             <button className="button" type="button" onClick={onInquire}>
