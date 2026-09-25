@@ -20,6 +20,13 @@ type PlaceHeading = {
   blockIndex: number;
 };
 
+type RelatedGuideItem = {
+  href: string;
+  titleZh: string;
+  category: string;
+  image: string;
+};
+
 const placeSubtitleMap: Record<string, string> = {
   双子塔: "Petronas Twin Towers · KLCC",
   茨厂街: "Petaling Street · Chinatown",
@@ -123,6 +130,62 @@ function guideTags(article: TravelGuideArticle) {
   if (article.category === "住宿推荐") return ["住宿区域", "自由行", "按预算选择"];
   if (article.category === "行程参考") return ["路线参考", "时间安排", "适合自由行"];
   return ["当地建议", "轻松安排", "适合自由行"];
+}
+
+function nextStepRecommendations(article: TravelGuideArticle): RelatedGuideItem[] {
+  if (article.slug === "first-time-kuala-lumpur") {
+    return [
+      {
+        href: "/#stays",
+        titleZh: "第一次来吉隆坡，住哪里最方便？",
+        category: "住宿推荐",
+        image: klccImage,
+      },
+      {
+        href: "/packages/kuala-lumpur-malacca-4d3n",
+        titleZh: "吉隆坡 + 马六甲 4天3晚怎么安排？",
+        category: "行程参考",
+        image: photo("photo-1596422846543-75c6fc197f07", 900),
+      },
+    ];
+  }
+  return [
+    {
+      href: "/#stays",
+      titleZh: "住宿、接送和包车可以怎么一起安排？",
+      category: "当地服务",
+      image: klccImage,
+    },
+    {
+      href: "/packages",
+      titleZh: "不想自己拼行程，可以先看省心套餐",
+      category: "行程参考",
+      image: photo("photo-1596422846543-75c6fc197f07", 900),
+    },
+  ];
+}
+
+function relatedGuideItems(article: TravelGuideArticle, related: TravelGuideArticle[], headings: PlaceHeading[]): RelatedGuideItem[] {
+  const headingNames = new Set(headings.map((heading) => placeDisplayName(heading.title)));
+  const specific = related
+    .filter((item) => {
+      if (item.slug === article.slug) return false;
+      return !Array.from(headingNames).some((name) => name && item.titleZh.includes(name));
+    })
+    .map((item) => ({
+      href: `/photography/${item.slug}`,
+      titleZh: item.titleZh,
+      category: item.category,
+      image: guideImage(item),
+    }));
+  const seen = new Set<string>();
+  return [...specific, ...nextStepRecommendations(article)]
+    .filter((item) => {
+      if (seen.has(item.href)) return false;
+      seen.add(item.href);
+      return true;
+    })
+    .slice(0, 3);
 }
 
 function enhanceKualaLumpurGalleries(blocks: TravelGuideBlock[], article: TravelGuideArticle): TravelGuideBlock[] {
@@ -261,7 +324,6 @@ function Gallery({ images, caption, captions, alts }: GalleryProps) {
             <>
               <button className="prev" type="button" onClick={() => scrollToIndex(safeIndex - 1)} aria-label="上一张">‹</button>
               <button className="next" type="button" onClick={() => scrollToIndex(safeIndex + 1)} aria-label="下一张">›</button>
-              <span>{formatGalleryCount(safeIndex + 1, available.length)}</span>
             </>
           )}
         </div>
@@ -293,10 +355,10 @@ function Gallery({ images, caption, captions, alts }: GalleryProps) {
   );
 }
 
-function RelatedGuide({ item }: { item: TravelGuideArticle }) {
+function RelatedGuide({ item }: { item: RelatedGuideItem }) {
   return (
-    <Link href={`/photography/${item.slug}`}>
-      <img src={guideImage(item)} alt="" />
+    <Link href={item.href}>
+      <img src={item.image} alt="" />
       <span>
         <small>{item.category}</small>
         <b>{item.titleZh}</b>
@@ -377,6 +439,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
     return enhanceKualaLumpurGalleries(sourceBlocks, article);
   }, [article]);
   const placeHeadings = useMemo(() => collectPlaceHeadings(blocks), [blocks]);
+  const recommendedGuides = useMemo(() => relatedGuideItems(article, related, placeHeadings), [article, related, placeHeadings]);
   const showChapterNav = placeHeadings.length >= 3;
   const headingByBlockIndex = useMemo(() => new Map(placeHeadings.map((heading) => [heading.blockIndex, heading])), [placeHeadings]);
   const headingNumbers = useMemo(
@@ -522,16 +585,16 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
 
         <section className="guide-soft-link">
           <small>Malaysia local travel support</small>
-          <h2>还在安排马来西亚行程？</h2>
-          <p>告诉我们日期、人数和想去的地方，我们帮你一起看看怎么安排。</p>
+          <h2>想把这些地方排进你的行程？</h2>
+          <p>告诉我们旅行日期、人数和住宿位置，我们可以帮你看看怎么走更顺。</p>
           <Link href="/#contact">咨询行程 →</Link>
         </section>
 
-        {related.length > 0 && (
+        {recommendedGuides.length > 0 && (
           <section className="guide-related">
             <h2>继续看看</h2>
             <div>
-              {related.slice(0, 2).map((item) => <RelatedGuide item={item} key={item.id} />)}
+              {recommendedGuides.map((item) => <RelatedGuide item={item} key={item.href} />)}
             </div>
           </section>
         )}
