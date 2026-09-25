@@ -1044,8 +1044,9 @@ function emptyRoutePlan(index: number): ServiceRoutePlan {
 function normalizeRoutePlan(route: ServiceRoutePlan, index: number): ServiceRoutePlan {
   const tags = routePlanTags(route);
   const nodes = routePlanNodes(route).map((node) => ({ ...node, type: node.type || guessNodeType(node.nameZh || node.title || "") }));
-  const coverImage = route.coverImage || route.image || "";
-  const imageLibrary = Array.from(new Set([...(route.imageLibrary || []), ...nodes.map((node) => node.image || "").filter(Boolean)]));
+  const nodeImages = nodes.map((node) => node.image || "").filter(Boolean);
+  const imageLibrary = Array.from(new Set([...(route.imageLibrary || []), ...nodeImages]));
+  const coverImage = route.coverImage || route.image || nodeImages[0] || imageLibrary[0] || "";
   return {
     ...route,
     name: route.name || route.nameZh || `路线 ${index + 1}`,
@@ -1286,7 +1287,11 @@ function RoutePlansEditor({
                   ≡
                 </span>
                 <div className="route-plan-thumb">
-                  {route.coverImage || route.image ? <img src={route.coverImage || route.image} alt="" /> : <span>路线图</span>}
+                  {route.coverImage || route.image || routePlanNodes(route)[0]?.image ? (
+                    <img src={route.coverImage || route.image || routePlanNodes(route)[0]?.image} alt="" />
+                  ) : (
+                    <span>路线图</span>
+                  )}
                 </div>
                 <div className="route-plan-main">
                   <h4>
