@@ -22,8 +22,9 @@ export function PrivateRouteCard({
 }) {
   const l = lang === "zh" ? 0 : 1;
   const stopNames = route.stops?.map((stop) => stop.title[l]).filter(Boolean) ?? [];
-  const featuredStops = stopNames.slice(1, 5);
-  const extraStops = Math.max(0, stopNames.length - featuredStops.length - 1);
+  const travelStops = stopNames.filter((name) => !/酒店|接送|返回|hotel|pickup|return/i.test(name));
+  const featuredStops = (travelStops.length ? travelStops : stopNames).slice(0, 4);
+  const stopCount = (travelStops.length || stopNames.length);
   return (
     <button className="route-card" type="button" onClick={onOpen}>
       <div className="route-card-media">
@@ -35,13 +36,17 @@ export function PrivateRouteCard({
           <span>{route.duration[l]}</span>
           {route.tags[0]?.[l] ? <span>{route.tags[0][l]}</span> : null}
         </p>
-        <small>{route.summary[l]}</small>
         {featuredStops.length ? (
-          <small className="route-card-stops">{featuredStops.join(" · ")}</small>
-        ) : null}
+          <small className="route-card-stops">
+            {featuredStops.join(" · ")}
+            {stopCount > featuredStops.length ? "……" : ""}
+          </small>
+        ) : (
+          <small className="route-card-summary">{route.summary[l]}</small>
+        )}
         <div className="route-card-footer">
-          <em>{extraStops > 0 ? (lang === "zh" ? `+ ${extraStops} 个停靠点` : `+ ${extraStops} stops`) : ""}</em>
-          <b>{lang === "zh" ? "查看完整路线" : "Full route"} →</b>
+          <em>{stopCount > 0 ? (lang === "zh" ? `${stopCount} 个停靠点` : `${stopCount} stops`) : ""}</em>
+          <b>{lang === "zh" ? "查看路线" : "View route"} →</b>
         </div>
       </div>
     </button>

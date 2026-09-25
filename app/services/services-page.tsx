@@ -28,6 +28,7 @@ type Offer = {
   detail: string;
   serviceId?: number;
   serviceSlug?: string;
+  cta?: [string, string];
 };
 type AirportVehicle = {
   name: [string, string];
@@ -502,26 +503,28 @@ const destinations: Destination[] = [
         items: [
           {
             title: ["吉隆坡机场接送", "KL Airport Transfer"],
-            desc: ["KLIA ↔ 酒店 / 市区", "KLIA ↔ hotel / city"],
+            desc: ["KLIA / KLIA2 ⇄ 酒店", "KLIA / KLIA2 ⇄ hotel"],
             tags: [
-              ["舒适便捷", "Comfortable"],
-              ["提前预约", "Pre-booked"],
+              ["航班接送", "Flight transfer"],
+              ["中文沟通", "Chinese support"],
             ],
             image: img("photo-1549317661-bd32c8ce0db2"),
             detail: "airport-transfer",
+            cta: ["查看接送", "View transfer"],
           },
           {
             title: ["吉隆坡私人包车", "KL Private Car"],
             desc: [
-              "半日 / 全天包车，自由安排路线",
-              "Half-day or full-day flexible routes",
+              "按小时 / 按路线安排",
+              "Arrange by hours or route",
             ],
             tags: [
               ["中文沟通", "Chinese support"],
-              ["行程灵活", "Flexible"],
+              ["行程可调", "Flexible itinerary"],
             ],
             image: img("photo-1550355291-bbee04a92027"),
             detail: "private-car",
+            cta: ["查看包车", "View charter"],
           },
           {
             title: ["跨城接送", "Intercity Transfer"],
@@ -848,19 +851,17 @@ const copy = {
       "包车、接送、海岛与当地体验，按目的地慢慢选。",
     choose: "选择目的地",
     all: "全部",
-    custom: "定制你的马来西亚旅程",
+    custom: "不知道怎么安排？",
     customText:
-      "不知道怎么玩？告诉我们你的时间、人数和兴趣，我们帮你组合住宿、交通与体验。",
+      "我们帮你把住宿、交通和行程一起顺好。",
     why: "为什么选择我们",
     cta: "有任何需求？联系我们。",
     ctaText: "告诉我们你的计划，我们帮你安排适合的马来西亚之旅。",
     wechat: "微信联系",
     trust: [
-      ["专业司机", "经验丰富，安全可靠"],
-      ["中文沟通", "无需担心语言问题"],
-      ["安全保障", "正规车辆，安心出行"],
-      ["行程灵活", "根据需求调整"],
-      ["7×24 支持", "及时响应需求"],
+      ["中文沟通", "行程确认更方便"],
+      ["当地司机", "熟悉路线与路况"],
+      ["灵活安排", "根据时间调整行程"],
     ],
     cases: [
       ["家庭旅行", ["舒适住宿", "私人包车", "亲子体验"]],
@@ -880,20 +881,18 @@ const copy = {
       "From comfortable private transfers to island escapes and nature experiences, we make your Malaysia journey feel easy.",
     choose: "Choose a destination",
     all: "All",
-    custom: "Design Your Malaysia Journey",
+    custom: "Not sure how to arrange it?",
     customText:
-      "Not sure where to begin? Tell us your dates, group and interests, and we will combine stays, transport and experiences.",
+      "We help connect your stay, transport and itinerary into one smoother plan.",
     why: "Why Choose Us",
     cta: "Need help? Get in touch.",
     ctaText:
       "Share your plans and we will help arrange a Malaysia journey that suits you.",
     wechat: "WeChat",
     trust: [
-      ["Professional drivers", "Experienced, safe and reliable"],
-      ["Chinese support", "Easy, clear communication"],
-      ["Travel with confidence", "Reliable vehicles and support"],
-      ["Flexible itinerary", "Adjusted around your needs"],
-      ["7×24 support", "Timely help when needed"],
+      ["Chinese support", "Easier trip confirmation"],
+      ["Local drivers", "Familiar with routes and roads"],
+      ["Flexible plans", "Adjusted around your timing"],
     ],
     cases: [
       [
@@ -998,6 +997,36 @@ export function ServicesPage({
               ? "island"
               : "nature",
     };
+  };
+  const displayOffer = (offer: Offer): Offer => {
+    const titleText = `${offer.title[0]} ${offer.title[1]}`.toLowerCase();
+    if (/机场|airport|klia|斗湖/.test(titleText) || offer.detail === "airport-transfer") {
+      return {
+        ...offer,
+        desc: offer.title[0].includes("吉隆坡")
+          ? ["KLIA / KLIA2 ⇄ 酒店", "KLIA / KLIA2 ⇄ hotel"]
+          : offer.desc,
+        tags: [
+          ["航班接送", "Flight transfer"],
+          ["中文沟通", "Chinese support"],
+        ],
+        cta: ["查看接送", "View transfer"],
+      };
+    }
+    if (/私人包车|private car|private charter/.test(titleText) || offer.detail === "private-car") {
+      return {
+        ...offer,
+        desc: offer.title[0].includes("吉隆坡")
+          ? ["按小时 / 按路线安排", "Arrange by hours or route"]
+          : offer.desc,
+        tags: [
+          ["中文沟通", "Chinese support"],
+          ["行程可调", "Flexible itinerary"],
+        ],
+        cta: ["查看包车", "View charter"],
+      };
+    }
+    return offer;
   };
   const dynamicVisibleDestinations: Destination[] = dynamicDestinationSettings
     .map((setting) => {
@@ -1371,12 +1400,19 @@ export function ServicesPage({
                   </h3>
                   <div className="offer-grid">
                     {group.items.map((item) => {
+                      const displayedOffer = displayOffer(item);
                       const hasFullPage =
                         item.title[0].includes("私人包车") ||
                         item.title[0].includes("一日包车");
                       return (
                         <LocalServiceOfferCard
-                          data={{ title: item.title, description: item.desc, tags: item.tags, image: item.image }}
+                          data={{
+                            title: displayedOffer.title,
+                            description: displayedOffer.desc,
+                            tags: displayedOffer.tags,
+                            image: displayedOffer.image,
+                            cta: displayedOffer.cta,
+                          }}
                           lang={lang}
                           onOpen={() => {
                             if (hasFullPage) {
@@ -1476,37 +1512,13 @@ export function ServicesPage({
             <h2>{t.custom}</h2>
             <p>{t.customText}</p>
             <div className="custom-points">
-              <span>⌂ {lang === "zh" ? "住宿规划" : "Stay planning"}</span>
-              <span>▱ {lang === "zh" ? "省心包车" : "Private transport"}</span>
-              <span>⌖ {lang === "zh" ? "灵活自由" : "Flexible itinerary"}</span>
+              <span>{lang === "zh" ? "家庭旅行" : "Family travel"}</span>
+              <span>{lang === "zh" ? "情侣度假" : "Couples' escape"}</span>
+              <span>{lang === "zh" ? "亲子出行" : "Parent-child trip"}</span>
             </div>
             <a className="button" href="/#contact">
-              {t.submit} →
+              {lang === "zh" ? "开始定制" : "Start planning"} →
             </a>
-          </div>
-          <div className="custom-cases">
-            {t.cases.map((item, i) => (
-              <article key={String(item[0])}>
-                <img
-                  src={
-                    [
-                      img("photo-1504150558240-0b4fd8946624"),
-                      img("photo-1500534314209-a25ddb2bd429"),
-                      img("photo-1528127269322-539801943592"),
-                    ][i]
-                  }
-                  alt=""
-                />
-                <div>
-                  <h3>{item[0]}</h3>
-                  <ul>
-                    {(Array.isArray(item[1]) ? item[1] : []).map((x) => (
-                      <li key={x}>✓ {x}</li>
-                    ))}
-                  </ul>
-                </div>
-              </article>
-            ))}
           </div>
         </section>
         <section className="trust-section compact">

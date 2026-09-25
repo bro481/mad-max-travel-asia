@@ -5,6 +5,7 @@ export type LocalServiceOfferCardData = {
   description: [string, string];
   tags: Array<[string, string]>;
   image: string;
+  cta?: [string, string];
 };
 
 export function LocalServiceOfferCard({
@@ -17,6 +18,7 @@ export function LocalServiceOfferCard({
   onOpen?: () => void;
 }) {
   const l = lang === "zh" ? 0 : 1;
+  const fallbackCta = lang === "zh" ? "查看服务" : "View service";
   return (
     <button className="offer-card" type="button" onClick={onOpen}>
       {data.image ? <img src={data.image} alt={data.title[l]} loading="lazy" decoding="async" /> : <span className="offer-card-placeholder">添加服务封面图</span>}
@@ -28,6 +30,7 @@ export function LocalServiceOfferCard({
             <span key={tag[0]}>{tag[l]}</span>
           ))}
         </div>
+        <b>{data.cta?.[l] || fallbackCta} →</b>
       </div>
     </button>
   );
