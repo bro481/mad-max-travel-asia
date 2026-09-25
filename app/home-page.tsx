@@ -415,15 +415,6 @@ export function RoomDetailModal({
     { key: "nearby", zh: "周边", en: "Nearby" },
   ];
   useEffect(() => setTab(initialTab), [initialTab]);
-  useEffect(() => {
-    const originalPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (window.location.pathname !== roomShareUrl) {
-      window.history.pushState({ madMaxRoomModal: room.id }, "", roomShareUrl);
-    }
-    return () => {
-      if (window.location.pathname === roomShareUrl) window.history.replaceState(null, "", originalPath);
-    };
-  }, [room.id, roomShareUrl]);
 
   return (
     <div className="room-detail-modal" role="dialog" aria-modal="true" onMouseDown={onClose}>
