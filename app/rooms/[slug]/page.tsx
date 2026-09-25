@@ -29,8 +29,11 @@ export default async function RoomPage({params}:{params:Promise<{slug:string}>})
     dbRoom = property ? propertyToRoom(property) : null;
   } catch {}
   if(dbRoom)return <RoomDetail room={dbRoom}/>;
-  const { rooms } = await import("../../data");
-  const room = rooms.find((item) => item.id === slug);
-  if(!room)return <main className="not-found"><h1>Room not found</h1><Link className="button" href="/#stays">Explore our stays</Link></main>;
-  return <RoomDetail room={room}/>;
+  return (
+    <main className="not-found">
+      <h1>Room temporarily unavailable</h1>
+      <p>房源数据暂时无法加载，请稍后再试。</p>
+      <Link className="button" href="/#stays">Explore our stays</Link>
+    </main>
+  );
 }

@@ -14,8 +14,7 @@ export default async function Page() {
     return <HomePage rooms={rooms} destinations={staticDestinations} />;
   }
 
-  const [{ rooms }, { staticDestinations, listDestinations }, { listProperties, propertyToRoom }] = await Promise.all([
-    import("./data"),
+  const [{ staticDestinations, listDestinations }, { listProperties, propertyToRoom }] = await Promise.all([
     import("../db/destinations"),
     import("../db/properties"),
   ]);
@@ -29,8 +28,8 @@ export default async function Page() {
     [],
     "Public home properties query",
   );
-  const pageRooms: Room[] = properties.length
-    ? properties.filter((item)=>item.status==="published").map((item)=>propertyToRoom(item,pageDestinations))
-    : rooms;
+  const pageRooms: Room[] = properties
+    .filter((item) => item.status === "published")
+    .map((item) => propertyToRoom(item, pageDestinations));
   return <HomePage rooms={pageRooms} destinations={pageDestinations} />;
 }

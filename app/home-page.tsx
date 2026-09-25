@@ -831,37 +831,45 @@ export function HomePage({ rooms, destinations = fallbackDestinations }: { rooms
             </h3>
             <span>{lang === "zh" ? "默认排序 ▾" : "Default order ▾"}</span>
           </div>
-          <div className="room-grid stay-results-grid">
-            {visibleRooms.map((room, index) => (
-              <article className="room-card" key={room.id}>
-                <RoomCarousel room={room} lang={lang} onOpen={() => setSelectedRoom(room)} priority={index < 2} />
-                <div className="card-body">
-                  <h4>{room.name[lang]}</h4>
-                  <div className="room-info-row">
-                    <div className="room-meta">
-                      <span>
-                        {room.guests} {t.guests}
-                      </span>
-                      <span>
-                        {room.bedrooms} {t.bedrooms}
-                      </span>
-                      <span>
-                        {room.beds} {t.beds}
-                      </span>
+          {visibleRooms.length ? (
+            <div className="room-grid stay-results-grid">
+              {visibleRooms.map((room, index) => (
+                <article className="room-card" key={room.id}>
+                  <RoomCarousel room={room} lang={lang} onOpen={() => setSelectedRoom(room)} priority={index < 2} />
+                  <div className="card-body">
+                    <h4>{room.name[lang]}</h4>
+                    <div className="room-info-row">
+                      <div className="room-meta">
+                        <span>
+                          {room.guests} {t.guests}
+                        </span>
+                        <span>
+                          {room.bedrooms} {t.bedrooms}
+                        </span>
+                        <span>
+                          {room.beds} {t.beds}
+                        </span>
+                      </div>
                     </div>
+                    <div className="room-price">{(() => {
+                      const displayed = roomPriceDisplay(room, lang);
+                      return `${displayed.price}${displayed.suffix}`;
+                    })()}</div>
+                    <button className="text-link" type="button" onClick={() => setSelectedRoom(room)}>
+                      {t.viewRoom}
+                      <span>↗</span>
+                    </button>
                   </div>
-                  <div className="room-price">{(() => {
-                    const displayed = roomPriceDisplay(room, lang);
-                    return `${displayed.price}${displayed.suffix}`;
-                  })()}</div>
-                  <button className="text-link" type="button" onClick={() => setSelectedRoom(room)}>
-                    {t.viewRoom}
-                    <span>↗</span>
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="stay-empty-state">
+              <h3>{lang === "zh" ? "房源暂时无法加载" : "Stays are temporarily unavailable"}</h3>
+              <p>{lang === "zh" ? "请稍后刷新，或直接提交咨询，我们会按人数和日期帮你确认可住房源。" : "Please refresh later, or send an inquiry and we will check available stays for your dates."}</p>
+              <a className="button" href="#contact">{t.submit}</a>
+            </div>
+          )}
         </section>
         <section id="services" className="section services">
           <div className="section-heading">
