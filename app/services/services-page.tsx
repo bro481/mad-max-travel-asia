@@ -1357,7 +1357,7 @@ export function ServicesPage({
           />
           <div>
             <p className="eyebrow">{t.eyebrow}</p>
-            <h1>{t.hero}</h1>
+            <h1>{lang === "zh" ? <>探索马来西亚的<br />精彩体验</> : t.hero}</h1>
             <p>{t.heroText}</p>
           </div>
         </section>
