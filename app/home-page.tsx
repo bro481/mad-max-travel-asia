@@ -365,7 +365,7 @@ export function RoomDetailModal({
   const space = room.spaceConfig as (Room["spaceConfig"] & Record<string, any>) | undefined;
   const displayedPrice = roomPriceDisplay(room, lang);
   const priceNote = room.description[lang] ? space?.priceNote || (lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date") : "";
-  const roomShareUrl = `/?room=${encodeURIComponent(room.id)}`;
+  const roomShareUrl = `/stay/${room.id}`;
   const roomShareText = `${room.bedrooms}房${room.bathrooms}卫 · ${room.location[lang]} · ${room.area[lang]}`;
   const coreAmenityKeys = ["High-speed WiFi", "Air Conditioning", "Fully Equipped Kitchen", "Washer"];
   const coreAmenities = coreAmenityKeys
@@ -603,19 +603,12 @@ export function HomePage({
     };
   }, [selectedRoom]);
   useEffect(() => {
-    const url = new URL(window.location.href);
+    const targetPath = selectedRoom ? `/stay/${selectedRoom.id}` : "/";
     if (selectedRoom) {
-      if (url.searchParams.get("room") !== selectedRoom.id) {
-        url.searchParams.set("room", selectedRoom.id);
-        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-      }
+      if (window.location.pathname !== targetPath) window.history.replaceState(null, "", targetPath);
       return;
     }
-    if (url.searchParams.has("room")) {
-      url.searchParams.delete("room");
-      const nextSearch = url.searchParams.toString();
-      window.history.replaceState(null, "", `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`);
-    }
+    if (window.location.pathname.startsWith("/stay/")) window.history.replaceState(null, "", targetPath);
   }, [selectedRoom]);
   const t = c[lang];
   const configuredDestinationOptions = destinations
