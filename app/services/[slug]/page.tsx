@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { withPublicDataTimeout } from "../../../lib/public-data-timeout";
 import { ServiceDetail } from "./service-detail";
 import type { ServiceCategory } from "../../../db/services";
@@ -113,6 +114,66 @@ export function generateStaticParams() {
   return staticServices.map((service) => ({ slug: service.slug }));
 }
 
+async function loadServiceCategory(slug: string) {
+  if (process.env.NODE_ENV === "development" || process.env.LOCAL_BROWSER_PREVIEW === "1") {
+    return staticServices.find((item) => item.slug === slug) || null;
+  }
+  return import("../../../db/services").then(({ getService }) =>
+    withPublicDataTimeout(
+      getService(slug),
+      () => staticServices.find((fallback) => fallback.slug === slug) || null,
+      `Public service detail query: ${slug}`,
+    ),
+  );
+}
+
+async function loadManagedServices(slug: string) {
+  if (slug !== "private-car" || process.env.NODE_ENV === "development") return [];
+  return import("../../../db/service-items")
+    .then(({ listServiceItems }) => withPublicDataTimeout(listServiceItems(), [], "Public private-car service items query"))
+    .then((items) =>
+      items.filter(
+        (item) =>
+          item.status === "published" &&
+          (item.templateType === "route" || item.type === "私人包车"),
+      ),
+    )
+    .catch(() => [] as ServiceItem[]);
+}
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ city?: string; service?: string; route?: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const query = await searchParams;
+  const service = await loadServiceCategory(slug);
+  const managed = await loadManagedServices(slug);
+  const managedItem = query.service
+    ? managed.find((item) => item.slug === query.service || String(item.id) === query.service)
+    : managed[0];
+  const routeIndex = Number(query.route);
+  const route = managedItem && Number.isInteger(routeIndex) && routeIndex >= 0
+    ? managedItem.routes.filter((item) => item.visible !== false).sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99))[routeIndex]
+    : null;
+  const routeImage = route?.coverImage || route?.image || route?.nodes?.find((node) => node.image)?.image || "";
+  const itemImage = managedItem?.coverImage || managedItem?.images?.[0] || managedItem?.gallery?.[0] || "";
+  const title = route?.nameZh || route?.name || managedItem?.nameZh || service?.nameZh || "MAD MAX 当地服务";
+  const description = route
+    ? [route.duration, route.tags?.[0] || route.tag, managedItem?.city].filter(Boolean).join(" · ")
+    : [managedItem?.subtitleZh, managedItem?.city, service?.introZh].filter(Boolean).join(" · ");
+  const image = routeImage || itemImage || service?.image || "/og.png";
+  return {
+    title: `${title}｜MAD MAX`,
+    description,
+    openGraph: { title: `${title}｜MAD MAX`, description, images: [{ url: image, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title: `${title}｜MAD MAX`, description, images: [image] },
+  };
+}
+
 export default async function Page({
   params,
   searchParams,
@@ -122,17 +183,7 @@ export default async function Page({
 }) {
   const { slug } = await params;
   const { city, service: previewService, route: previewRoute } = await searchParams;
-  const serviceFromDatabase =
-    process.env.NODE_ENV === "development" ||
-    process.env.LOCAL_BROWSER_PREVIEW === "1"
-      ? staticServices.find((item) => item.slug === slug)
-      : await import("../../../db/services").then(({ getService }) =>
-          withPublicDataTimeout(
-            getService(slug),
-            () => staticServices.find((fallback) => fallback.slug === slug) || null,
-            `Public service detail query: ${slug}`,
-          ),
-        );
+  const serviceFromDatabase = await loadServiceCategory(slug);
   const service =
     serviceFromDatabase ||
     staticServices.find((fallback) => fallback.slug === slug) ||
@@ -147,18 +198,7 @@ export default async function Page({
       </main>
     );
   let managedServices: ServiceItem[] = [];
-  if (slug === "private-car" && process.env.NODE_ENV !== "development") {
-    managedServices = await import("../../../db/service-items")
-      .then(({ listServiceItems }) => withPublicDataTimeout(listServiceItems(), [], "Public private-car service items query"))
-      .then((items) =>
-        items.filter(
-          (item) =>
-            item.status === "published" &&
-            (item.templateType === "route" || item.type === "私人包车"),
-        ),
-      )
-      .catch(() => []);
-  }
+  if (slug === "private-car") managedServices = await loadManagedServices(slug);
   return (
     <ServiceDetail
       service={service}
