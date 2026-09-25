@@ -3153,3 +3153,73 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .route-explorer-track .route-card{flex-basis:80%;height:384px}
   .route-explorer-track{padding-right:42px}
 }
+
+/* Closing polish: tighter service overview and private route cards */
+.services-hero{height:350px}
+.destination-section{padding-top:22px}
+.destination-tabs{justify-content:flex-start}
+.destination-block+.destination-block{margin-top:40px;border-top:1px solid rgba(234,223,212,.72)}
+.offer-group>h3{gap:9px}
+.offer-group>h3 span{width:2px;height:18px;flex:0 0 2px;border-radius:999px;background:#c58a4d;box-shadow:none;font-size:0}
+.offer-card>div{display:grid;grid-template-rows:auto auto auto 1fr auto;align-items:start}
+.offer-card h4{margin-bottom:7px}
+.offer-card p{margin-bottom:7px;color:#4c5963;font-size:11px;font-weight:800}
+.offer-card>div>div{gap:0;margin-bottom:0;color:#7a858d;font-size:10px;line-height:1.45}
+.offer-card span{padding:0;border-radius:0;background:transparent;color:inherit;font-size:inherit;font-weight:600}
+.offer-card span+span:before{content:" · ";color:#a6927b}
+.offer-card>div>b{align-self:end;margin-top:10px}
+.city-more-link{margin-top:18px;padding:0;border:0;background:transparent;color:#a36d37;font-size:12px;font-weight:800;cursor:pointer}
+.custom-travel{margin-bottom:36px;padding:22px 28px}
+.custom-intro h2{font-size:27px}
+.custom-points{margin-top:7px}
+.custom-points span{padding:0;background:transparent;color:#8a725b}
+.custom-points span+span:before{content:" · ";color:#b9a38e}
+.trust-section.compact{padding-bottom:42px}
+.trust-section.compact h2{font-size:26px}
+.trust-section.compact article{min-height:84px;padding:12px 18px}
+.trust-section.compact article>span{display:grid;place-items:center;width:24px;height:24px;border:1px solid #c58a4d;border-radius:50%;font-size:12px}
+.service-cta:after{background:linear-gradient(90deg,rgba(250,247,243,.98),rgba(250,247,243,.86),rgba(250,247,243,.38))}
+.service-cta h2{font-size:29px}
+.route-explorer-heading a{color:#b58b62;font-size:10px;font-weight:650}
+.route-explorer-nav{gap:28px}
+.route-explorer-track .route-card{height:360px}
+.route-explorer-track .route-card-media{aspect-ratio:16/8.8}
+.route-explorer-track .route-card-body{padding:14px 16px}
+.route-explorer-track .route-card-footer{padding-top:12px}
+
+@media(max-width:700px){
+  .services-hero{height:236px}
+  .services-hero>div{top:20px}
+  .services-hero h1{font-size:32px}
+  .destination-section{padding-top:14px}
+  .destination-tabs{gap:25px}
+  .destination-services{padding-left:16px;padding-right:16px}
+  .destination-block{padding-top:24px}
+  .destination-block+.destination-block{margin-top:36px}
+  .destination-heading{margin-bottom:20px}
+  .offer-card{height:108px}
+  .offer-card>img{height:108px}
+  .offer-card>div{padding:10px 12px}
+  .offer-card p{font-size:9.5px}
+  .offer-card>div>div{font-size:8px}
+  .city-more-link{margin-top:15px;font-size:11px}
+  .custom-travel{margin-bottom:28px;padding:17px 16px}
+  .custom-intro h2{font-size:23px}
+  .custom-points{gap:0;margin:9px 0 13px}
+  .custom-points span{font-size:8px}
+  .trust-section.compact{padding-bottom:28px}
+  .trust-section.compact h2{font-size:22px}
+  .trust-section.compact article{min-height:76px;padding:10px 2px}
+  .trust-section.compact article>span{width:22px;height:22px}
+  .service-cta{height:170px;margin:0 16px 52px}
+  .service-cta h2{font-size:22px}
+  .service-cta p{font-size:11px;line-height:1.5}
+  .route-explorer-nav{gap:26px}
+  .route-explorer-track .route-card{flex-basis:81%;height:330px}
+  .route-explorer-track .route-card-media{aspect-ratio:16/8.3}
+  .route-explorer-track .route-card-body{padding:12px 13px}
+  .route-explorer-track .route-card p{margin-bottom:9px}
+  .route-explorer-track .route-card-footer{padding-top:10px}
+  .mobile-charter-sticky{padding-top:5px;padding-bottom:calc(5px + env(safe-area-inset-bottom))}
+  .mobile-charter-sticky button{min-height:38px;border-radius:18px}
+}

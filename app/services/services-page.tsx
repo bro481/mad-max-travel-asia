@@ -503,7 +503,7 @@ const destinations: Destination[] = [
         items: [
           {
             title: ["吉隆坡机场接送", "KL Airport Transfer"],
-            desc: ["KLIA / KLIA2 ⇄ 酒店", "KLIA / KLIA2 ⇄ hotel"],
+            desc: ["KLIA / KLIA2 ⇄ 酒店 / 市区", "KLIA / KLIA2 ⇄ hotel / city"],
             tags: [
               ["航班接送", "Flight transfer"],
               ["中文沟通", "Chinese support"],
@@ -855,8 +855,8 @@ const copy = {
     customText:
       "我们帮你把住宿、交通和行程一起顺好。",
     why: "为什么选择我们",
-    cta: "有任何需求？联系我们。",
-    ctaText: "告诉我们你的计划，我们帮你安排适合的马来西亚之旅。",
+    cta: "还有问题？直接问我们。",
+    ctaText: "包车、接送、住宿或行程问题，都可以直接联系。",
     wechat: "微信联系",
     trust: [
       ["中文沟通", "行程确认更方便"],
@@ -885,9 +885,9 @@ const copy = {
     customText:
       "We help connect your stay, transport and itinerary into one smoother plan.",
     why: "Why Choose Us",
-    cta: "Need help? Get in touch.",
+    cta: "Still have questions? Ask us directly.",
     ctaText:
-      "Share your plans and we will help arrange a Malaysia journey that suits you.",
+      "Private cars, transfers, stays or itinerary questions. You can message us directly.",
     wechat: "WeChat",
     trust: [
       ["Chinese support", "Easier trip confirmation"],
@@ -1004,7 +1004,7 @@ export function ServicesPage({
       return {
         ...offer,
         desc: offer.title[0].includes("吉隆坡")
-          ? ["KLIA / KLIA2 ⇄ 酒店", "KLIA / KLIA2 ⇄ hotel"]
+          ? ["KLIA / KLIA2 ⇄ 酒店 / 市区", "KLIA / KLIA2 ⇄ hotel / city"]
           : offer.desc,
         tags: [
           ["航班接送", "Flight transfer"],
@@ -1052,6 +1052,7 @@ export function ServicesPage({
   const visibleDestinations = usingManagedLayout ? dynamicVisibleDestinations : staticVisibleDestinations;
   const t = copy[lang],
     l = lang === "zh" ? 0 : 1,
+    isAllDestinations = destination === "all",
     shown =
       destination === "all"
         ? visibleDestinations
@@ -1392,7 +1393,16 @@ export function ServicesPage({
                 </h2>
                 <p>{place.intro[l]}</p>
               </div>
-              {place.groups.map((group) => (
+              {(() => {
+                let remaining = isAllDestinations ? 3 : Number.POSITIVE_INFINITY;
+                return place.groups
+                  .map((group) => {
+                    const items = group.items.slice(0, remaining);
+                    remaining -= items.length;
+                    return { ...group, items };
+                  })
+                  .filter((group) => group.items.length);
+              })().map((group) => (
                 <section className="offer-group" key={group.name[0]}>
                   <h3>
                     <span>{group.icon}</span>
@@ -1455,6 +1465,11 @@ export function ServicesPage({
                   </div>
                 </section>
               ))}
+              {isAllDestinations && place.groups.reduce((total, group) => total + group.items.length, 0) > 3 ? (
+                <button className="city-more-link" type="button" onClick={() => setDestination(place.key)}>
+                  {lang === "zh" ? `查看${place.name[0]}全部服务` : `View all ${place.name[1]} services`} →
+                </button>
+              ) : null}
             </div>
           ))}
         </section>
@@ -1526,7 +1541,7 @@ export function ServicesPage({
           <div>
             {t.trust.map((item, i) => (
               <article key={item[0]}>
-                <span>{["♙", "◌", "♢", "▦", "☏"][i]}</span>
+                <span>{["⌕", "◉", "↔"][i]}</span>
                 <b>{item[0]}</b>
                 <small>{item[1]}</small>
               </article>
