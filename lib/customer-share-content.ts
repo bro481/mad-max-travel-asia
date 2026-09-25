@@ -126,7 +126,6 @@ async function resolveRoute(id: string): Promise<CustomerShareContent | null> {
   if (!route) return null;
   const image = route.coverImage || route.image || route.nodes?.find((node) => node.image)?.image || serviceHeroImage(service);
   const stops = route.nodes?.map((node) => node.nameZh || node.title).filter(Boolean).join(" · ") || route.stops || "";
-  const cityKey = service.city === "吉隆坡" ? "kl" : service.city === "马六甲" ? "melaka" : "kk";
   return {
     type: "route",
     id,
@@ -135,7 +134,7 @@ async function resolveRoute(id: string): Promise<CustomerShareContent | null> {
     subtitle: compact([route.duration, route.tags?.[0] || route.tag, service.city]).join(" · "),
     description: route.descriptionZh || route.description || service.introZh || "",
     image: imageFrom([image]),
-    url: `${PUBLIC_ORIGIN}/services/private-car?city=${cityKey}&service=${encodeURIComponent(slug)}&route=${routeIndex}#route-${routeIndex}`,
+    url: `${PUBLIC_ORIGIN}/services/item/${encodeURIComponent(slug)}?route=${routeIndex}`,
     priceLabel: service.price ? `RM ${service.price} / ${service.priceUnit}` : service.priceMode || "咨询报价",
     highlights: compact([route.duration, ...(route.tags || []), stops]).slice(0, 6),
     gallery: compact([image, ...(route.nodes || []).map((node) => node.image), ...service.images]).map(absoluteUrl).slice(0, 8),

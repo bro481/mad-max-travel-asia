@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { InquiryModal } from "../../components/inquiry-modal";
 import { PrivateRouteCard } from "../../components/private-route-card";
-import { QuickShareButton } from "../../components/quick-share-button";
 import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem, ServiceRouteNode, ServiceRoutePlan } from "../../../db/service-items";
 import { ServiceMenu } from "../../service-menu";
@@ -251,7 +250,6 @@ export function ServiceDetail({
     [stopIndex, setStopIndex] = useState(0),
     [stopPhotoIndex, setStopPhotoIndex] = useState(0),
     [activeRouteIndex, setActiveRouteIndex] = useState(0),
-    [highlightedRouteIndex, setHighlightedRouteIndex] = useState<number | null>(null),
     [hideStickyCta, setHideStickyCta] = useState(false),
     [menu, setMenu] = useState(false);
   const modalThumbsRef = useRef<HTMLDivElement>(null);
@@ -992,17 +990,6 @@ export function ServiceDetail({
       route.title = [plans[index].nameZh || plans[index].name || item.nameZh, plans[index].nameEn || plans[index].nameZh || plans[index].name || item.nameEn || item.nameZh];
       route.summary = [plans[index].descriptionZh || plans[index].description || item.subtitleZh, plans[index].descriptionEn || plans[index].descriptionZh || plans[index].description || item.subtitleEn || item.subtitleZh];
     }
-    setActiveRouteIndex(index);
-    setHighlightedRouteIndex(index);
-    window.setTimeout(() => setHighlightedRouteIndex(null), 1800);
-    window.requestAnimationFrame(() => {
-      const track = routeTrackRef.current;
-      const card = track?.children[index] as HTMLElement | undefined;
-      if (track && card) {
-        track.scrollIntoView({ behavior: "smooth", block: "center" });
-        track.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
-      }
-    });
     setStopIndex(0);
     setStopPhotoIndex(0);
     setSelected(route);
@@ -1133,18 +1120,7 @@ export function ServiceDetail({
           <div className="car-hero-copy">
             <a href="/services">← {zh ? "返回当地服务" : "Back to services"}</a>
             <p className="eyebrow">MAD MAX · PRIVATE DRIVER</p>
-            <div className="service-product-title-row">
-              <h1>{heroTitle}</h1>
-              {activeManagedService ? (
-                <QuickShareButton
-                  title={heroTitle}
-                  text={heroLead}
-                  productType="service"
-                  productId={activeManagedService.slug}
-                  url={`/services/item/${activeManagedService.slug}`}
-                />
-              ) : null}
-            </div>
+            <h1>{heroTitle}</h1>
             <p className="car-hero-lead">{heroLead}</p>
             <p>{heroIntro}</p>
             <div>
@@ -1182,33 +1158,17 @@ export function ServiceDetail({
               onScroll={syncActiveRouteFromScroll}
             >
               {routeCards.map((route, index) => (
-                <div
-                  className={`route-card-shell ${highlightedRouteIndex === index ? "shared-target" : ""}`}
-                  id={`route-${index}`}
+                <PrivateRouteCard
+                  route={route}
+                  lang={lang}
+                  onOpen={() => {
+                    setActiveRouteIndex(index);
+                    setStopIndex(0);
+                    setStopPhotoIndex(0);
+                    setSelected(route);
+                  }}
                   key={`${route.title[0]}-${index}`}
-                >
-                  {activeManagedService ? (
-                    <QuickShareButton
-                      title={route.title[l]}
-                      text={[route.duration[l], route.tags[0]?.[l], heroTitle].filter(Boolean).join(" · ")}
-                      productType="route"
-                      productId={`${activeManagedService.slug}:${index}`}
-                      url={`/services/private-car?city=${city}&service=${activeManagedService.slug}&route=${index}#route-${index}`}
-                      className="route-card-quick-share"
-                      label="↗"
-                    />
-                  ) : null}
-                  <PrivateRouteCard
-                    route={route}
-                    lang={lang}
-                    onOpen={() => {
-                      setActiveRouteIndex(index);
-                      setStopIndex(0);
-                      setStopPhotoIndex(0);
-                      setSelected(route);
-                    }}
-                  />
-                </div>
+                />
               ))}
             </div>
           </div>
