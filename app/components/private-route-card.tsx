@@ -44,10 +44,7 @@ export function PrivateRouteCard({
         ) : (
           <small className="route-card-summary">{route.summary[l]}</small>
         )}
-        <div className="route-card-footer">
-          <em>{stopCount > 0 ? (lang === "zh" ? `${stopCount} 个停靠点` : `${stopCount} stops`) : ""}</em>
-          <b>{lang === "zh" ? "查看路线" : "View route"} →</b>
-        </div>
+        <b>{lang === "zh" ? "查看完整路线" : "View full route"} →</b>
       </div>
     </button>
   );
