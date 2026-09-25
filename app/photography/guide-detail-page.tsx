@@ -27,6 +27,31 @@ type RelatedGuideItem = {
   image: string;
 };
 
+function guideCtaContent(article: TravelGuideArticle) {
+  if (article.slug === "first-time-kuala-lumpur") {
+    return {
+      title: "想把这些地方排进你的行程？",
+      body: "告诉我们旅行日期、人数和住宿位置，我们可以帮你看看怎么走更顺。",
+    };
+  }
+  if (article.category === "住宿推荐") {
+    return {
+      title: "想顺便把住宿也一起确认？",
+      body: "告诉我们日期、人数和预算，我们可以帮你看看哪个区域和房型更合适。",
+    };
+  }
+  if (article.category === "行程参考") {
+    return {
+      title: "想把这条路线变成你的行程？",
+      body: "告诉我们日期、人数和想去的地方，我们可以帮你一起调整顺序和用车安排。",
+    };
+  }
+  return {
+    title: "想让当地团队帮你一起看看？",
+    body: "告诉我们日期、人数和大概想法，我们可以帮你把住宿、用车和行程串顺。",
+  };
+}
+
 const placeSubtitleMap: Record<string, string> = {
   双子塔: "Petronas Twin Towers · KLCC",
   茨厂街: "Petaling Street · Chinatown",
@@ -440,6 +465,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
   }, [article]);
   const placeHeadings = useMemo(() => collectPlaceHeadings(blocks), [blocks]);
   const recommendedGuides = useMemo(() => relatedGuideItems(article, related, placeHeadings), [article, related, placeHeadings]);
+  const cta = useMemo(() => guideCtaContent(article), [article]);
   const showChapterNav = placeHeadings.length >= 3;
   const headingByBlockIndex = useMemo(() => new Map(placeHeadings.map((heading) => [heading.blockIndex, heading])), [placeHeadings]);
   const headingNumbers = useMemo(
@@ -585,8 +611,8 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
 
         <section className="guide-soft-link">
           <small>Malaysia local travel support</small>
-          <h2>想把这些地方排进你的行程？</h2>
-          <p>告诉我们旅行日期、人数和住宿位置，我们可以帮你看看怎么走更顺。</p>
+          <h2>{cta.title}</h2>
+          <p>{cta.body}</p>
           <Link href="/#contact">咨询行程 →</Link>
         </section>
 

@@ -8,11 +8,13 @@ export function GalleryCarousel({
   alt,
   compact = false,
   preserveImageQuality = false,
+  blurredBackdrop = false,
 }: {
   images: string[];
   alt: string;
   compact?: boolean;
   preserveImageQuality?: boolean;
+  blurredBackdrop?: boolean;
 }) {
   const clean = useMemo(() => images.filter(Boolean), [images]);
   const [index, setIndex] = useState(0);
@@ -45,7 +47,7 @@ export function GalleryCarousel({
 
   return (
     <div
-      className={`gallery-carousel${compact ? " compact-gallery-carousel" : ""}${preserveImageQuality ? " preserve-image-quality" : ""}${lowResolution ? " has-low-resolution" : ""}`}
+      className={`gallery-carousel${compact ? " compact-gallery-carousel" : ""}${blurredBackdrop ? " blurred-backdrop-gallery" : ""}${preserveImageQuality ? " preserve-image-quality" : ""}${lowResolution ? " has-low-resolution" : ""}`}
       onTouchStart={(e) => {
         start.current = e.touches[0].clientX;
       }}
@@ -57,7 +59,7 @@ export function GalleryCarousel({
       }}
     >
       <div className="gallery-stage">
-        {compact && (
+        {(compact || blurredBackdrop) && (
           <img
             key={`${clean[index]}-backdrop-${index}`}
             className="gallery-backdrop"
