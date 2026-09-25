@@ -249,8 +249,11 @@ export function ServiceDetail({
     [inquiryTitle, setInquiryTitle] = useState<string | null>(null),
     [stopIndex, setStopIndex] = useState(0),
     [stopPhotoIndex, setStopPhotoIndex] = useState(0),
+    [activeRouteIndex, setActiveRouteIndex] = useState(0),
     [menu, setMenu] = useState(false);
   const modalThumbsRef = useRef<HTMLDivElement>(null);
+  const routeTrackRef = useRef<HTMLDivElement>(null);
+  const routeNavItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const zh = lang === "zh",
     l = zh ? 0 : 1;
   const cityInfo =
@@ -903,6 +906,17 @@ export function ServiceDetail({
         ...displayRoutes,
         ...staticDisplayRoutes.filter((route) => !routeCardTitles.has(route.title[0])),
       ].slice(0, 6);
+  const routeNavLabel = (title: string) => {
+    if (!zh) return title.replace(/^Kuala Lumpur\s*/i, "").replace(/Classic Day/i, "Classic day");
+    return title
+      .replace(/^吉隆坡/, "")
+      .replace("经典一日游", "经典一日")
+      .replace("经典一日", "经典一日")
+      .replace("美食购物休闲路线", "美食购物")
+      .replace("跨城一日游", "")
+      .replace("文化路线", "文化")
+      .replace("路线", "");
+  };
   const heroImage = activeManagedService?.coverImage || activeManagedService?.images?.[0] || service.image || photo("photo-1549317661-bd32c8ce0db2");
   const managedFootageImages = serviceImages(activeManagedService).slice(0, 8);
   const sceneryFallback = [
@@ -979,6 +993,37 @@ export function ServiceDetail({
     setStopIndex((current) => (current + step + modalStopCount) % modalStopCount);
     setStopPhotoIndex(0);
   };
+  useEffect(() => {
+    if (activeRouteIndex < routeCards.length) return;
+    setActiveRouteIndex(0);
+  }, [activeRouteIndex, routeCards.length]);
+  useEffect(() => {
+    routeNavItemRefs.current[activeRouteIndex]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [activeRouteIndex]);
+  const scrollToRoute = (index: number) => {
+    const track = routeTrackRef.current;
+    const card = track?.children[index] as HTMLElement | undefined;
+    if (!track || !card) return;
+    setActiveRouteIndex(index);
+    track.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
+  };
+  const syncActiveRouteFromScroll = () => {
+    const track = routeTrackRef.current;
+    if (!track) return;
+    const cards = Array.from(track.children) as HTMLElement[];
+    if (!cards.length) return;
+    const nextIndex = cards.reduce((bestIndex, card, index) => {
+      const bestCard = cards[bestIndex];
+      return Math.abs(card.offsetLeft - track.scrollLeft) < Math.abs(bestCard.offsetLeft - track.scrollLeft)
+        ? index
+        : bestIndex;
+    }, 0);
+    setActiveRouteIndex((current) => (current === nextIndex ? current : nextIndex));
+  };
   return (
     <>
       <header>
@@ -1033,35 +1078,48 @@ export function ServiceDetail({
           </div>
         </section>
         <section className="route-section">
-          <div className="detail-heading">
-            <p className="eyebrow">{zh
-              ? activeManagedService?.routes?.[0]?.sectionEyebrowZh || "轻松选择"
-              : activeManagedService?.routes?.[0]?.sectionEyebrowEn || "EASY TO CHOOSE"}</p>
+          <div className="route-explorer-heading">
             <h2>{zh
               ? activeManagedService?.routeSectionTitleZh || "热门包车方案"
               : activeManagedService?.routeSectionTitleEn || activeManagedService?.routeSectionTitleZh || "Popular Private Car Routes"}</h2>
-            <p className="route-heading-lead">
-              {zh ? "不知道怎么安排？可以先从这些路线开始。" : "Not sure how to plan it? Start with these route ideas."}
-            </p>
-            <p>
-              {zh
-                ? "路线仅供参考，时间、景点和接送地点都可以按实际情况调整。"
-                : "Routes are only examples. Timing, stops and pickup points can be adjusted around your plans."}
-            </p>
+            <a href="/services">{zh ? "查看全部" : "View all"} →</a>
           </div>
-          <div className="route-grid">
-            {routeCards.map((route) => (
-              <PrivateRouteCard
-                route={route}
-                lang={lang}
-                onOpen={() => {
-                  setStopIndex(0);
-                  setStopPhotoIndex(0);
-                  setSelected(route);
-                }}
-                key={route.title[0]}
-              />
-            ))}
+          <div className="route-explorer">
+            <div className="route-explorer-nav" aria-label={zh ? "包车路线浏览" : "Route explorer"}>
+              {routeCards.map((route, index) => (
+                <button
+                  ref={(node) => {
+                    routeNavItemRefs.current[index] = node;
+                  }}
+                  className={index === activeRouteIndex ? "active" : ""}
+                  type="button"
+                  onClick={() => scrollToRoute(index)}
+                  key={`${route.title[0]}-nav-${index}`}
+                >
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <b>{routeNavLabel(route.title[l])}</b>
+                </button>
+              ))}
+            </div>
+            <div
+              className="route-grid route-explorer-track"
+              ref={routeTrackRef}
+              onScroll={syncActiveRouteFromScroll}
+            >
+              {routeCards.map((route, index) => (
+                <PrivateRouteCard
+                  route={route}
+                  lang={lang}
+                  onOpen={() => {
+                    setActiveRouteIndex(index);
+                    setStopIndex(0);
+                    setStopPhotoIndex(0);
+                    setSelected(route);
+                  }}
+                  key={`${route.title[0]}-${index}`}
+                />
+              ))}
+            </div>
           </div>
         </section>
         <section className="private-car-trust-strip">

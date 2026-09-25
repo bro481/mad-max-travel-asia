@@ -2230,6 +2230,21 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .car-hero:after{background:linear-gradient(90deg,rgba(250,247,243,.99) 0%,rgba(250,247,243,.9) 42%,rgba(250,247,243,.12) 76%)}
 .car-hero-lead{margin:0 0 8px!important;color:#2f3b45!important;font-size:17px!important;font-weight:800;letter-spacing:.01em}
 .route-heading-lead{margin:0 0 5px!important;color:#2f3b45!important;font-size:14px!important;font-weight:800}
+.route-explorer-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:22px}
+.route-explorer-heading h2{margin:0;font:600 38px var(--serif)}
+.route-explorer-heading a{flex:0 0 auto;color:#a9723e;font-size:12px;font-weight:800}
+.route-explorer-nav{display:flex;gap:34px;margin:0 0 16px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-padding-inline:4px}
+.route-explorer-nav::-webkit-scrollbar,.route-explorer-track::-webkit-scrollbar{display:none}
+.route-explorer-nav button{position:relative;display:grid;gap:5px;flex:0 0 auto;min-width:78px;padding:0 0 12px;border:0;background:transparent;color:#72808a;text-align:left;cursor:pointer}
+.route-explorer-nav button:after{content:"";position:absolute;left:0;bottom:0;width:52px;height:2px;border-radius:999px;background:transparent;transition:.2s}
+.route-explorer-nav span{color:#c9b9a6;font-size:13px;font-weight:800;line-height:1}
+.route-explorer-nav b{color:#66737d;font-size:13px;font-weight:700;line-height:1.25;white-space:nowrap}
+.route-explorer-nav button.active span{color:#b9793f}
+.route-explorer-nav button.active b{color:#1d3142;font-weight:800}
+.route-explorer-nav button.active:after{background:#c78645}
+.route-explorer-track{display:flex!important;grid-template-columns:none!important;gap:16px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-padding-inline:1px;padding:0 2px 4px}
+.route-explorer-track .route-card{flex:0 0 min(390px,32%);scroll-snap-align:start;box-shadow:none}
+.route-explorer-track .route-card:hover{box-shadow:0 10px 28px rgba(67,50,33,.07)}
 .private-car-trust-strip{display:flex;align-items:center;justify-content:center;gap:18px;width:min(1320px,calc(100% - 48px));margin:-18px auto 20px;padding:16px 20px;border-top:1px solid #eadccf;border-bottom:1px solid #eadccf;color:#6b747c}
 .private-car-trust-strip b{color:#203140;font-size:14px}
 .private-car-trust-strip span{font-size:12px}
@@ -2260,8 +2275,16 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .car-hero-copy h1{font-size:34px;line-height:1.08}
   .car-hero-lead{font-size:13px!important;line-height:1.5}
   .route-heading-lead{font-size:12px!important;line-height:1.6}
-  .route-grid{padding-right:16px}
-  .route-card{flex-basis:86%}
+  .route-explorer-heading{margin-bottom:20px}
+  .route-explorer-heading h2{font-size:30px}
+  .route-explorer-heading a{font-size:11px}
+  .route-explorer-nav{gap:32px;margin-bottom:14px;padding-right:22px}
+  .route-explorer-nav button{min-width:82px}
+  .route-explorer-nav span{font-size:13px}
+  .route-explorer-nav b{font-size:13px}
+  .route-explorer-track{gap:14px;padding-right:22px;scroll-padding-inline:0}
+  .route-explorer-track .route-card{flex-basis:88%;max-width:none}
+  .route-explorer-track .route-card-media{aspect-ratio:1.72/1}
   .private-car-trust-strip{display:block;width:calc(100% - 32px);margin:-10px auto 8px;padding:14px 0;text-align:left}
   .private-car-trust-strip b,.private-car-trust-strip span{display:block}
   .private-car-trust-strip b{font-size:13px;margin-bottom:7px}
