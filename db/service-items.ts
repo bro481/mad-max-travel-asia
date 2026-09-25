@@ -52,6 +52,11 @@ export type ServiceRouteNode = {
   descriptionZh?: string;
   descriptionEn?: string;
   image?: string;
+  imageCrop?: {
+    x: number;
+    y: number;
+    scale: number;
+  };
   stayTime?: string;
   type?: string;
   title?: string;

@@ -1092,6 +1092,9 @@ function RoutePlansEditor({
   const [imageLibraryOpen, setImageLibraryOpen] = useState(false);
   const [dragRouteIndex, setDragRouteIndex] = useState<number | null>(null);
   const [dragNodeIndex, setDragNodeIndex] = useState<number | null>(null);
+  const [dragLibraryImageIndex, setDragLibraryImageIndex] = useState<number | null>(null);
+  const [cropDraft, setCropDraft] = useState<{ routeIndex: number; nodeIndex: number; crop: { x: number; y: number; scale: number } } | null>(null);
+  const [cropDrag, setCropDrag] = useState<{ x: number; y: number } | null>(null);
   const [routePreview, setRoutePreview] = useState<{ focusStopIndex: number | null } | null>(null);
   const routes = useMemo(
     () =>
@@ -1111,6 +1114,10 @@ function RoutePlansEditor({
   const routeImageLibrary = activeRoute
     ? Array.from(new Set([...(activeRoute.imageLibrary || []), ...activeNodes.map((node) => node.image || "").filter(Boolean)]))
     : [];
+  const cropStyle = (crop?: ServiceRouteNode["imageCrop"]) => ({
+    objectPosition: `${crop?.x ?? 50}% ${crop?.y ?? 50}%`,
+    transform: `scale(${crop?.scale ?? 1})`,
+  });
   const closeRouteEditor = () => {
     setRoutePreview(null);
     setEditingRouteIndex(null);
@@ -1143,10 +1150,26 @@ function RoutePlansEditor({
   const updateNode = (routeIndex: number, nodeIndex: number, patch: Partial<ServiceRouteNode>) => {
     const route = routes[routeIndex];
     const nodes = routePlanNodes(route).map((node, i) => (i === nodeIndex ? { ...node, ...patch } : node));
+    const nextLibrary = patch.image
+      ? Array.from(new Set([...(route.imageLibrary || []), patch.image]))
+      : route.imageLibrary;
     update(routeIndex, {
       nodes,
+      imageLibrary: nextLibrary,
       stops: nodes.map((node) => node.nameZh || node.title || "").filter(Boolean).join(" · "),
     });
+  };
+  const useImageForNode = (routeIndex: number, nodeIndex: number, image: string) =>
+    updateNode(routeIndex, nodeIndex, { image, imageCrop: { x: 50, y: 50, scale: 1 } });
+  const reorderLibraryImage = (routeIndex: number, from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    const route = routes[routeIndex];
+    const library = Array.from(new Set([...(route.imageLibrary || []), ...routePlanNodes(route).map((node) => node.image || "").filter(Boolean)]));
+    if (from >= library.length || to >= library.length) return;
+    const next = [...library];
+    const [moving] = next.splice(from, 1);
+    next.splice(to, 0, moving);
+    update(routeIndex, { imageLibrary: next });
   };
   const reorderRoute = (from: number, to: number) => {
     if (to < 0 || to >= routes.length) return;
@@ -1529,15 +1552,28 @@ function RoutePlansEditor({
                             <button
                               type="button"
                               className={activeNode?.image === image ? "active" : ""}
-                              disabled={editingNodeIndex === null}
                               onClick={() => {
-                                if (editingNodeIndex !== null) updateNode(editingRouteIndex, editingNodeIndex, { image });
+                                if (editingNodeIndex !== null) useImageForNode(editingRouteIndex, editingNodeIndex, image);
                               }}
+                              draggable
+                              onDragStart={() => setDragLibraryImageIndex(imageIndex)}
+                              onDragOver={(event) => event.preventDefault()}
+                              onDrop={() => {
+                                if (dragLibraryImageIndex !== null) reorderLibraryImage(editingRouteIndex, dragLibraryImageIndex, imageIndex);
+                                setDragLibraryImageIndex(null);
+                              }}
+                              onDragEnd={() => setDragLibraryImageIndex(null)}
                               key={`${image}-${imageIndex}`}
                               title={editingNodeIndex === null ? "请先选择一个行程节点" : "用于当前节点"}
                             >
                               <img src={image} alt="" />
-                              <span>{assignedNode >= 0 ? `已用于 ${String(assignedNode + 1).padStart(2, "0")}` : "点击分配"}</span>
+                              <span>
+                                {activeNode?.image === image
+                                  ? "✓ 当前节点"
+                                  : assignedNode >= 0
+                                    ? `${activeNodes[assignedNode]?.nameZh || activeNodes[assignedNode]?.title || `已用于 ${String(assignedNode + 1).padStart(2, "0")}`}`
+                                    : "点击分配"}
+                              </span>
                             </button>
                           );
                         })}
@@ -1571,7 +1607,7 @@ function RoutePlansEditor({
                         </span>
                         <strong>{String(nodeIndex + 1).padStart(2, "0")}</strong>
                         <div className="route-node-mini-thumb">
-                          {node.image ? <img src={node.image} alt="" /> : <span>图</span>}
+                          {node.image ? <img src={node.image} alt="" style={cropStyle(node.imageCrop)} /> : <span>图</span>}
                         </div>
                         <div>
                           <h5>{node.nameZh || node.title || "未命名节点"}</h5>
@@ -1654,22 +1690,83 @@ function RoutePlansEditor({
                           }
                         />
                       </Field>
-                      <Field n="景点图片">
-                        <small className="field-location-help">显示位置：路线详情弹窗左侧图库</small>
-                        <ImageChooser
-                          value={activeNode.image || ""}
-                          images={routeImageLibrary}
-                          uploadProgress={uploadProgress}
-                          uploadMessage={uploadMessage}
-                          uploadFailed={uploadFailed}
-                          onUpload={(files) =>
-                            onUpload(files, (urls) =>
-                              updateNode(editingRouteIndex, editingNodeIndex, { image: urls[0] || activeNode.image }),
-                            )
-                          }
-                          onChange={(url) => updateNode(editingRouteIndex, editingNodeIndex, { image: url })}
-                        />
-                      </Field>
+                      <section className="route-node-image-editor">
+                        <div>
+                          <h5>节点图片</h5>
+                          <small>显示位置：路线详情弹窗左侧图库</small>
+                        </div>
+                        <div className="route-node-image-frame">
+                          {activeNode.image ? (
+                            <img src={activeNode.image} alt="" style={cropStyle(activeNode.imageCrop)} />
+                          ) : (
+                            <span>未选择图片</span>
+                          )}
+                        </div>
+                        <div className="route-node-image-actions">
+                          <label>
+                            更换图片
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/avif"
+                              onChange={(event) => {
+                                onUpload(event.target.files, (urls) => {
+                                  if (urls[0]) useImageForNode(editingRouteIndex, editingNodeIndex, urls[0]);
+                                });
+                                event.currentTarget.value = "";
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            disabled={!activeNode.image}
+                            onClick={() =>
+                              setCropDraft({
+                                routeIndex: editingRouteIndex,
+                                nodeIndex: editingNodeIndex,
+                                crop: activeNode.imageCrop || { x: 50, y: 50, scale: 1 },
+                              })
+                            }
+                          >
+                            调整裁切
+                          </button>
+                        </div>
+                        {uploadProgress !== null ? (
+                          <div className={`route-upload-progress${uploadFailed ? " failed" : ""}`} role="status" aria-live="polite">
+                            <div><span style={{ width: `${uploadProgress}%` }} /></div>
+                            <p>{uploadMessage}</p>
+                          </div>
+                        ) : null}
+                        <div className="route-node-pick-head">
+                          <h5>从本路线图库选择</h5>
+                          <small>{routeImageLibrary.length ? `${routeImageLibrary.length} 张可用图片` : "还没有图库图片"}</small>
+                        </div>
+                        {routeImageLibrary.length ? (
+                          <div className="route-node-pick-grid">
+                            {routeImageLibrary.map((image, imageIndex) => {
+                              const assignedNode = activeNodes.findIndex((node) => node.image === image);
+                              return (
+                                <button
+                                  type="button"
+                                  className={activeNode.image === image ? "active" : ""}
+                                  onClick={() => useImageForNode(editingRouteIndex, editingNodeIndex, image)}
+                                  key={`${image}-side-${imageIndex}`}
+                                >
+                                  <img src={image} alt="" />
+                                  <span>
+                                    {activeNode.image === image
+                                      ? "✓ 当前节点"
+                                      : assignedNode >= 0
+                                        ? activeNodes[assignedNode]?.nameZh || activeNodes[assignedNode]?.title || `已用于 ${String(assignedNode + 1).padStart(2, "0")}`
+                                        : `图片 ${imageIndex + 1}`}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="route-node-library-empty">先在左侧「本路线图片库」批量上传图片。</p>
+                        )}
+                      </section>
                     </>
                   ) : (
                     <div className="route-node-placeholder">
@@ -1691,6 +1788,84 @@ function RoutePlansEditor({
                 onClose={() => setRoutePreview(null)}
               />
             ) : null}
+            {cropDraft ? (() => {
+              const node = routes[cropDraft.routeIndex] ? routePlanNodes(routes[cropDraft.routeIndex])[cropDraft.nodeIndex] : null;
+              if (!node?.image) return null;
+              return (
+                <div className="route-crop-backdrop" onClick={() => setCropDraft(null)}>
+                  <div className="route-crop-modal" onClick={(event) => event.stopPropagation()}>
+                    <header>
+                      <div>
+                        <h3>调整图片显示区域</h3>
+                        <p>只保存显示位置，不会裁掉原图。</p>
+                      </div>
+                      <button type="button" onClick={() => setCropDraft(null)}>×</button>
+                    </header>
+                    <div
+                      className="route-crop-frame"
+                      onPointerDown={(event) => {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        setCropDrag({ x: event.clientX, y: event.clientY });
+                      }}
+                      onPointerMove={(event) => {
+                        if (!cropDrag) return;
+                        const dx = event.clientX - cropDrag.x;
+                        const dy = event.clientY - cropDrag.y;
+                        setCropDraft((current) => current ? {
+                          ...current,
+                          crop: {
+                            ...current.crop,
+                            x: Math.max(0, Math.min(100, current.crop.x - dx * 0.12)),
+                            y: Math.max(0, Math.min(100, current.crop.y - dy * 0.12)),
+                          },
+                        } : current);
+                        setCropDrag({ x: event.clientX, y: event.clientY });
+                      }}
+                      onPointerUp={() => setCropDrag(null)}
+                      onPointerCancel={() => setCropDrag(null)}
+                    >
+                      <img src={node.image} alt="" style={cropStyle(cropDraft.crop)} draggable={false} />
+                    </div>
+                    <label>
+                      放大 / 缩小
+                      <input
+                        type="range"
+                        min="1"
+                        max="1.8"
+                        step="0.02"
+                        value={cropDraft.crop.scale}
+                        onChange={(event) =>
+                          setCropDraft((current) => current ? {
+                            ...current,
+                            crop: { ...current.crop, scale: Number(event.target.value) },
+                          } : current)
+                        }
+                      />
+                    </label>
+                    <footer>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCropDraft((current) => current ? { ...current, crop: { x: 50, y: 50, scale: 1 } } : current)
+                        }
+                      >
+                        恢复默认
+                      </button>
+                      <button
+                        type="button"
+                        className="admin-primary"
+                        onClick={() => {
+                          updateNode(cropDraft.routeIndex, cropDraft.nodeIndex, { imageCrop: cropDraft.crop });
+                          setCropDraft(null);
+                        }}
+                      >
+                        确定
+                      </button>
+                    </footer>
+                  </div>
+                </div>
+              );
+            })() : null}
           </div>
         </div>
       )}
