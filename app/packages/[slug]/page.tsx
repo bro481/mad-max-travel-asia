@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getTravelPackage, staticTravelPackages } from "../../../db/packages";
 import { listProperties, staticPropertyRecords } from "../../../db/properties";
 import { listServiceItems, staticServiceItemRecords } from "../../../db/service-items";
@@ -7,14 +8,33 @@ import { PackageDetailPage } from "./package-detail-page";
 
 export const dynamic = "force-dynamic";
 
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+async function loadPackage(slug: string) {
   const fallback = () => staticTravelPackages().find((pkg) => pkg.slug === slug) || null;
-  const item = await withPublicDataTimeout(
+  return withPublicDataTimeout(
     getTravelPackage(slug),
     fallback,
     `Public package detail query: ${slug}`,
   );
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const item = await loadPackage(slug);
+  if (!item) return {};
+  const title = item.nameZh;
+  const description = [`${item.days}天${item.nights}晚`, item.cityComboZh, item.summaryZh].filter(Boolean).join(" · ");
+  const image = item.coverImage || item.galleryImages[0] || "/og.png";
+  return {
+    title: `${title} | MAD MAX`,
+    description,
+    openGraph: { title, description, images: [{ url: image, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  };
+}
+
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const item = await loadPackage(slug);
   const properties = await withPublicDataTimeout(
     listProperties(),
     () => staticPropertyRecords(),

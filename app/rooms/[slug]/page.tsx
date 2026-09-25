@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { withPublicDataTimeout } from "../../../lib/public-data-timeout";
 import { RoomDetail } from "./room-detail";
 
@@ -7,6 +8,32 @@ export const revalidate = 300;
 export async function generateStaticParams() {
   const { rooms } = await import("../../data");
   return rooms.map((room) => ({ slug: room.id }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const fallback = async () => {
+    const { rooms } = await import("../../data");
+    return rooms.find((item) => item.id === slug) || null;
+  };
+  let room = await fallback();
+  if (process.env.NODE_ENV !== "development") {
+    try {
+      const { getPublishedPropertyBySlug, propertyToRoom } = await import("../../../db/properties");
+      const property = await withPublicDataTimeout(getPublishedPropertyBySlug(slug), null, `Room metadata query: ${slug}`);
+      if (property) room = propertyToRoom(property);
+    } catch {}
+  }
+  if (!room) return {};
+  const title = room.name.zh;
+  const description = `${room.bedrooms}房${room.bathrooms}卫 · ${room.area.zh} · 最多${room.guests}人`;
+  const image = room.images[0] || "/og.png";
+  return {
+    title: `${title} | MAD MAX`,
+    description,
+    openGraph: { title, description, images: [{ url: image, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  };
 }
 
 export default async function RoomPage({params}:{params:Promise<{slug:string}>}){
