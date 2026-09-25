@@ -220,14 +220,6 @@ const vehicles = [
     image: photo("photo-1503376780353-7e6692767b70", 600),
   },
 ];
-const footage = [
-  "photo-1596422846543-75c6fc197f07",
-  "photo-1500595046743-cd271d694d30",
-  "photo-1507525428034-b723cf961d3e",
-  "photo-1500534314209-a25ddb2bd429",
-  "photo-1544551763-46a013bb70d5",
-  "photo-1549317661-bd32c8ce0db2",
-];
 function Logo() {
   return (
     <a className="logo" href="/">
@@ -904,19 +896,34 @@ export function ServiceDetail({
       })
     : routes;
   const displayRoutes = managedCards.length ? managedCards : staticDisplayRoutes;
+  const routeCardTitles = new Set(displayRoutes.map((route) => route.title[0]));
+  const routeCards = displayRoutes.length >= 3
+    ? displayRoutes
+    : [
+        ...displayRoutes,
+        ...staticDisplayRoutes.filter((route) => !routeCardTitles.has(route.title[0])),
+      ].slice(0, 6);
   const heroImage = activeManagedService?.coverImage || activeManagedService?.images?.[0] || service.image || photo("photo-1549317661-bd32c8ce0db2");
   const managedFootageImages = serviceImages(activeManagedService).slice(0, 8);
+  const sceneryFallback = [
+    { label: zh ? "吉隆坡" : "Kuala Lumpur", image: managedFootageImages[0] || photo("photo-1596422846543-75c6fc197f07", 700) },
+    { label: zh ? "布城" : "Putrajaya", image: managedFootageImages[1] || photo("photo-1596422846543-75c6fc197f07", 701) },
+    { label: zh ? "马六甲" : "Melaka", image: managedFootageImages[2] || photo("photo-1507525428034-b723cf961d3e", 702) },
+    { label: zh ? "云顶" : "Genting", image: managedFootageImages[3] || photo("photo-1500530855697-b586d89ba3ee", 703) },
+    { label: zh ? "黑风洞" : "Batu Caves", image: managedFootageImages[4] || photo("photo-1552465011-b4e21bf6e79a", 704) },
+  ];
   const heroTitle = zh
     ? activeManagedService?.nameZh || cityInfo.hero[0]
     : activeManagedService?.nameEn || activeManagedService?.nameZh || cityInfo.hero[1];
+  const heroLead = zh
+    ? "中文沟通 · 酒店接送 · 行程灵活安排"
+    : "Chinese support · Hotel pickup · Flexible itinerary";
   const heroIntro = zh
-    ? activeManagedService?.introZh || activeManagedService?.subtitleZh || cityInfo.intro[0]
-    : activeManagedService?.introEn || activeManagedService?.subtitleEn || activeManagedService?.introZh || cityInfo.intro[1];
-  const heroTags = activeManagedService?.tags?.length
-    ? activeManagedService.tags.slice(0, 3)
-    : zh
-      ? ["中文沟通", "路线灵活", "舒适安全"]
-      : ["Chinese support", "Flexible route", "Safe & comfortable"];
+    ? "告诉我们日期、人数和想去的地方，我们帮你一起确认当天路线。"
+    : "Tell us your dates, group size and places you want to visit. We will help shape the day around you.";
+  const heroTags = zh
+    ? ["中文沟通", "私人包车", "行程可调整"]
+    : ["Chinese support", "Private car", "Flexible route"];
   useEffect(() => {
     // Selecting a service is not a request to open its first itinerary.
     if (!previewService || previewRoute === undefined || previewRoute.trim() === "") return;
@@ -1018,6 +1025,7 @@ export function ServiceDetail({
             <a href="/services">← {zh ? "返回当地服务" : "Back to services"}</a>
             <p className="eyebrow">MAD MAX · PRIVATE DRIVER</p>
             <h1>{heroTitle}</h1>
+            <p className="car-hero-lead">{heroLead}</p>
             <p>{heroIntro}</p>
             <div>
               {heroTags.map((tag) => <span key={tag}>{tag}</span>)}
@@ -1032,14 +1040,17 @@ export function ServiceDetail({
             <h2>{zh
               ? activeManagedService?.routeSectionTitleZh || "热门包车方案"
               : activeManagedService?.routeSectionTitleEn || activeManagedService?.routeSectionTitleZh || "Popular Private Car Routes"}</h2>
+            <p className="route-heading-lead">
+              {zh ? "不知道怎么安排？可以先从这些路线开始。" : "Not sure how to plan it? Start with these route ideas."}
+            </p>
             <p>
               {zh
-                ? activeManagedService?.routeSectionIntroZh || "以下路线仅作参考，可根据您的时间与兴趣灵活调整。"
-                : activeManagedService?.routeSectionIntroEn || activeManagedService?.routeSectionIntroZh || "These routes are examples and can be adjusted around your time and interests."}
+                ? "路线仅供参考，时间、景点和接送地点都可以按实际情况调整。"
+                : "Routes are only examples. Timing, stops and pickup points can be adjusted around your plans."}
             </p>
           </div>
           <div className="route-grid">
-            {displayRoutes.map((route) => (
+            {routeCards.map((route) => (
               <PrivateRouteCard
                 route={route}
                 lang={lang}
@@ -1052,6 +1063,10 @@ export function ServiceDetail({
               />
             ))}
           </div>
+        </section>
+        <section className="private-car-trust-strip">
+          <b>{zh ? "当地用车，更省心一点" : "Local private car support, made easier"}</b>
+          <span>{zh ? "中文沟通 · 酒店接送 · 路线可调整 · 多人出行" : "Chinese support · Hotel pickup · Flexible routes · Groups welcome"}</span>
         </section>
         {displayVehicles.length ? <section className="vehicle-section">
           <div className="detail-heading left">
@@ -1076,29 +1091,42 @@ export function ServiceDetail({
             ))}
           </div>
         </section> : null}
-        <section className="footage-section">
-          <div className="detail-heading">
-            <p className="eyebrow">FOOTAGE</p>
-            <h2>
-              {cityInfo.name[l]} {zh ? "旅行实拍" : "Travel Moments"}
-            </h2>
+        <section className="route-scenery-section">
+          <div className="route-scenery-head">
+            <div>
+              <h2>{zh ? "一路上，不止这些风景" : "More than one view along the way"}</h2>
+              <p>
+                {zh
+                  ? "吉隆坡、布城、马六甲……按你的时间慢慢走。"
+                  : "Kuala Lumpur, Putrajaya, Melaka and more, paced around your day."}
+              </p>
+            </div>
+            <a href="/photography">{zh ? "更多目的地" : "More places"} →</a>
           </div>
+          <div className="route-scenery-scroll">
+            {sceneryFallback.map((item) => (
+              <figure key={item.label}>
+                <img src={item.image} alt={item.label} loading="lazy" decoding="async" />
+                <figcaption>{item.label}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+        <section className="charter-info-section">
           <div>
-            {managedFootageImages.length
-              ? managedFootageImages.map((image, i) => (
-                  <img
-                    key={`${image}-${i}`}
-                    src={image}
-                    alt={`${cityInfo.name[l]} ${zh ? "旅行实拍" : "travel"} ${i + 1}`}
-                  />
-                ))
-              : footage.map((id, i) => (
-                  <img
-                    key={id}
-                    src={photo(id, 700)}
-                    alt={`${cityInfo.name[l]} ${zh ? "旅行实拍" : "travel"} ${i + 1}`}
-                  />
-                ))}
+            <p className="eyebrow">{zh ? "包车说明" : "Charter Notes"}</p>
+            <h2>{zh ? "先把费用边界说清楚" : "Clear inclusions before you decide"}</h2>
+          </div>
+          <div className="charter-info-grid">
+            <article>
+              <b>{zh ? "包车包含" : "Included"}</b>
+              <span>{zh ? "私人车辆 · 司机服务 · 酒店接送 · 路线沟通" : "Private vehicle · Driver service · Hotel pickup · Route discussion"}</span>
+            </article>
+            <article>
+              <b>{zh ? "可能额外产生" : "Possible extras"}</b>
+              <span>{zh ? "景点门票 · 停车费 · 高速费 · 超时费用" : "Tickets · Parking · Tolls · Overtime"}</span>
+            </article>
+            <p>{zh ? "最终以咨询确认方案为准。" : "Final arrangement is confirmed through inquiry."}</p>
           </div>
         </section>
         <section className="detail-final-cta">
@@ -1106,19 +1134,25 @@ export function ServiceDetail({
             <p className="eyebrow">MAD MAX · LOCAL HOST</p>
             <h2>
               {zh
-                ? "想安排适合自己的路线？"
-                : "Would you like a route made for you?"}
+                ? "想去哪里？我们帮你顺成一条路线。"
+                : "Where would you like to go? We will shape it into a route."}
             </h2>
             <p>
               {zh
-                ? "告诉我们日期、人数和感兴趣的地方，我们会尽快回复。"
-                : "Share your dates, group size and interests, and we will reply soon."}
+                ? "告诉我们日期、人数和想去的地方，我们会根据时间帮你看看怎么走更合适。"
+                : "Share your dates, group size and places you want to visit. We will help check the best flow."}
             </p>
           </div>
           <button className="button" type="button" onClick={() => setInquiryTitle(activeManagedService?.nameZh || cityInfo.hero[0])}>
             {zh ? "提交咨询" : "Submit inquiry"} →
           </button>
         </section>
+        <div className="mobile-charter-sticky">
+          <span>{heroTitle}</span>
+          <button type="button" onClick={() => setInquiryTitle(activeManagedService?.nameZh || cityInfo.hero[0])}>
+            {zh ? "咨询行程" : "Ask now"}
+          </button>
+        </div>
       </main>
       {selected && (
         <div

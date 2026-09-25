@@ -31,7 +31,7 @@ export function PrivateRouteCard({
         </p>
         <div className="route-card-footer">
           <small>{route.summary[l]}</small>
-          <b>{lang === "zh" ? "查看路线" : "View route"} →</b>
+          <b>{lang === "zh" ? "查看完整路线" : "Full route"} →</b>
         </div>
       </div>
     </button>
