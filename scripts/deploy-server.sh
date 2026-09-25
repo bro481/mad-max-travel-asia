@@ -3,7 +3,9 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/home/admin/apps/madmaxtravel}"
 TMP_DIR="${TMP_DIR:-/tmp/madmaxtravel-latest}"
+TMP_TAR="${TMP_TAR:-/tmp/madmaxtravel-latest.tar.gz}"
 REPO_URL="${REPO_URL:-https://github.com/bro481/mad-max-travel-asia.git}"
+ARCHIVE_URL="${ARCHIVE_URL:-https://codeload.github.com/bro481/mad-max-travel-asia/tar.gz/refs/heads/main}"
 PM2_APP="${PM2_APP:-madmaxtravel}"
 
 echo "== MAD MAX deploy =="
@@ -30,9 +32,16 @@ if ! grep -h '^DATABASE_URL=' "${env_files[@]}" >/dev/null 2>&1; then
   exit 1
 fi
 
-rm -rf "$TMP_DIR"
-git clone --depth 1 "$REPO_URL" "$TMP_DIR"
-git -C "$TMP_DIR" log --oneline -1
+rm -rf "$TMP_DIR" "$TMP_TAR"
+if git clone --depth 1 "$REPO_URL" "$TMP_DIR"; then
+  git -C "$TMP_DIR" log --oneline -1
+else
+  echo "WARN: git clone failed. Trying GitHub archive fallback..."
+  mkdir -p "$TMP_DIR"
+  curl -fL --retry 5 --retry-delay 3 --retry-all-errors -o "$TMP_TAR" "$ARCHIVE_URL"
+  tar -xzf "$TMP_TAR" -C "$TMP_DIR" --strip-components=1
+  echo "Archive fallback downloaded."
+fi
 
 rsync -a --delete \
   --exclude='.env' \
