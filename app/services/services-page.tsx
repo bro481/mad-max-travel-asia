@@ -930,7 +930,7 @@ export function ServicesPage({
   const globalSettings = useInquirySettings();
   const [lang, setLang] = useState<Lang>("zh"),
     [menu, setMenu] = useState(false),
-    [destination, setDestination] = useState("all"),
+    [destination, setDestination] = useState("kl"),
     [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedPrivateRoute, setSelectedPrivateRoute] =
     useState<PrivateRouteDetailData | null>(null);
@@ -1053,10 +1053,11 @@ export function ServicesPage({
   const t = copy[lang],
     l = lang === "zh" ? 0 : 1,
     isAllDestinations = destination === "all",
-    shown =
+    selectedDestinations =
       destination === "all"
         ? visibleDestinations
-        : visibleDestinations.filter((x) => x.key === destination);
+        : visibleDestinations.filter((x) => x.key === destination),
+    shown = selectedDestinations.length ? selectedDestinations : visibleDestinations.slice(0, 1);
   const modalQuestions = selectedOffer
     ? selectedOffer.detail === "private-car"
       ? lang === "zh"
@@ -1365,15 +1366,9 @@ export function ServicesPage({
           <h2>{t.choose}</h2>
           <MobileScrollHint className="service-destination-scroll">
           <div className="destination-tabs">
-            <button
-              className={`destination-all-tab ${destination === "all" ? "active" : ""}`}
-              onClick={() => setDestination("all")}
-            >
-              <b>{t.all}</b>
-            </button>
-            {visibleDestinations.map((d) => (
+            {visibleDestinations.map((d, index) => (
               <button
-                className={destination === d.key ? "active" : ""}
+                className={destination === d.key || (!selectedDestinations.length && index === 0) ? "active" : ""}
                 onClick={() => setDestination(d.key)}
                 key={d.key}
               >
@@ -1387,12 +1382,14 @@ export function ServicesPage({
         <section className="destination-services">
           {shown.map((place) => (
             <div className="destination-block" key={place.key}>
-              <div className="destination-heading">
-                <h2>
-                  {place.name[0]} <span>{place.name[1]}</span>
-                </h2>
-                <p>{place.intro[l]}</p>
-              </div>
+              {isAllDestinations ? (
+                <div className="destination-heading">
+                  <h2>
+                    {place.name[0]} <span>{place.name[1]}</span>
+                  </h2>
+                  <p>{place.intro[l]}</p>
+                </div>
+              ) : null}
               {(() => {
                 let remaining = isAllDestinations ? 3 : Number.POSITIVE_INFINITY;
                 return place.groups

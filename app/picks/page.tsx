@@ -18,7 +18,7 @@ const copy = {
   zh: {
     rooms: "房源", about: "关于我们", contact: "联系我们", submit: "提交咨询",
     eyebrow: "MAD MAX · MALAYSIA PICKS", title: "马来西亚好物", subtitle: "带一点当地味道回家。",
-    desc: "当地挑选，旅行可取，也可以寄回家。",
+    desc: "当地挑选 · 旅行可取 · 也可以寄回家",
     explore: "探索好物", quality: [["当地精选", "帮你筛掉不好选的"], ["价格透明", "商品价格提前确认"], ["旅行可取 · 回国可寄", "根据你的情况安排"]],
     detail: "查看详情", bundleTitle: "懒得挑？我们已经搭配好了", includes: "包含",
     priceNote: "页面价格为参考价，实际价格及库存以咨询确认为准。",
@@ -32,7 +32,7 @@ const copy = {
   en: {
     rooms: "Rooms", about: "About", contact: "Contact", submit: "Submit inquiry",
     eyebrow: "MAD MAX · MALAYSIA PICKS", title: "Malaysia Picks", subtitle: "Bring a little local flavour home.",
-    desc: "We select Malaysian favourites worth taking home, sharing as gifts and ordering again.",
+    desc: "Local selection · collect during travel · shipping available.",
     explore: "Explore our picks", quality: [["Local selection", "We make choosing easier"], ["Clear pricing", "Confirm prices before ordering"], ["Collect or ship", "Arranged around your situation"]],
     detail: "View details", bundleTitle: "Rather not choose? We made the sets", includes: "Includes",
     priceNote: "Prices shown are references; final price and stock are confirmed by inquiry.",
