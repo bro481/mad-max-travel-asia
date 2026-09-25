@@ -440,10 +440,10 @@ const getManagedExperienceRouteDetail = (
     .slice(0, 3)
     .map((tag) => [tag, tag] as [string, string]);
   const cover =
-    service.coverImage ||
-    service.images[0] ||
     routeDetails.find((detail) => detail.image)?.image ||
     stops.find((stop) => stop.image)?.image ||
+    service.coverImage ||
+    service.images[0] ||
     offer.image;
 
   return {
@@ -1487,7 +1487,11 @@ export function ServicesPage({
             </div>
             <div className="managed-service-grid">
               {managed.map((x) => {
-                const image = x.images[0] || x.coverImage || x.gallery?.[0] || firstRouteImage(x);
+                const routeImage = firstRouteImage(x);
+                const image =
+                  x.templateType === "route" || x.type === "私人包车"
+                    ? routeImage || x.coverImage || x.images[0] || x.gallery?.[0]
+                    : x.coverImage || x.images[0] || x.gallery?.[0] || routeImage;
                 return (
                 <a href={`/services?service=${encodeURIComponent(x.slug)}`} key={x.id}>
                   {image ? (

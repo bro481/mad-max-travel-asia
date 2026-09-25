@@ -807,7 +807,7 @@ export function ServiceDetail({
       plan?.nodes?.map((node) => node.image).find(Boolean) ||
       plan?.imageLibrary?.find(Boolean) ||
       "";
-    if (plan?.coverImage && !isLegacyPlaceholderImage(plan.coverImage)) {
+    if (plan?.coverImage) {
       return plan.coverImage;
     }
     if (plan?.image && !isLegacyPlaceholderImage(plan.image)) {
@@ -835,7 +835,8 @@ export function ServiceDetail({
           .map((name) => ({ nameZh: name } as ServiceRouteNode));
     const cover = routeCoverImage(plan);
     const durationKey = String(plan?.duration || "").replace(/\s+/g, "");
-    const tags = (plan?.tags?.length ? plan.tags : [plan?.tag].filter(Boolean) as string[])
+    const baseTags = (plan?.tags?.length ? plan.tags : [plan?.tag].filter(Boolean) as string[]);
+    const tags = (plan?.recommended ? ["重点推荐", ...baseTags] : baseTags)
       .filter((tag) => String(tag).replace(/\s+/g, "") !== durationKey)
       .slice(0, 2);
     while (tags.length < 2) tags.push(tags.length ? "行程可调整" : "时间灵活");

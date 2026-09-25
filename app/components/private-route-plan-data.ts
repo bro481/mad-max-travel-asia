@@ -20,7 +20,8 @@ const routePlanTags = (route: ServiceRoutePlan) => {
   const tags = route.tags?.length
     ? route.tags
     : [route.duration, route.tag].filter(Boolean);
-  return tags.filter(Boolean).slice(0, 3).map((tag) => [tag, tag] as [string, string]);
+  const visibleTags = route.recommended ? ["重点推荐", ...tags] : tags;
+  return visibleTags.filter(Boolean).slice(0, 3).map((tag) => [tag, tag] as [string, string]);
 };
 
 const routePlanNodes = (route: ServiceRoutePlan): PrivateRouteDetailStop[] => {
