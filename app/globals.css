@@ -3359,15 +3359,6 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .room-card-share-button{position:absolute;z-index:3;right:10px;top:10px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(255,253,249,.62);color:#8a633d;cursor:pointer}
 .room-card-share-button svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .room-card-share-button:hover{background:rgba(255,253,249,.86);color:#5e4a38}
-.wechat-share-guide{position:fixed;z-index:260;inset:0;display:grid;place-items:end center;padding:18px;background:rgba(20,24,29,.46);backdrop-filter:blur(4px)}
-.wechat-share-guide>div{position:relative;width:min(420px,100%);padding:24px 20px 20px;border-radius:22px;background:#fffdf9;box-shadow:0 22px 70px rgba(20,24,29,.25);color:#2f3a45}
-.wechat-share-guide-close{position:absolute;right:14px;top:12px;display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:#f4eee7;color:#665747;font-size:22px;line-height:1;cursor:pointer}
-.wechat-share-guide small{display:block;margin-bottom:8px;color:#9a6b3e;font-size:10px;font-weight:800;letter-spacing:.16em}
-.wechat-share-guide h2{margin:0 38px 8px 0;font:600 24px var(--serif);color:#27313d}
-.wechat-share-guide p{margin:0 0 16px;color:#68737b;font-size:13px;line-height:1.6}
-.wechat-share-guide-steps{display:grid;gap:8px;margin:16px 0;padding:14px;border-radius:14px;background:#f7efe6;color:#594b3d;font-size:13px;font-weight:700}
-.wechat-share-copy{width:100%;height:48px;border:0;border-radius:999px;background:#d2a46f;color:#fff;font-weight:800;cursor:pointer}
-.wechat-share-copy:hover{background:#bd8e5a}
 .package-title-row{align-items:flex-start}
 @media(max-width:700px){
   .content-title-row{align-items:flex-start;gap:10px}
