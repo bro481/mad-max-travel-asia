@@ -1006,11 +1006,19 @@ export function ServiceDetail({
     setActiveRouteIndex(0);
   }, [activeRouteIndex, routeCards.length]);
   useEffect(() => {
-    routeNavItemRefs.current[activeRouteIndex]?.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest",
-      inline: "center",
-    });
+    const item = routeNavItemRefs.current[activeRouteIndex];
+    const container = item?.parentElement;
+    if (!item || !container) return;
+    const itemLeft = item.offsetLeft;
+    const itemRight = itemLeft + item.offsetWidth;
+    const viewLeft = container.scrollLeft;
+    const viewRight = viewLeft + container.clientWidth;
+    const buffer = 20;
+    if (itemLeft < viewLeft + buffer) {
+      container.scrollTo({ left: Math.max(0, itemLeft - buffer), behavior: "smooth" });
+    } else if (itemRight > viewRight - buffer) {
+      container.scrollTo({ left: itemRight - container.clientWidth + buffer, behavior: "smooth" });
+    }
   }, [activeRouteIndex]);
   const scrollToRoute = (index: number) => {
     const track = routeTrackRef.current;
