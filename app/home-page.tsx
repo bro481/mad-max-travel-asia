@@ -8,6 +8,7 @@ import { InquiryModal } from "./components/inquiry-modal";
 import { MobileScrollHint } from "./components/mobile-scroll-hint";
 import { DateInput } from "./components/date-input";
 import { referrerPayload } from "./components/referrer-attribution";
+import { NativeShareButton } from "./components/native-share-button";
 
 const fallbackDestinations: DestinationRecord[] = [
   { id: 1, slug: "kuala-lumpur", nameZh: "吉隆坡", nameEn: "Kuala Lumpur", introZh: "", introEn: "", useForProperties: true, useForServices: true, propertySort: 1, serviceSort: 1, onlyShowWithContent: true, status: "visible", updatedAt: "" },
@@ -306,6 +307,13 @@ function RoomCarousel({
         )}
       </button>
       <span className="location-pill">{room.location[lang]}</span>
+      <NativeShareButton
+        className="room-card-share-button"
+        title={`${room.name[lang]}｜MAD MAX`}
+        text={`${room.bedrooms}房${room.bathrooms}卫 · ${room.location[lang]} · ${room.area[lang]}`}
+        url={`/rooms/${room.id}`}
+        aria-label={`${room.name[lang]} ${lang === "zh" ? "分享" : "Share"}`}
+      />
       {images.length > 1 && (
         <>
           <button

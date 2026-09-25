@@ -3356,9 +3356,12 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .route-card-share-button{position:absolute;z-index:2;right:11px;top:11px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(255,253,249,.62);color:#8a633d;cursor:pointer}
 .route-card-share-button svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .route-card-share-button:hover{background:rgba(255,253,249,.86);color:#5e4a38}
+.room-card-share-button{position:absolute;z-index:3;right:10px;top:10px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(255,253,249,.62);color:#8a633d;cursor:pointer}
+.room-card-share-button svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.room-card-share-button:hover{background:rgba(255,253,249,.86);color:#5e4a38}
 .package-title-row{align-items:flex-start}
 @media(max-width:700px){
   .content-title-row{align-items:flex-start;gap:10px}
   .route-card-shell{flex-basis:84%;height:284px}
-  .route-card-share-button{right:10px;top:10px}
+  .route-card-share-button,.room-card-share-button{right:10px;top:10px}
 }
