@@ -5,6 +5,7 @@ import Link from "next/link";
 import { rooms } from "../../data";
 import { ServiceMenu } from "../../service-menu";
 import { InquiryModal } from "../../components/inquiry-modal";
+import { NativeShareButton } from "../../components/native-share-button";
 import type { TravelPackage } from "../../../db/packages";
 import type { PropertyRecord } from "../../../db/properties";
 import type { ServiceItem } from "../../../db/service-items";
@@ -420,7 +421,10 @@ export function PackageDetailPage({
         <section className="package-full-summary">
           <div>
             <p className="package-full-eyebrow">{zh ? item.cityComboEn.toUpperCase() : item.cityComboZh}</p>
-            <h1>{title}</h1>
+            <div className="content-title-row package-title-row">
+              <h1>{title}</h1>
+              <NativeShareButton title={`${title}｜MAD MAX`} text={[`${item.days}天${item.nights}晚`, zh ? item.cityComboZh : item.cityComboEn, packageSummary(item, zh)].filter(Boolean).join(" · ")} />
+            </div>
             <p>{packageSummary(item, zh)}</p>
           </div>
           <aside>

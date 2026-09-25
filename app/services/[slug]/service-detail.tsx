@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { InquiryModal } from "../../components/inquiry-modal";
 import { PrivateRouteCard } from "../../components/private-route-card";
+import { NativeShareButton } from "../../components/native-share-button";
 import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem, ServiceRouteNode, ServiceRoutePlan } from "../../../db/service-items";
 import { ServiceMenu } from "../../service-menu";
@@ -971,6 +972,7 @@ export function ServiceDetail({
   const heroTags = zh
     ? ["中文沟通", "私人包车", "行程可调整"]
     : ["Chinese support", "Private car", "Flexible route"];
+  const currentServiceUrl = `/services/private-car?city=${encodeURIComponent(city)}${activeManagedService ? `&service=${encodeURIComponent(activeManagedService.slug)}` : ""}`;
   useEffect(() => {
     // Selecting a service is not a request to open its first itinerary.
     if (!previewService || previewRoute === undefined || previewRoute.trim() === "") return;
@@ -1120,7 +1122,10 @@ export function ServiceDetail({
           <div className="car-hero-copy">
             <a href="/services">← {zh ? "返回当地服务" : "Back to services"}</a>
             <p className="eyebrow">MAD MAX · PRIVATE DRIVER</p>
-            <h1>{heroTitle}</h1>
+            <div className="content-title-row service-product-title-row">
+              <h1>{heroTitle}</h1>
+              <NativeShareButton title={`${heroTitle}｜MAD MAX`} text={heroLead} url={currentServiceUrl} />
+            </div>
             <p className="car-hero-lead">{heroLead}</p>
             <p>{heroIntro}</p>
             <div>
@@ -1161,6 +1166,11 @@ export function ServiceDetail({
                 <PrivateRouteCard
                   route={route}
                   lang={lang}
+                  share={{
+                    title: `${route.title[l]}｜MAD MAX`,
+                    text: [route.duration[l], route.summary[l]].filter(Boolean).join(" · "),
+                    url: `${currentServiceUrl}&route=${index}#route-${index}`,
+                  }}
                   onOpen={() => {
                     setActiveRouteIndex(index);
                     setStopIndex(0);

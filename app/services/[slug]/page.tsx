@@ -206,7 +206,7 @@ export default async function Page({
   return (
     <ServiceDetail
       service={service}
-      city={city || "kk"}
+      city={city || (slug === "private-car" ? "kl" : "kk")}
       managedServices={managedServices}
       previewService={previewService}
       previewRoute={previewRoute}

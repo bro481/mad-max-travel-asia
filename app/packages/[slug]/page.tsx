@@ -26,11 +26,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const image = item.coverImage || item.galleryImages[0] || "/og.png";
   const url = `/packages/${slug}`;
   return {
-    title: `${title} | MAD MAX`,
+    title: `${title}｜MAD MAX`,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, images: [{ url: image, width: 1200, height: 630 }] },
-    twitter: { card: "summary_large_image", title, description, images: [image] },
+    openGraph: { title: `${title}｜MAD MAX`, description, url, images: [{ url: image, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title: `${title}｜MAD MAX`, description, images: [image] },
   };
 }
 

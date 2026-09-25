@@ -3,6 +3,7 @@ import { FormEvent, useState } from "react";
 import type { ServiceItem } from "../../../../db/service-items";
 import { ServiceMenu } from "../../../service-menu";
 import { InquiryModal, type InquiryKind } from "../../../components/inquiry-modal";
+import { NativeShareButton } from "../../../components/native-share-button";
 export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
   const [sent, setSent] = useState(false);
   const [inquiryOpen, setInquiryOpen] = useState(false);
@@ -59,7 +60,10 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
             <p>
               {s.city} · {s.category}
             </p>
-            <h1>{s.nameZh}</h1>
+            <div className="content-title-row service-product-title-row">
+              <h1>{s.nameZh}</h1>
+              <NativeShareButton title={`${s.nameZh}｜MAD MAX`} text={[s.subtitleZh, s.city, s.tags.slice(0, 2).join(" · ")].filter(Boolean).join(" · ")} />
+            </div>
             <h2>{s.subtitleZh}</h2>
             <div>
               {s.tags.map((x) => (

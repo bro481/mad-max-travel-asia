@@ -24,11 +24,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = [item.subtitleZh, item.city, item.tags.slice(0, 2).join(" · ")].filter(Boolean).join(" · ");
   const url = `/services/item/${slug}`;
   return {
-    title: `${title} | MAD MAX`,
+    title: `${title}｜MAD MAX`,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, images: [{ url: image, width: 1200, height: 630 }] },
-    twitter: { card: "summary_large_image", title, description, images: [image] },
+    openGraph: { title: `${title}｜MAD MAX`, description, url, images: [{ url: image, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title: `${title}｜MAD MAX`, description, images: [image] },
   };
 }
 

@@ -26,15 +26,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
   if (!room) return {};
   const title = room.name.zh;
-  const description = `${room.bedrooms}房${room.bathrooms}卫 · ${room.area.zh} · 最多${room.guests}人`;
+  const description = `${room.bedrooms}房${room.bathrooms}卫 · ${room.location.zh} · ${room.area.zh}`;
   const image = room.images[0] || "/og.png";
   const url = `/rooms/${slug}`;
   return {
-    title: `${title} | MAD MAX`,
+    title: `${title}｜MAD MAX`,
     description,
     alternates: { canonical: url },
-    openGraph: { title, description, url, images: [{ url: image, width: 1200, height: 630 }] },
-    twitter: { card: "summary_large_image", title, description, images: [image] },
+    openGraph: { title: `${title}｜MAD MAX`, description, url, images: [{ url: image, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title: `${title}｜MAD MAX`, description, images: [image] },
   };
 }
 
