@@ -6,6 +6,9 @@ export type PrivateRouteCardData = {
   summary: [string, string];
   tags: Array<[string, string]>;
   image: string;
+  stops?: Array<{
+    title: [string, string];
+  }>;
 };
 
 export function PrivateRouteCard({
@@ -18,6 +21,9 @@ export function PrivateRouteCard({
   onOpen?: () => void;
 }) {
   const l = lang === "zh" ? 0 : 1;
+  const stopNames = route.stops?.map((stop) => stop.title[l]).filter(Boolean) ?? [];
+  const featuredStops = stopNames.slice(1, 5);
+  const extraStops = Math.max(0, stopNames.length - featuredStops.length - 1);
   return (
     <button className="route-card" type="button" onClick={onOpen}>
       <div className="route-card-media">
@@ -29,8 +35,12 @@ export function PrivateRouteCard({
           <span>{route.duration[l]}</span>
           {route.tags[0]?.[l] ? <span>{route.tags[0][l]}</span> : null}
         </p>
+        <small>{route.summary[l]}</small>
+        {featuredStops.length ? (
+          <small className="route-card-stops">{featuredStops.join(" · ")}</small>
+        ) : null}
         <div className="route-card-footer">
-          <small>{route.summary[l]}</small>
+          <em>{extraStops > 0 ? (lang === "zh" ? `+ ${extraStops} 个停靠点` : `+ ${extraStops} stops`) : ""}</em>
           <b>{lang === "zh" ? "查看完整路线" : "Full route"} →</b>
         </div>
       </div>

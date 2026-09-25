@@ -250,10 +250,12 @@ export function ServiceDetail({
     [stopIndex, setStopIndex] = useState(0),
     [stopPhotoIndex, setStopPhotoIndex] = useState(0),
     [activeRouteIndex, setActiveRouteIndex] = useState(0),
+    [hideStickyCta, setHideStickyCta] = useState(false),
     [menu, setMenu] = useState(false);
   const modalThumbsRef = useRef<HTMLDivElement>(null);
   const routeTrackRef = useRef<HTMLDivElement>(null);
   const routeNavItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const finalCtaRef = useRef<HTMLElement>(null);
   const zh = lang === "zh",
     l = zh ? 0 : 1;
   const cityInfo =
@@ -917,14 +919,20 @@ export function ServiceDetail({
       .replace("文化路线", "文化")
       .replace("路线", "");
   };
+  const findRouteIndex = (patterns: string[]) => {
+    const index = routeCards.findIndex((route) =>
+      patterns.some((pattern) => route.title[0].includes(pattern) || route.summary[0].includes(pattern)),
+    );
+    return index >= 0 ? index : 0;
+  };
   const heroImage = activeManagedService?.coverImage || activeManagedService?.images?.[0] || service.image || photo("photo-1549317661-bd32c8ce0db2");
   const managedFootageImages = serviceImages(activeManagedService).slice(0, 8);
   const sceneryFallback = [
-    { label: zh ? "吉隆坡" : "Kuala Lumpur", image: managedFootageImages[0] || photo("photo-1596422846543-75c6fc197f07", 700) },
-    { label: zh ? "布城" : "Putrajaya", image: managedFootageImages[1] || photo("photo-1596422846543-75c6fc197f07", 701) },
-    { label: zh ? "马六甲" : "Melaka", image: managedFootageImages[2] || photo("photo-1507525428034-b723cf961d3e", 702) },
-    { label: zh ? "云顶" : "Genting", image: managedFootageImages[3] || photo("photo-1500530855697-b586d89ba3ee", 703) },
-    { label: zh ? "黑风洞" : "Batu Caves", image: managedFootageImages[4] || photo("photo-1552465011-b4e21bf6e79a", 704) },
+    { label: zh ? "吉隆坡" : "Kuala Lumpur", image: managedFootageImages[0] || photo("photo-1596422846543-75c6fc197f07", 700), routeIndex: findRouteIndex(["经典", "吉隆坡"]) },
+    { label: zh ? "布城" : "Putrajaya", image: managedFootageImages[1] || photo("photo-1596422846543-75c6fc197f07", 701), routeIndex: findRouteIndex(["布城", "Putrajaya"]) },
+    { label: zh ? "马六甲" : "Melaka", image: managedFootageImages[2] || photo("photo-1507525428034-b723cf961d3e", 702), routeIndex: findRouteIndex(["马六甲", "Melaka"]) },
+    { label: zh ? "云顶" : "Genting", image: managedFootageImages[3] || photo("photo-1500530855697-b586d89ba3ee", 703), routeIndex: findRouteIndex(["云顶", "Genting"]) },
+    { label: zh ? "黑风洞" : "Batu Caves", image: managedFootageImages[4] || photo("photo-1552465011-b4e21bf6e79a", 704), routeIndex: findRouteIndex(["黑风洞", "Batu"]) },
   ];
   const heroTitle = zh
     ? activeManagedService?.nameZh || cityInfo.hero[0]
@@ -1024,6 +1032,16 @@ export function ServiceDetail({
     }, 0);
     setActiveRouteIndex((current) => (current === nextIndex ? current : nextIndex));
   };
+  useEffect(() => {
+    const target = finalCtaRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setHideStickyCta(entry.isIntersecting),
+      { threshold: 0.2 },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
   return (
     <>
       <header>
@@ -1123,8 +1141,8 @@ export function ServiceDetail({
           </div>
         </section>
         <section className="private-car-trust-strip">
-          <b>{zh ? "当地用车，更省心一点" : "Local private car support, made easier"}</b>
-          <span>{zh ? "中文沟通 · 酒店接送 · 路线可调整 · 多人出行" : "Chinese support · Hotel pickup · Flexible routes · Groups welcome"}</span>
+          <b>{zh ? "中文沟通 · 酒店接送 · 当地司机 · 路线可调" : "Chinese support · Hotel pickup · Local driver · Flexible route"}</b>
+          <span>{zh ? "不走固定团，按你的时间和当天情况灵活安排。" : "Not a fixed group tour. The day can adjust around your timing and traffic."}</span>
         </section>
         {displayVehicles.length ? <section className="vehicle-section">
           <div className="detail-heading left">
@@ -1163,10 +1181,16 @@ export function ServiceDetail({
           </div>
           <div className="route-scenery-scroll">
             {sceneryFallback.map((item) => (
-              <figure key={item.label}>
+              <button
+                className="route-scenery-card"
+                key={item.label}
+                type="button"
+                onClick={() => scrollToRoute(item.routeIndex)}
+              >
                 <img src={item.image} alt={item.label} loading="lazy" decoding="async" />
-                <figcaption>{item.label}</figcaption>
-              </figure>
+                <span>{item.label}</span>
+                <small>{zh ? "查看路线 →" : "View route →"}</small>
+              </button>
             ))}
           </div>
         </section>
@@ -1187,13 +1211,13 @@ export function ServiceDetail({
             <p>{zh ? "最终以咨询确认方案为准。" : "Final arrangement is confirmed through inquiry."}</p>
           </div>
         </section>
-        <section className="detail-final-cta">
+        <section className="detail-final-cta" ref={finalCtaRef}>
           <div>
             <p className="eyebrow">MAD MAX · LOCAL HOST</p>
             <h2>
               {zh
-                ? "想去哪里？我们帮你顺成一条路线。"
-                : "Where would you like to go? We will shape it into a route."}
+                ? "想去哪里？我们帮你顺成一条路线"
+                : "Where would you like to go? We will shape it into a route"}
             </h2>
             <p>
               {zh
@@ -1205,7 +1229,7 @@ export function ServiceDetail({
             {zh ? "提交咨询" : "Submit inquiry"} →
           </button>
         </section>
-        <div className="mobile-charter-sticky">
+        <div className={`mobile-charter-sticky${hideStickyCta ? " hidden" : ""}`}>
           <span>{heroTitle}</span>
           <button type="button" onClick={() => setInquiryTitle(activeManagedService?.nameZh || cityInfo.hero[0])}>
             {zh ? "咨询行程" : "Ask now"}
