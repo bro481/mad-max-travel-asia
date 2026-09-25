@@ -3316,3 +3316,31 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .route-explorer-track .route-card-body{padding:11px 13px 18px}
   .route-explorer-track .route-card b{margin-top:15px;font-size:9px}
 }
+
+/* Private car detail: final proportion tuning for a lighter, less flat mobile view. */
+.route-explorer-track .route-card{height:350px}
+.route-explorer-track .route-card-media{aspect-ratio:16/9.6}
+.route-explorer-track .route-card-body{padding:14px 16px 20px}
+.private-car-trust-strip{padding:5px 0;margin:-8px auto 4px}
+.private-car-trust-strip span{padding-top:3px;padding-bottom:3px}
+.route-scenery-card{height:158px}
+.charter-info-card article{padding:12px 18px}
+.detail-final-cta{padding:19px 28px;margin-bottom:46px}
+.detail-final-cta .button{min-height:50px}
+
+@media(max-width:700px){
+  .route-explorer-track{padding-right:28px}
+  .route-explorer-track .route-card{flex-basis:84%;height:284px}
+  .route-explorer-track .route-card-media{aspect-ratio:16/8.4}
+  .route-explorer-track .route-card-body{padding:11px 13px 18px}
+  .route-explorer-track .route-card b{margin-top:16px}
+  .private-car-trust-strip{padding:3px 0;margin:-8px auto 3px}
+  .private-car-trust-strip span{padding-top:3px;padding-bottom:3px}
+  .route-scenery-card{height:124px}
+  .charter-info-card article{padding:10px 15px}
+  .charter-info-section>div>p{margin-top:8px}
+  .detail-final-cta{padding:15px 16px 17px;margin-bottom:18px}
+  .detail-final-cta h2{margin:4px 0 5px}
+  .detail-final-cta p:last-child{line-height:1.5}
+  .detail-final-cta .button{height:48px;min-height:48px;margin-top:11px}
+}
