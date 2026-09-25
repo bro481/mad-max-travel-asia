@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ServiceMenu } from "../service-menu";
+import { NativeShareButton } from "../components/native-share-button";
 import type { TravelGuideArticle, TravelGuideBlock } from "../../db/travel-guide-shared";
 import { guideCities, guideDefaultImages } from "../../db/travel-guide-shared";
 
@@ -556,7 +557,10 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
         <section className="guide-detail-head">
           <Link href="/photography">← 返回旅行攻略</Link>
           <p>{article.category}{city?.zh ? ` · ${city.zh}` : ""}</p>
-          <h1>{article.titleZh}</h1>
+          <div className="content-title-row guide-title-row">
+            <h1>{article.titleZh}</h1>
+            <NativeShareButton title={`${article.titleZh}｜MAD MAX`} text={article.summaryZh} />
+          </div>
           <h2>{article.summaryZh}</h2>
           <div className="guide-detail-tags">
             {guideTags(article).map((tag) => <span key={tag}>{tag}</span>)}

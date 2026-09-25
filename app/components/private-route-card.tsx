@@ -59,9 +59,7 @@ export function PrivateRouteCard({
   if (!share) return card;
   return (
     <div className="route-card-shell">
-      <NativeShareButton className="route-card-share-button" title={share.title} text={share.text} url={share.url} aria-label={`${share.title} 分享`}>
-        ↗
-      </NativeShareButton>
+      <NativeShareButton className="route-card-share-button" title={share.title} text={share.text} url={share.url} aria-label={`${share.title} 分享`} />
       {card}
     </div>
   );

@@ -3346,18 +3346,19 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 }
 
 /* Native page sharing: lightweight entry, no custom share pages or generated assets. */
-.content-title-row{display:flex;align-items:center;gap:16px;justify-content:space-between}
+.content-title-row{display:flex;align-items:center;gap:14px;justify-content:space-between}
 .content-title-row h1{min-width:0}
-.light-share-button{flex:0 0 auto;border:1px solid rgba(204,181,154,.66);border-radius:999px;background:rgba(255,253,249,.88);color:#8a633d;cursor:pointer;font-size:13px;font-weight:800;padding:10px 16px;box-shadow:0 8px 22px rgba(54,42,29,.08)}
-.light-share-button:hover{background:#fff8ef;border-color:#c6965e;color:#6e4b29}
+.light-share-button{display:grid;place-items:center;flex:0 0 auto;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:transparent;color:#8a633d;cursor:pointer}
+.light-share-button svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.light-share-button:hover{background:rgba(198,150,94,.08);color:#5e4a38}
 .route-card-shell{position:relative;flex:0 0 min(390px,32%);height:350px;scroll-snap-align:start}
 .route-explorer-track .route-card-shell .route-card{height:100%;flex-basis:auto}
-.route-card-share-button{position:absolute;z-index:2;right:13px;top:13px;display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(255,255,255,.86);border-radius:50%;background:rgba(255,255,255,.9);color:#42606f;cursor:pointer;font-size:18px;font-weight:900;box-shadow:0 8px 20px rgba(18,25,32,.16)}
-.route-card-share-button:hover{background:#fff;color:#a36d37}
+.route-card-share-button{position:absolute;z-index:2;right:11px;top:11px;display:grid;place-items:center;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:rgba(255,253,249,.62);color:#8a633d;cursor:pointer}
+.route-card-share-button svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.route-card-share-button:hover{background:rgba(255,253,249,.86);color:#5e4a38}
 .package-title-row{align-items:flex-start}
 @media(max-width:700px){
   .content-title-row{align-items:flex-start;gap:10px}
-  .light-share-button{padding:8px 12px;font-size:11px}
   .route-card-shell{flex-basis:84%;height:284px}
-  .route-card-share-button{right:10px;top:10px;width:34px;height:34px;font-size:16px}
+  .route-card-share-button{right:10px;top:10px}
 }

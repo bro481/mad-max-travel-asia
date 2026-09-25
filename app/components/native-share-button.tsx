@@ -16,7 +16,7 @@ export function NativeShareButton({
   text,
   url,
   className = "light-share-button",
-  children = "分享 ↗",
+  children,
   "aria-label": ariaLabel,
 }: NativeShareButtonProps) {
   async function share(event: MouseEvent<HTMLButtonElement>) {
@@ -36,8 +36,17 @@ export function NativeShareButton({
   }
 
   return (
-    <button className={className} type="button" onClick={share} aria-label={ariaLabel || String(children)}>
-      {children}
+    <button className={className} type="button" onClick={share} aria-label={ariaLabel || title || "分享当前页面"}>
+      {children || <ShareIcon />}
     </button>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 17 17 7" />
+      <path d="M9 7h8v8" />
+    </svg>
   );
 }

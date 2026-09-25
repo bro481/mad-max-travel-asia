@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ServiceMenu } from "../service-menu";
 import { InquiryModal } from "../components/inquiry-modal";
+import { NativeShareButton } from "../components/native-share-button";
 import { bundles, products, type PickBundle, type PickProduct, type PriceType } from "./data";
 
 type Lang = "zh" | "en";
@@ -91,7 +92,7 @@ export default function PicksPage() {
     <main className="sub-service-page picks-page">
       <section className="picks-hero">
         <div className="picks-hero-copy">
-          <p className="eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><h2>{t.subtitle}</h2><p>{t.desc}</p>
+          <p className="eyebrow">{t.eyebrow}</p><div className="content-title-row picks-title-row"><h1>{t.title}</h1><NativeShareButton title={`${t.title}｜MAD MAX`} text={t.desc} url="/picks" /></div><h2>{t.subtitle}</h2><p>{t.desc}</p>
         </div>
         <div className="picks-hero-visual"><img src="/malaysia-picks-hero-lifestyle-v2.png" alt={t.subtitle} /></div>
       </section>
