@@ -1148,9 +1148,19 @@ export function ServiceDetail({
             </div>
           </div>
         </section>
-        <section className="private-car-trust-strip">
-          <b>{zh ? "中文沟通 · 酒店接送 · 当地司机 · 路线可调" : "Chinese support · Hotel pickup · Local driver · Flexible route"}</b>
-          <span>{zh ? "不走固定团，按你的时间和当天情况灵活安排。" : "Not a fixed group tour. The day can adjust around your timing and traffic."}</span>
+        <section className="private-car-trust-strip" aria-label={zh ? "包车服务亮点" : "Private driver benefits"}>
+          {[
+            [zh ? "中文沟通" : "Chinese support", zh ? "沟通更省心" : "Easier planning"],
+            [zh ? "酒店接送" : "Hotel pickup", zh ? "从住处出发" : "Start from your stay"],
+            [zh ? "当地司机" : "Local driver", zh ? "熟悉当天路况" : "Knows the roads"],
+            [zh ? "路线可调" : "Flexible route", zh ? "按时间微调" : "Adjustable pace"],
+          ].map((item) => (
+            <span key={item[0]}>
+              <i aria-hidden="true">✓</i>
+              <b>{item[0]}</b>
+              <small>{item[1]}</small>
+            </span>
+          ))}
         </section>
         {displayVehicles.length ? <section className="vehicle-section">
           <div className="detail-heading left">
@@ -1203,20 +1213,25 @@ export function ServiceDetail({
           </div>
         </section>
         <section className="charter-info-section">
+          <h2>{zh ? "包车费用说明" : "Private charter cost notes"}</h2>
           <div>
-            <p className="eyebrow">{zh ? "包车说明" : "Charter Notes"}</p>
-            <h2>{zh ? "先把费用边界说清楚" : "Clear inclusions before you decide"}</h2>
-          </div>
-          <div className="charter-info-grid">
-            <article>
-              <b>{zh ? "包车包含" : "Included"}</b>
-              <span>{zh ? "私人车辆 · 司机服务 · 酒店接送 · 路线沟通" : "Private vehicle · Driver service · Hotel pickup · Route discussion"}</span>
-            </article>
-            <article>
-              <b>{zh ? "可能额外产生" : "Possible extras"}</b>
-              <span>{zh ? "景点门票 · 停车费 · 高速费 · 超时费用" : "Tickets · Parking · Tolls · Overtime"}</span>
-            </article>
-            <p>{zh ? "最终以咨询确认方案为准。" : "Final arrangement is confirmed through inquiry."}</p>
+            <div className="charter-info-card">
+              <article>
+                <i aria-hidden="true">✓</i>
+                <div>
+                  <b>{zh ? "包车包含" : "Included"}</b>
+                  <span>{zh ? "私人车辆 · 司机服务 · 酒店接送 · 路线沟通" : "Private vehicle · Driver service · Hotel pickup · Route discussion"}</span>
+                </div>
+              </article>
+              <article>
+                <i aria-hidden="true">i</i>
+                <div>
+                  <b>{zh ? "可能额外产生" : "Possible extras"}</b>
+                  <span>{zh ? "景点门票 · 停车费 · 高速费 · 超时费用" : "Tickets · Parking · Tolls · Overtime"}</span>
+                </div>
+              </article>
+            </div>
+            <p>{zh ? "具体费用以最终确认方案为准。" : "Final costs are confirmed with the arranged plan."}</p>
           </div>
         </section>
         <section className="detail-final-cta" ref={finalCtaRef}>
