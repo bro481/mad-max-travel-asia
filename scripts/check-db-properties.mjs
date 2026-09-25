@@ -28,6 +28,18 @@ const sql = postgres(process.env.DATABASE_URL, {
   connect_timeout: 10,
 });
 
+function parseImages(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  if (typeof value === "object") return [];
+  try {
+    const parsed = JSON.parse(String(value));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 try {
   const rows = await sql`
     select slug, name_zh, status, images
@@ -36,23 +48,16 @@ try {
   `;
   const published = rows.filter((row) => row.status === "published");
   const withImages = published.filter((row) => {
-    try {
-      const images = JSON.parse(row.images || "[]");
-      return Array.isArray(images) && images.length > 0;
-    } catch {
-      return false;
-    }
+    return parseImages(row.images).length > 0;
   });
 
   console.log(`properties: ${rows.length} total, ${published.length} published, ${withImages.length} published with images`);
   for (const row of published.slice(0, 8)) {
     let count = 0;
     let sample = "";
-    try {
-      const images = JSON.parse(row.images || "[]");
-      count = Array.isArray(images) ? images.length : 0;
-      sample = count ? String(images[0]).slice(0, 90) : "";
-    } catch {}
+    const images = parseImages(row.images);
+    count = images.length;
+    sample = count ? String(images[0]).slice(0, 90) : "";
     console.log(`- ${row.slug} | ${row.name_zh} | images=${count}${sample ? ` | ${sample}` : ""}`);
   }
 
