@@ -25,15 +25,6 @@ export function NativeShareButton({
     event.preventDefault();
     event.stopPropagation();
     const targetUrl = currentUrl();
-    const isWechat = /MicroMessenger/i.test(navigator.userAgent);
-    if (isWechat) {
-      if (targetUrl !== window.location.href) {
-        window.location.href = targetUrl;
-        return;
-      }
-      window.WeixinJSBridge?.call?.("showOptionMenu");
-      return;
-    }
     const shareData = {
       title: title || document.title,
       text,
@@ -51,14 +42,6 @@ export function NativeShareButton({
       {children || <ShareIcon />}
     </button>
   );
-}
-
-declare global {
-  interface Window {
-    WeixinJSBridge?: {
-      call?: (name: string) => void;
-    };
-  }
 }
 
 function ShareIcon() {

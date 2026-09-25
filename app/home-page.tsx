@@ -307,13 +307,6 @@ function RoomCarousel({
         )}
       </button>
       <span className="location-pill">{room.location[lang]}</span>
-      <NativeShareButton
-        className="room-card-share-button"
-        title={`${room.name[lang]}｜MAD MAX`}
-        text={`${room.bedrooms}房${room.bathrooms}卫 · ${room.location[lang]} · ${room.area[lang]}`}
-        url={`/rooms/${room.id}`}
-        aria-label={`${room.name[lang]} ${lang === "zh" ? "分享" : "Share"}`}
-      />
       {images.length > 1 && (
         <>
           <button
@@ -372,6 +365,8 @@ export function RoomDetailModal({
   const space = room.spaceConfig as (Room["spaceConfig"] & Record<string, any>) | undefined;
   const displayedPrice = roomPriceDisplay(room, lang);
   const priceNote = room.description[lang] ? space?.priceNote || (lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date") : "";
+  const roomShareUrl = `/rooms/${room.id}`;
+  const roomShareText = `${room.bedrooms}房${room.bathrooms}卫 · ${room.location[lang]} · ${room.area[lang]}`;
   const coreAmenityKeys = ["High-speed WiFi", "Air Conditioning", "Fully Equipped Kitchen", "Washer"];
   const coreAmenities = coreAmenityKeys
     .map((key) => room.amenities.find((item) => item.name.en === key))
@@ -420,6 +415,15 @@ export function RoomDetailModal({
     { key: "nearby", zh: "周边", en: "Nearby" },
   ];
   useEffect(() => setTab(initialTab), [initialTab]);
+  useEffect(() => {
+    const originalPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (window.location.pathname !== roomShareUrl) {
+      window.history.pushState({ madMaxRoomModal: room.id }, "", roomShareUrl);
+    }
+    return () => {
+      if (window.location.pathname === roomShareUrl) window.history.replaceState(null, "", originalPath);
+    };
+  }, [room.id, roomShareUrl]);
 
   return (
     <div className="room-detail-modal" role="dialog" aria-modal="true" onMouseDown={onClose}>
@@ -461,7 +465,15 @@ export function RoomDetailModal({
 
         <section className="room-modal-info">
           <p className="eyebrow">MAD MAX · MALAYSIA STAY</p>
-          <h2>{room.name[lang]}</h2>
+          <div className="room-modal-title-row">
+            <h2>{room.name[lang]}</h2>
+            <NativeShareButton
+              title={`${room.name[lang]}｜MAD MAX`}
+              text={roomShareText}
+              url={roomShareUrl}
+              aria-label={`${room.name[lang]} ${lang === "zh" ? "分享" : "Share"}`}
+            />
+          </div>
           <div className="room-modal-area room-modal-title-location"><RoomIcon name="pin" /><b>{modalLocationLabel(room, lang)}</b></div>
           <div className="room-modal-price">
             {displayedPrice.suffix ? (
