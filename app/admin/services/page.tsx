@@ -242,6 +242,7 @@ export default function ServiceList() {
             <nav className="service-row-actions">
               <Link href={`/admin/services/${item.id}`}>编辑</Link>
               <a href={frontHref(item)} target="_blank" rel="noreferrer">预览</a>
+              <button className="delete-inline" type="button" onClick={() => remove(item)}>删除</button>
               <details>
                 <summary>···</summary>
                 <div>
@@ -249,7 +250,6 @@ export default function ServiceList() {
                   <button onClick={() => updateStatus(item, item.status === "published" ? "hidden" : "published")}>
                     {item.status === "published" ? "隐藏服务" : "发布服务"}
                   </button>
-                  <button className="danger" onClick={() => remove(item)}>删除服务</button>
                 </div>
               </details>
             </nav>
