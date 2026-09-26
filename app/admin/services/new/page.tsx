@@ -155,7 +155,6 @@ export default function NewService() {
           <button className="admin-primary" disabled={busy} onClick={create}>{busy ? "创建中…" : "创建并编辑"}</button>
         </div>
       </section>
-      <Link className="gift-create-entry" href="/admin/gifts">🎁 新建伴手礼 / 商品 →</Link>
     </>
   );
 }
