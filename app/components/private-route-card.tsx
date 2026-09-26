@@ -26,6 +26,7 @@ export function PrivateRouteCard({
     title: string;
     text?: string;
     url: string;
+    image?: string;
   };
 }) {
   const l = lang === "zh" ? 0 : 1;
@@ -59,7 +60,7 @@ export function PrivateRouteCard({
   if (!share) return card;
   return (
     <div className="route-card-shell">
-      <NativeShareButton className="route-card-share-button" title={share.title} text={share.text} url={share.url} aria-label={`${share.title} 分享`} />
+      <NativeShareButton className="route-card-share-button" title={share.title} text={share.text} url={share.url} image={share.image || route.image} aria-label={`${share.title} 分享`} />
       {card}
     </div>
   );

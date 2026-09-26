@@ -62,7 +62,7 @@ export function ServiceProductDetail({ service: s }: { service: ServiceItem }) {
             </p>
             <div className="content-title-row service-product-title-row">
               <h1>{s.nameZh}</h1>
-              <NativeShareButton title={`${s.nameZh}｜MAD MAX`} text={[s.subtitleZh, s.city, s.tags.slice(0, 2).join(" · ")].filter(Boolean).join(" · ")} />
+              <NativeShareButton title={`${s.nameZh}｜MAD MAX`} text={[s.subtitleZh, s.city, s.tags.slice(0, 2).join(" · ")].filter(Boolean).join(" · ")} image={heroImage} />
             </div>
             <h2>{s.subtitleZh}</h2>
             <div>

@@ -560,7 +560,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
           <p>{article.category}{city?.zh ? ` · ${city.zh}` : ""}</p>
           <div className="content-title-row guide-title-row">
             <h1>{article.titleZh}</h1>
-            <NativeShareButton title={`${article.titleZh}｜MAD MAX`} text={article.summaryZh} />
+            <NativeShareButton title={`${article.titleZh}｜MAD MAX`} text={article.summaryZh} image={guideImage(article)} />
           </div>
           <h2>{article.summaryZh}</h2>
           <div className="guide-detail-tags">

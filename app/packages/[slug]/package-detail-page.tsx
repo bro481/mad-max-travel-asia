@@ -423,7 +423,7 @@ export function PackageDetailPage({
             <p className="package-full-eyebrow">{zh ? item.cityComboEn.toUpperCase() : item.cityComboZh}</p>
             <div className="content-title-row package-title-row">
               <h1>{title}</h1>
-              <NativeShareButton title={`${title}｜MAD MAX`} text={[`${item.days}天${item.nights}晚`, zh ? item.cityComboZh : item.cityComboEn, packageSummary(item, zh)].filter(Boolean).join(" · ")} />
+              <NativeShareButton title={`${title}｜MAD MAX`} text={[`${item.days}天${item.nights}晚`, zh ? item.cityComboZh : item.cityComboEn, packageSummary(item, zh)].filter(Boolean).join(" · ")} image={heroImage} />
             </div>
             <p>{packageSummary(item, zh)}</p>
           </div>

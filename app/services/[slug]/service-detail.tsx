@@ -1125,7 +1125,7 @@ export function ServiceDetail({
             <p className="eyebrow">MAD MAX · PRIVATE DRIVER</p>
             <div className="content-title-row service-product-title-row">
               <h1>{heroTitle}</h1>
-              <NativeShareButton title={`${heroTitle}｜MAD MAX`} text={heroLead} url={currentServiceUrl} />
+              <NativeShareButton title={`${heroTitle}｜MAD MAX`} text={heroLead} url={currentServiceUrl} image={heroImage} />
             </div>
             <p className="car-hero-lead">{heroLead}</p>
             <p>{heroIntro}</p>
