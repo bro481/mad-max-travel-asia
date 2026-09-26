@@ -17,6 +17,7 @@ export default function Categories() {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [editing, setEditing] = useState<Partial<ServiceCategory> | null>(null);
   const [notice, setNotice] = useState("");
+  const [draggingId, setDraggingId] = useState<number | null>(null);
 
   const load = () =>
     Promise.all([
@@ -53,7 +54,7 @@ export default function Categories() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(editing),
     });
-    setNotice(r.ok ? "✓ 展示分类已保存" : "保存失败，请刷新后重试");
+    setNotice(r.ok ? "✓ 分类已保存" : "保存失败，请刷新后重试");
     if (r.ok) {
       setEditing(null);
       load();
@@ -62,12 +63,12 @@ export default function Categories() {
 
   const remove = async (item: ServiceCategory) => {
     if ((counts.get(item.id) || 0) > 0) {
-      setNotice("这个分类下面还有已上线服务，建议先隐藏，不要删除。");
+      setNotice(`当前分类关联 ${counts.get(item.id)} 个已发布服务，请先移动这些服务到其他分类。`);
       return;
     }
     if (!confirm(`确认删除「${item.nameZh}」？`)) return;
     const r = await fetch(`/api/admin/services/${item.id}`, { method: "DELETE" });
-    setNotice(r.ok ? "✓ 已删除展示分类" : "删除失败");
+    setNotice(r.ok ? "✓ 已删除分类" : "删除失败");
     if (r.ok) load();
   };
 
@@ -81,13 +82,29 @@ export default function Categories() {
     if (r.ok) load();
   };
 
+  const swapOrder = async (targetId: number) => {
+    if (!draggingId || draggingId === targetId) return;
+    const source = items.find((item) => item.id === draggingId);
+    const target = items.find((item) => item.id === targetId);
+    setDraggingId(null);
+    if (!source || !target) return;
+    const nextSource = { ...source, sortOrder: target.sortOrder || target.id };
+    const nextTarget = { ...target, sortOrder: source.sortOrder || source.id };
+    await Promise.all([
+      fetch(`/api/admin/services/${nextSource.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(nextSource) }),
+      fetch(`/api/admin/services/${nextTarget.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(nextTarget) }),
+    ]);
+    setNotice("✓ 分类排序已更新");
+    load();
+  };
+
   return (
     <>
       <div className="admin-head">
         <div>
           <p>当地服务</p>
-          <h1>展示分类</h1>
-          <span>控制前台服务页里的“交通服务 / 海岛体验 / 自然体验”等分组标题。</span>
+          <h1>分类管理</h1>
+          <span>控制前台服务页里的“交通服务 / 海岛体验 / 自然体验”等分组；空分类会在前台自动隐藏。</span>
         </div>
         <button className="admin-primary" onClick={() => setEditing(blankCategory)}>
           ＋ 新增分类
@@ -96,29 +113,38 @@ export default function Categories() {
       <div className="service-subnav">
         <Link href="/admin/services">服务列表</Link>
         <Link className="active" href="/admin/services/categories">
-          展示分类
+          分类管理
         </Link>
-        <Link href="/admin/services/templates">编辑模板</Link>
+        <Link href="/admin/settings">页面设置</Link>
       </div>
       {notice && <p className="lead-notice">{notice}</p>}
       <section className="category-table-card">
         <div className="category-table row head">
-          <span>排序</span>
+          <span>拖拽</span>
           <span>分类</span>
           <span>英文</span>
-          <span>已上线服务</span>
+          <span>前台状态</span>
           <span>状态</span>
           <span>操作</span>
         </div>
-        {items.map((item) => (
-          <div className="category-table row" key={item.id}>
-            <span>{item.sortOrder}</span>
+        {[...items].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id).map((item) => {
+          const publishedCount = counts.get(item.id) || 0;
+          return (
+          <div
+            className={`category-table row ${draggingId === item.id ? "dragging" : ""}`}
+            draggable
+            key={item.id}
+            onDragStart={() => setDraggingId(item.id)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => swapOrder(item.id)}
+          >
+            <span className="drag-handle">≡</span>
             <b>
               <i>{item.icon}</i>
               {item.nameZh}
             </b>
             <span>{item.nameEn}</span>
-            <span>{counts.get(item.id) || 0}</span>
+            <span>{publishedCount ? `${publishedCount} 个已发布服务` : "0 个已发布服务 · 前台自动隐藏"}</span>
             <span className={item.visible ? "status-on" : "status-off"}>
               {item.visible ? "显示" : "隐藏"}
             </span>
@@ -128,7 +154,7 @@ export default function Categories() {
               <button onClick={() => remove(item)}>删除</button>
             </nav>
           </div>
-        ))}
+        )})}
       </section>
       {editing && (
         <div className="destination-dialog-backdrop">
@@ -136,7 +162,7 @@ export default function Categories() {
             <button className="dialog-close" onClick={() => setEditing(null)}>
               ×
             </button>
-            <h2>{editing.id ? "编辑展示分类" : "新增展示分类"}</h2>
+            <h2>{editing.id ? "编辑分类" : "新增分类"}</h2>
             <div className="destination-form-grid">
               <label>
                 <span>中文名称</span>
@@ -151,8 +177,9 @@ export default function Categories() {
                 <input value={editing.icon || ""} onChange={(e) => setEditing({ ...editing, icon: e.target.value })} placeholder="✈️" />
               </label>
               <label>
-                <span>排序</span>
+                <span>排序值</span>
                 <input type="number" value={editing.sortOrder || 99} onChange={(e) => setEditing({ ...editing, sortOrder: Number(e.target.value) })} />
+                <small>日常请直接拖拽分类排序；这里保留给精确调整。</small>
               </label>
               <label className="destination-wide">
                 <span>前台显示</span>

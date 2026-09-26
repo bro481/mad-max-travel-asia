@@ -20,8 +20,8 @@ import type {
 } from "../../../../db/service-items";
 import { TransferEditor } from "./transfer-editor";
 
-const defaultTabs = ["基础信息", "图片", "内容", "行程／路线", "咨询", "发布"];
-const routeTabs = ["页面内容", "车型价格", "热门路线"];
+const defaultTabs = ["基本信息", "服务图片", "内容", "行程安排", "咨询", "发布"];
+const routeTabs = ["基本信息", "车型", "热门路线", "费用与咨询"];
 const inquiryFieldOptions = ["日期", "同行人数", "出发地点", "想去的地方", "接送地点", "儿童人数", "行李数量", "特殊需求"];
 
 export default function ServiceEditor() {
@@ -125,7 +125,7 @@ export default function ServiceEditor() {
   // Share the modern editor without changing the service's template or routing.
   const isExperience = !isPrivateCar && hasTimeline;
   const isCar = isPrivateCar || isExperience;
-  const activeTabs = isExperience ? ["页面内容", "服务图片", "行程／路线"] : isCar ? routeTabs : defaultTabs;
+  const activeTabs = isExperience ? ["基本信息", "服务图片", "行程内容"] : isPrivateCar ? routeTabs : defaultTabs;
   const experienceRoutes: ServiceRoutePlan[] = d.routes.length ? d.routes : [{
     nameZh: d.nameZh, nameEn: d.nameEn, descriptionZh: d.introZh,
     descriptionEn: d.introEn, coverImage: d.images[0] || "", visible: true,
@@ -278,7 +278,7 @@ export default function ServiceEditor() {
         </div>
         <div>
           <a className="admin-secondary" href={frontendHref} target="_blank" rel="noreferrer">
-            查看前台
+            预览
           </a>
           <button className="admin-secondary" onClick={() => save()}>
             保存草稿
@@ -302,7 +302,6 @@ export default function ServiceEditor() {
         <aside>
           {activeTabs.map((x, i) => (
             <button className={tab === i ? "active" : ""} onClick={() => setTab(i)} key={x}>
-              <i>{i + 1}</i>
               {x}
             </button>
           ))}
@@ -311,7 +310,7 @@ export default function ServiceEditor() {
           {tab === 0 && (
             <>
               <Head
-                title={isCar ? "页面内容" : "基础信息"}
+                title={isCar ? "基本信息" : "基础信息"}
                 text={isExperience ? "管理体验页面内容、服务封面、亮点和咨询字段。" : isCar ? "前端显示位置：包车详情页顶部 Hero、服务亮点与咨询入口。" : "控制服务归属、前台卡片文案和详情顶部基础内容。"}
               />
               {!isCar && <div className="service-belonging-card">
@@ -320,11 +319,11 @@ export default function ServiceEditor() {
                   <strong>{currentDestination?.nameZh || d.city}</strong>
                 </div>
                 <div>
-                  <small>展示分类</small>
+                  <small>服务分类</small>
                   <strong>{currentCategory?.nameZh || d.category}</strong>
                 </div>
                 <div>
-                  <small>编辑模板</small>
+                  <small>编辑结构</small>
                   <strong>{templateLabel(d.templateType)}</strong>
                   <em>已锁定</em>
                 </div>
@@ -346,7 +345,7 @@ export default function ServiceEditor() {
                     ))}
                   </select>
                 </Field>
-                <Field n="所属展示分类">
+                <Field n="所属服务分类">
                   <select
                     value={d.categoryId || currentCategory?.id || 1}
                     onChange={(e) => {
@@ -365,7 +364,7 @@ export default function ServiceEditor() {
                   </select>
                 </Field>
               </div>}
-              {!isCar && <Field n="当前编辑模板">
+              {!isCar && <Field n="当前编辑结构">
                 <input value={templateLabel(d.templateType)} readOnly />
                 <small className="field-help">
                   模板控制后台字段结构，默认不随意更换；如果要换结构，建议新建对应类型服务。
@@ -427,7 +426,7 @@ export default function ServiceEditor() {
                     })}
                   />
                   <ServiceHighlights items={d.steps} onChange={(x) => set("steps", x)} />
-                  <details className="car-inquiry-summary">
+                  {isExperience && <details className="car-inquiry-summary">
                     <summary>
                       <span><b>咨询表单</b><small>前端显示位置：点击“咨询这项服务”后的表单</small></span>
                       <em>当前启用：{normalizeInquiryConfig(d.inquiryFields, d.inquiryRequired).fields.join("、") || "未设置"}</em>
@@ -438,7 +437,7 @@ export default function ServiceEditor() {
                       required={d.inquiryRequired}
                       onChange={(fields, required) => setMany({ inquiryFields: fields, inquiryRequired: required })}
                     />
-                  </details>
+                  </details>}
                 </>
               )}
             </>
@@ -534,6 +533,12 @@ export default function ServiceEditor() {
               />
             </>
           )}
+          {tab === 3 && isPrivateCar && (
+            <FeesAndInquiryPanel
+              data={d}
+              onChange={(fields, required) => setMany({ inquiryFields: fields, inquiryRequired: required })}
+            />
+          )}
           {tab === 3 && !isCar && (
             <>
               {hasTimeline ? (
@@ -585,7 +590,7 @@ export default function ServiceEditor() {
                 <div className="publish-actions">
                   <button className="admin-secondary" onClick={() => save()}>保存草稿</button>
                   <button className="admin-primary" onClick={() => save("published") }>发布服务</button>
-                  <a className="admin-secondary publish-front-link" href={frontendHref} target="_blank" rel="noreferrer">查看前台页面</a>
+                  <a className="admin-secondary publish-front-link" href={frontendHref} target="_blank" rel="noreferrer">预览页面</a>
                 </div>
               </div>
             </>
@@ -826,7 +831,7 @@ function VehiclePricingEditor({
   const activeVehicle = editing === null ? null : vehicles[editing] || null;
   return (
     <div className="vehicle-price-editor">
-      <Head title="车型价格" text="前端显示位置：包车详情页 → 车型选择与价格。" />
+    <Head title="车型" text="前端显示位置：包车详情页 → 车型选择与价格。" />
       <div className="route-plan-head">
         <div>
           <h3>可安排车型</h3>
@@ -947,6 +952,38 @@ function InquiryPicker({
         </div>
       ))}
     </div>
+  );
+}
+
+function FeesAndInquiryPanel({
+  data,
+  onChange,
+}: {
+  data: ServiceItem;
+  onChange: (fields: string[], required: string[]) => void;
+}) {
+  const visibleVehicles = data.vehicles.filter((vehicle) => vehicle.visible !== false);
+  return (
+    <>
+      <Head title="费用与咨询" text="统一管理前台咨询表单和当前价格展示规则；费用包含/可能另付需要补齐数据库字段后再开放编辑。" />
+      <section className="service-fee-summary">
+        <div>
+          <small>价格展示</small>
+          <b>{visibleVehicles.length ? `${visibleVehicles.length} 个车型` : data.priceMode || "咨询报价"}</b>
+          <p>车型具体价格在「车型」页维护；选择“咨询报价”时前台不会显示假价格。</p>
+        </div>
+        <div>
+          <small>咨询表单</small>
+          <b>{normalizeInquiryConfig(data.inquiryFields, data.inquiryRequired).fields.join("、") || "未设置"}</b>
+          <p>路线型默认建议字段：日期、同行人数、出发地点、想去的地方、特殊需求。</p>
+        </div>
+      </section>
+      <InquiryPicker fields={data.inquiryFields} required={data.inquiryRequired} onChange={onChange} />
+      <div className="service-fee-note">
+        <b>下一步建议</b>
+        <p>如果要让前台出现“费用包含 / 可能另付”，需要先给 service_items 增加可保存字段，并同步前台详情页读取；这部分不应该只做一个后台假表单。</p>
+      </div>
+    </>
   );
 }
 
@@ -1504,8 +1541,8 @@ function RoutePlansEditor({
                       <p>前端显示位置：点击“查看路线” → 路线详情弹窗；拖拽整行调整顺序。</p>
                     </div>
                     <div className="route-node-toolbar-actions">
-                      <a className="secondary" href={`${frontendHref}&route=${editingRouteIndex}`} target="_blank" rel="noreferrer">查看前台</a>
-                      <button className="secondary" onClick={() => setRoutePreview({ focusStopIndex: null })}>草稿预览</button>
+                      <a className="secondary" href={`${frontendHref}&route=${editingRouteIndex}`} target="_blank" rel="noreferrer">线上版本</a>
+                      <button className="secondary" onClick={() => setRoutePreview({ focusStopIndex: null })}>预览</button>
                       <button onClick={() => addNode(editingRouteIndex)}>＋ 添加节点</button>
                     </div>
                   </div>
@@ -1779,7 +1816,7 @@ function RoutePlansEditor({
             )}
             <footer className="route-editor-footer">
               <span>保存后将更新当前路线；发布到前台仍需点击「发布服务」。</span>
-              <button onClick={closeRouteEditor}>保存路线</button>
+              <button onClick={closeRouteEditor}>保存</button>
             </footer>
             {routePreview && previewRoute ? (
               <PrivateRouteDetailModal

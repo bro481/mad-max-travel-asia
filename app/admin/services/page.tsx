@@ -1,16 +1,25 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DestinationRecord } from "../../../db/destinations";
 import type { ServiceCategory } from "../../../db/services";
 import type { ServiceItem } from "../../../db/service-items";
+
+const typeOptions = ["全部类型", "接送机", "包车", "当地体验"];
+const statusOptions = ["全部状态", "已发布", "草稿", "已隐藏"];
+
 export default function ServiceList() {
-  const [items, setItems] = useState<ServiceItem[]>([]),
-    [notice, setNotice] = useState(""),
-    [activeCity, setActiveCity] = useState("全部"),
-    [activeType, setActiveType] = useState("全部"),
-    [categories, setCategories] = useState<ServiceCategory[]>([]),
-    [destinations, setDestinations] = useState<DestinationRecord[]>([]);
+  const [items, setItems] = useState<ServiceItem[]>([]);
+  const [notice, setNotice] = useState("");
+  const [cityFilter, setCityFilter] = useState("全部城市");
+  const [categoryFilter, setCategoryFilter] = useState("全部分类");
+  const [typeFilter, setTypeFilter] = useState("全部类型");
+  const [statusFilter, setStatusFilter] = useState("全部状态");
+  const [query, setQuery] = useState("");
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
+  const [destinations, setDestinations] = useState<DestinationRecord[]>([]);
+
   const load = () =>
     fetch("/api/admin/service-items")
       .then(async (r) => {
@@ -27,32 +36,75 @@ export default function ServiceList() {
         return text ? JSON.parse(text) : [];
       })
       .then(setItems);
+
   useEffect(() => {
     load();
     Promise.all([
-      fetch("/api/admin/destinations").then(async (r) => {
-        if (!r.ok) return [];
-        const text = await r.text();
-        return text ? JSON.parse(text) : [];
-      }),
-      fetch("/api/admin/services").then(async (r) => {
-        if (!r.ok) return [];
-        const text = await r.text();
-        return text ? JSON.parse(text) : [];
-      }),
+      fetch("/api/admin/destinations").then(async (r) => (r.ok ? r.json() : [])),
+      fetch("/api/admin/services").then(async (r) => (r.ok ? r.json() : [])),
     ]).then(([dests, cats]) => {
-      setDestinations(dests);
-      setCategories(cats);
+      setDestinations(Array.isArray(dests) ? dests : []);
+      setCategories(Array.isArray(cats) ? cats : []);
     });
   }, []);
-  const update = async (x: ServiceItem, status: ServiceItem["status"]) => {
-    await fetch(`/api/admin/service-items/${x.id}`, {
+
+  const cities = useMemo(
+    () => [
+      ...destinations
+        .filter((destination) => destination.useForServices && destination.status !== "hidden")
+        .sort((a, b) => a.serviceSort - b.serviceSort || a.id - b.id)
+        .map((destination) => destination.nameZh),
+      ...[...new Set(items.map((x) => x.city))].filter((city) => city && !destinations.some((destination) => destination.nameZh === city)),
+    ],
+    [destinations, items],
+  );
+
+  const kind = (x: ServiceItem) =>
+    x.templateType === "transfer" || x.type === "交通接送" ? "接送机" : x.templateType === "route" || x.type === "私人包车" ? "包车" : "当地体验";
+
+  const categoryName = (x: ServiceItem) =>
+    categories.find((category) => category.id === x.categoryId)?.nameZh || x.category || "未分类";
+
+  const statusLabel = (x: ServiceItem) =>
+    x.status === "published" ? "已发布" : x.status === "hidden" ? "已隐藏" : "草稿";
+
+  const frontHref = (x: ServiceItem) => {
+    if (x.templateType === "route" || x.type === "私人包车") {
+      const city = x.city === "吉隆坡" ? "kl" : x.city === "马六甲" ? "melaka" : "kk";
+      return `/services/private-car?city=${city}&service=${encodeURIComponent(x.slug)}`;
+    }
+    return `/services?service=${encodeURIComponent(x.slug)}`;
+  };
+
+  const visibleItems = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    return items
+      .filter((item) => cityFilter === "全部城市" || item.city === cityFilter)
+      .filter((item) => categoryFilter === "全部分类" || categoryName(item) === categoryFilter)
+      .filter((item) => typeFilter === "全部类型" || kind(item) === typeFilter)
+      .filter((item) => statusFilter === "全部状态" || statusLabel(item) === statusFilter)
+      .filter((item) => {
+        if (!keyword) return true;
+        return [item.nameZh, item.nameEn, item.subtitleZh, item.city, item.category, item.slug]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(keyword);
+      })
+      .sort((a, b) => (a.categoryId || 0) - (b.categoryId || 0) || (a.displayOrder || 99) - (b.displayOrder || 99) || a.id - b.id);
+  }, [items, cityFilter, categoryFilter, typeFilter, statusFilter, query, categories]);
+
+  const updateStatus = async (x: ServiceItem, status: ServiceItem["status"]) => {
+    setNotice("保存中…");
+    const r = await fetch(`/api/admin/service-items/${x.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...x, status }),
     });
-    load();
+    setNotice(r.ok ? "✓ 状态已更新" : "状态更新失败，请刷新后重试");
+    if (r.ok) load();
   };
+
   const copy = async (x: ServiceItem) => {
     setNotice("正在复制…");
     const r = await fetch("/api/admin/service-items", {
@@ -84,186 +136,114 @@ export default function ServiceList() {
     });
     window.location.assign(`/admin/services/${c.id}`);
   };
-  const cities = [
-    ...destinations
-      .filter((destination) => destination.useForServices && destination.status !== "hidden")
-      .sort((a, b) => a.serviceSort - b.serviceSort || a.id - b.id)
-      .map((destination) => destination.nameZh),
-    ...[...new Set(items.map((x) => x.city))].filter((city) => city && !destinations.some((destination) => destination.nameZh === city)),
-  ];
-  const kind = (x: ServiceItem) =>
-    x.templateType === "transfer" || x.type === "交通接送" ? "接送机" : x.templateType === "route" || x.type === "私人包车" ? "包车" : "当地体验";
-  const categoryName = (x: ServiceItem) =>
-    categories.find((category) => category.id === x.categoryId)?.nameZh || x.category || "未分类";
-  const frontHref = (x: ServiceItem) => {
-    if (x.templateType === "route" || x.type === "私人包车") {
-      const city = x.city === "吉隆坡" ? "kl" : x.city === "马六甲" ? "melaka" : "kk";
-      return `/services/private-car?city=${city}&service=${encodeURIComponent(x.slug)}`;
+
+  const swapOrder = async (targetId: number) => {
+    if (!draggingId || draggingId === targetId) return;
+    const source = items.find((item) => item.id === draggingId);
+    const target = items.find((item) => item.id === targetId);
+    setDraggingId(null);
+    if (!source || !target) return;
+    if (source.city !== target.city || source.categoryId !== target.categoryId) {
+      setNotice("排序只在同城市、同分类内生效；跨分类请先编辑服务归属。");
+      return;
     }
-    return `/services?service=${encodeURIComponent(x.slug)}`;
-  };
-  const cityItems = activeCity === "全部" ? items : items.filter((item) => item.city === activeCity);
-  const visibleItems = (activeType === "全部" ? cityItems : cityItems.filter((item) => kind(item) === activeType))
-    .sort((a, b) => (a.categoryId || 0) - (b.categoryId || 0) || (a.displayOrder || 99) - (b.displayOrder || 99) || a.id - b.id);
-  const categoryGroups = categories
-    .filter((category) => category.visible !== false && visibleItems.some((item) => item.categoryId === category.id))
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
-  const orphanCategoryNames = [...new Set(visibleItems.filter((item) => !categories.some((category) => category.id === item.categoryId)).map((x) => categoryName(x)))];
-  const cityEnglish = (city: string) => destinations.find((destination) => destination.nameZh === city)?.nameEn || city;
-  const moveWithinGroup = async (x: ServiceItem, direction: -1 | 1) => {
-    const group = visibleItems.filter((item) => item.city === x.city && item.categoryId === x.categoryId);
-    const index = group.findIndex((item) => item.id === x.id);
-    const target = group[index + direction];
-    if (!target) return;
-    const a = { ...x, displayOrder: target.displayOrder || target.id };
-    const b = { ...target, displayOrder: x.displayOrder || x.id };
+    const nextSource = { ...source, displayOrder: target.displayOrder || target.id };
+    const nextTarget = { ...target, displayOrder: source.displayOrder || source.id };
     await Promise.all([
-      fetch(`/api/admin/service-items/${a.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(a) }),
-      fetch(`/api/admin/service-items/${b.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }),
+      fetch(`/api/admin/service-items/${nextSource.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(nextSource) }),
+      fetch(`/api/admin/service-items/${nextTarget.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(nextTarget) }),
     ]);
+    setNotice("✓ 排序已更新");
     load();
   };
-  const card = (x: ServiceItem) => (
-    <article key={x.id}>
-      <div className="service-product-cover">
-        {x.images[0] ? (
-          <img src={x.images[0]} alt="" />
-        ) : (
-          <span>
-            {x.type === "交通接送"
-              ? "🚗"
-              : x.type === "私人包车"
-                ? "🚙"
-                : x.type === "海岛体验"
-                  ? "🏝"
-                  : "🌆"}
-          </span>
-        )}
-        <i>
-          {x.status === "published"
-            ? "已上线"
-            : x.status === "hidden"
-              ? "已隐藏"
-              : "草稿"}
-        </i>
-      </div>
-      <div>
-        <small>
-          {x.city} · {categoryName(x)}
-        </small>
-        <h4>{x.nameZh}</h4>
-        <p>{x.subtitleZh || "服务范围或路线待填写"}</p>
-        <b className="service-card-price">{x.priceMode === "咨询报价" ? "价格咨询" : `RM ${x.price} ${x.priceMode === "起价" ? "起" : ""}`}</b>
-        <nav>
-          <Link href={`/admin/services/${x.id}`}>编辑</Link>
-          <a href={frontHref(x)} target="_blank" rel="noreferrer">
-            查看前台
-          </a>
-          <button onClick={() => copy(x)}>复制</button>
-          <button
-            onClick={() =>
-              update(x, x.status === "published" ? "hidden" : "published")
-            }
-          >
-            {x.status === "published" ? "隐藏" : "上线"}
-          </button>
-          <button onClick={() => moveWithinGroup(x, -1)}>上移</button>
-          <button onClick={() => moveWithinGroup(x, 1)}>下移</button>
-        </nav>
-      </div>
-    </article>
-  );
+
   return (
     <>
       <div className="admin-head">
         <div>
           <p>当地服务</p>
           <h1>服务列表</h1>
-          <span>按城市与类型组织服务，用内容、流程和路线促成咨询。</span>
+          <span>用一个紧凑列表管理服务，日常只处理编辑、预览、复制和上下线。</span>
         </div>
         <Link className="admin-primary" href="/admin/services/new">
           ＋ 新建服务
         </Link>
       </div>
       <div className="service-subnav">
-        <Link className="active" href="/admin/services">
-          服务列表
-        </Link>
-        <Link href="/admin/services/categories">展示分类</Link>
-        <Link href="/admin/services/templates">编辑模板</Link>
+        <Link className="active" href="/admin/services">服务列表</Link>
+        <Link href="/admin/services/categories">分类管理</Link>
+        <Link href="/admin/settings">页面设置</Link>
         <Link href="/admin/gifts">伴手礼</Link>
       </div>
       {notice && <p className="lead-notice">{notice}</p>}
-      <div
-        className="service-city-tabs"
-        role="tablist"
-        aria-label="按地区筛选服务"
-      >
-        {["全部", ...cities].map((city) => (
-          <button
-            className={activeCity === city ? "active" : ""}
-            key={city}
-            onClick={() => setActiveCity(city)}
-            role="tab"
-            aria-selected={activeCity === city}
+      <section className="service-list-tools" aria-label="服务筛选">
+        <select value={cityFilter} onChange={(event) => setCityFilter(event.target.value)}>
+          <option>全部城市</option>
+          {cities.map((city) => <option key={city}>{city}</option>)}
+        </select>
+        <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+          <option>全部分类</option>
+          {categories.map((category) => <option key={category.id}>{category.nameZh}</option>)}
+        </select>
+        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+          {typeOptions.map((type) => <option key={type}>{type}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          {statusOptions.map((status) => <option key={status}>{status}</option>)}
+        </select>
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索服务名称、城市、slug..." />
+      </section>
+      <section className="service-table-card">
+        <div className="service-table-head">
+          <h2>当地服务</h2>
+          <span>{visibleItems.length} / {items.length} 个服务</span>
+        </div>
+        <div className="service-table-row service-table-title">
+          <span>服务</span>
+          <span>城市</span>
+          <span>分类</span>
+          <span>类型</span>
+          <span>状态</span>
+          <span>操作</span>
+        </div>
+        {visibleItems.map((item) => (
+          <div
+            className={`service-table-row ${draggingId === item.id ? "dragging" : ""}`}
+            draggable
+            key={item.id}
+            onDragStart={() => setDraggingId(item.id)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => swapOrder(item.id)}
           >
-            <span>{city}</span>
-            {city !== "全部" && <small>{cityEnglish(city)}</small>}
-            <i>
-              {city === "全部"
-                ? items.length
-                : items.filter((x) => x.city === city).length}
-            </i>
-          </button>
-        ))}
-      </div>
-      <div className="service-kind-tabs" role="tablist" aria-label="按服务类型筛选">
-        {["全部", "接送机", "包车", "当地体验"].map((type) => (
-          <button className={activeType === type ? "active" : ""} onClick={() => setActiveType(type)} key={type}>
-            {type}<small>{type === "全部" ? cityItems.length : cityItems.filter((x) => kind(x) === type).length}</small>
-          </button>
-        ))}
-      </div>
-      {activeCity === "全部" ? (
-        <section className="service-all-view">
-          <h2>
-            全部服务 <small>{visibleItems.length} 个服务</small>
-          </h2>
-          <div className="service-product-grid">{visibleItems.map(card)}</div>
-        </section>
-      ) : (
-        <section className="service-city">
-          <div className="service-city-heading">
-            <div>
-              <p>当前地区</p>
-              <h2>
-                {activeCity} <small>{cityEnglish(activeCity)}</small>
-              </h2>
-            </div>
-            <span>{visibleItems.length} 个服务</span>
-          </div>
-          {categoryGroups.map((category) => (
-            <div className="service-category-group" key={category.id}>
-              <h3>
-                {category.icon} {category.nameZh}
-                <small>
-                  {visibleItems.filter((x) => x.categoryId === category.id).length}{" "}
-                  个
-                </small>
-              </h3>
-              <div className="service-product-grid">
-                {visibleItems.filter((x) => x.categoryId === category.id).map(card)}
+            <div className="service-table-name">
+              <span className="drag-handle">≡</span>
+              {item.images[0] ? <img src={item.images[0]} alt="" /> : <i>{kind(item).slice(0, 1)}</i>}
+              <div>
+                <b>{item.nameZh}</b>
+                <small>{item.subtitleZh || item.slug}</small>
               </div>
             </div>
-          ))}
-          {orphanCategoryNames.map((category) => (
-            <div className="service-category-group" key={category}>
-              <h3>{category}<small>{visibleItems.filter((x) => categoryName(x) === category).length} 个</small></h3>
-              <div className="service-product-grid">{visibleItems.filter((x) => categoryName(x) === category).map(card)}</div>
-            </div>
-          ))}
-        </section>
-      )}
+            <span>{item.city || "未设置"}</span>
+            <span>{categoryName(item)}</span>
+            <span>{kind(item)}</span>
+            <span className={item.status === "published" ? "status-on" : item.status === "hidden" ? "status-off" : "status-draft"}>{statusLabel(item)}</span>
+            <nav className="service-row-actions">
+              <Link href={`/admin/services/${item.id}`}>编辑</Link>
+              <a href={frontHref(item)} target="_blank" rel="noreferrer">预览</a>
+              <details>
+                <summary>···</summary>
+                <div>
+                  <button onClick={() => copy(item)}>复制服务</button>
+                  <button onClick={() => updateStatus(item, item.status === "published" ? "hidden" : "published")}>
+                    {item.status === "published" ? "隐藏服务" : "发布服务"}
+                  </button>
+                </div>
+              </details>
+            </nav>
+          </div>
+        ))}
+        {!visibleItems.length && <p className="empty-state">没有符合筛选条件的服务。</p>}
+      </section>
     </>
   );
 }
