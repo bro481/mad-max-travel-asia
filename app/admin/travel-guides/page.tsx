@@ -114,6 +114,13 @@ export default function AdminTravelGuidesPage() {
   const didLoadDraft = useRef(false);
 
   const estimatedReadMinutes = useMemo(() => estimateReadMinutes(draft.contentBlocks), [draft.contentBlocks]);
+  const contentHeadings = useMemo(
+    () => draft.contentBlocks
+      .map((block, index) => ({ block, index }))
+      .filter(({ block }) => block.type === "heading" && block.text.trim())
+      .map(({ block, index }) => ({ index, title: "text" in block ? block.text.trim() : "" })),
+    [draft.contentBlocks],
+  );
 
   const filtered = useMemo(
     () => items.filter((item) => {
@@ -189,6 +196,24 @@ export default function AdminTravelGuidesPage() {
       window.setTimeout(() => setFocusedBlock(index), 0);
       return { ...current, [key]: next };
     });
+  };
+
+  const formatFocusedText = (mode: "bold" | "link" | "highlight") => {
+    const block = draft.contentBlocks[focusedBlock];
+    if (!block || !("text" in block)) return;
+    const active = document.activeElement instanceof HTMLTextAreaElement || document.activeElement instanceof HTMLInputElement
+      ? document.activeElement
+      : null;
+    const source = block.text;
+    const start = active?.selectionStart ?? source.length;
+    const end = active?.selectionEnd ?? source.length;
+    const selected = source.slice(start, end) || (mode === "link" ? "链接文字" : "重点内容");
+    const wrapped = mode === "bold"
+      ? `**${selected}**`
+      : mode === "link"
+        ? `[${selected}](https://)`
+        : `==${selected}==`;
+    updateBlock(focusedBlock, { ...block, text: `${source.slice(0, start)}${wrapped}${source.slice(end)}` });
   };
 
   const uploadImage = async (event: ChangeEvent<HTMLInputElement>, apply: (url: string) => void) => {
@@ -334,6 +359,12 @@ export default function AdminTravelGuidesPage() {
           {section !== "editor" && section !== "settings" && <Link className="admin-secondary" href="/photography" target="_blank">查看前台</Link>}
           {section === "editor" ? (
             <>
+              {selectedId !== "new" && (
+                <details className="guide-top-more">
+                  <summary>···</summary>
+                  <button className="danger" type="button" onClick={remove}>删除攻略</button>
+                </details>
+              )}
               <Link className="admin-secondary" href={draft.slug ? `/photography/${draft.slug}` : "/photography"} target="_blank">预览</Link>
               <button className="admin-primary" type="button" onClick={() => saveArticle("published")} disabled={saving}>{saving ? "保存中..." : draft.status === "published" ? "更新发布" : "发布"}</button>
             </>
@@ -454,11 +485,17 @@ export default function AdminTravelGuidesPage() {
                 <button type="button" onClick={() => insertBlock("paragraph")}>正文</button>
                 <button type="button" onClick={() => insertBlock("heading")}>H2</button>
                 <button type="button" onClick={() => insertBlock("subheading")}>H3</button>
+                <button type="button" onClick={() => formatFocusedText("bold")}>B</button>
+                <button type="button" onClick={() => formatFocusedText("link")}>链接</button>
                 <button type="button" onClick={() => insertBlock("list")}>列表</button>
+                <button type="button" onClick={() => formatFocusedText("highlight")}>高亮</button>
                 <button type="button" onClick={() => insertBlock("image")}>图片</button>
+                <button type="button" onClick={() => document.execCommand("undo")}>撤销</button>
+                <button type="button" onClick={() => document.execCommand("redo")}>重做</button>
                 <details className="guide-insert-menu">
                   <summary>+ 插入</summary>
                   <div>
+                    <button type="button" onClick={() => insertBlock("paragraph")}>正文段落</button>
                     {specialBlocks.map((item) => (
                       <button key={item.label} type="button" onClick={() => insertBlock(item.type, item.text || "", focusedBlock, "contentBlocks", item.items)}>{item.label}</button>
                     ))}
@@ -466,6 +503,20 @@ export default function AdminTravelGuidesPage() {
                 </details>
               </nav>
             </div>
+            {contentHeadings.length > 0 && (
+              <nav className="guide-outline" aria-label="文章结构">
+                <b>文章结构</b>
+                {contentHeadings.map((heading, headingIndex) => (
+                  <button
+                    key={`${heading.index}-${heading.title}`}
+                    type="button"
+                    onClick={() => document.getElementById(`guide-block-${heading.index}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                  >
+                    {String(headingIndex + 1).padStart(2, "0")} {heading.title}
+                  </button>
+                ))}
+              </nav>
+            )}
             <div className="guide-free-editor">
               {draft.contentBlocks.map((block, index) => (
                 <FlowBlock
@@ -485,7 +536,6 @@ export default function AdminTravelGuidesPage() {
                   onFocus={() => setFocusedBlock(index)}
                 />
               ))}
-              <button className="guide-add-paragraph" type="button" onClick={() => insertBlock("paragraph", "", draft.contentBlocks.length - 1)}>+ 继续写正文</button>
             </div>
           </div>}
 
@@ -545,8 +595,6 @@ export default function AdminTravelGuidesPage() {
               <p>快速浏览来自正文 H2；阅读时间来自正文字数；底部 CTA 和继续看看使用全站默认逻辑。</p>
             </div>
           </div>}
-
-          {selectedId !== "new" && <button className="admin-danger" type="button" onClick={remove}>删除攻略</button>}
         </section>
       )}
 
@@ -566,12 +614,6 @@ export default function AdminTravelGuidesPage() {
         </section>
       )}
 
-      {section === "editor" && (
-        <div className="guide-sticky-save">
-          <span>{saveState === "dirty" ? "有未保存更改" : saveState === "saving" ? "保存中..." : lastSavedAt ? `已保存 ${lastSavedAt}` : "已保存"}</span>
-          <Link href={draft.slug ? `/photography/${draft.slug}` : "/photography"} target="_blank">预览</Link>
-        </div>
-      )}
     </div>
   );
 }
@@ -628,8 +670,14 @@ function FlowBlock({
   onDragStart?: () => void;
   onDrop?: () => void;
 }) {
+  const isLocationCard = block.type === "list" && block.items.some((item) => /^(适合时间|建议停留|顺路安排)[:：]/.test(item));
+  const updateLocationItem = (itemIndex: number, label: string, value: string) => {
+    if (block.type !== "list") return;
+    updateBlock(index, { ...block, items: block.items.map((item, i) => i === itemIndex ? `${label}：${value}` : item) });
+  };
   return (
     <article
+      id={`guide-block-${index}`}
       className={`guide-flow-block ${block.type} ${active ? "active" : ""}`}
       draggable={draggable}
       onDragStart={onDragStart}
@@ -645,10 +693,25 @@ function FlowBlock({
 
       {block.type === "heading" && <input className="guide-flow-heading" value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="小标题，例如：最推荐的时间" />}
       {block.type === "subheading" && <input className="guide-flow-subheading" value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="三级标题" />}
-      {block.type === "paragraph" && <textarea value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="继续写正文..." />}
-      {block.type === "quote" && <textarea value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="当地提醒、注意事项、交通建议..." />}
+      {block.type === "paragraph" && <AutoTextarea value={block.text} onChange={(value) => updateBlock(index, { ...block, text: value })} placeholder="继续写正文..." />}
+      {block.type === "quote" && <AutoTextarea value={block.text} onChange={(value) => updateBlock(index, { ...block, text: value })} placeholder="当地提醒、注意事项、交通建议..." />}
       {block.type === "divider" && <hr />}
-      {block.type === "list" && (
+      {block.type === "list" && isLocationCard && (
+        <div className="guide-location-card">
+          <b>地点信息</b>
+          {block.items.map((item, itemIndex) => {
+            const [label = "", ...rest] = item.split(/[:：]/);
+            return (
+              <label key={itemIndex}>
+                <span>{label || "信息"}</span>
+                <input value={rest.join("：")} onChange={(event) => updateLocationItem(itemIndex, label || "信息", event.target.value)} placeholder="填写内容" />
+              </label>
+            );
+          })}
+          <button type="button" onClick={removeBlock}>删除该信息卡</button>
+        </div>
+      )}
+      {block.type === "list" && !isLocationCard && (
         <div className="guide-flow-list">
           {block.items.map((item, itemIndex) => (
             <input key={itemIndex} value={item} onChange={(event) => updateBlock(index, { ...block, items: block.items.map((value, i) => i === itemIndex ? event.target.value : value) })} placeholder="一条实用信息" />
@@ -658,9 +721,11 @@ function FlowBlock({
       )}
       {block.type === "image" && (
         <div className="guide-flow-image">
-          {block.image ? <img src={block.image} alt="" /> : <span>图片</span>}
+          {block.image ? <img src={block.image} alt="" /> : <span>图片预览</span>}
           <div>
-            <label><input type="file" accept="image/*" onChange={(event) => uploadImage(event, (url) => updateBlock(index, { ...block, image: url }))} />上传/替换</label>
+            <label><input type="file" accept="image/*" onChange={(event) => uploadImage(event, (url) => updateBlock(index, { ...block, image: url }))} />{block.image ? "替换图片" : "上传图片"}</label>
+            {block.image && <button type="button" onClick={() => updateBlock(index, { ...block, image: "" })}>删除图片</button>}
+            <button type="button" disabled>调整裁切</button>
             <input value={block.caption || ""} onChange={(event) => updateBlock(index, { ...block, caption: event.target.value })} placeholder="图片说明（可选）" />
           </div>
         </div>
@@ -671,8 +736,10 @@ function FlowBlock({
             {block.images.map((image, imageIndex) => (
               <figure key={imageIndex}>
                 {image ? <img src={image} alt="" /> : <span>图 {imageIndex + 1}</span>}
-                <input type="file" accept="image/*" onChange={(event) => uploadImage(event, (url) => updateBlock(index, { ...block, images: block.images.map((item, i) => i === imageIndex ? url : item) }))} />
-                <button type="button" onClick={() => updateBlock(index, { ...block, images: block.images.filter((_, i) => i !== imageIndex), captions: (block.captions || []).filter((_, i) => i !== imageIndex), alts: (block.alts || []).filter((_, i) => i !== imageIndex) })}>删除</button>
+                <figcaption>
+                  <label><input type="file" accept="image/*" onChange={(event) => uploadImage(event, (url) => updateBlock(index, { ...block, images: block.images.map((item, i) => i === imageIndex ? url : item) }))} />替换</label>
+                  <button type="button" onClick={() => updateBlock(index, { ...block, images: block.images.filter((_, i) => i !== imageIndex), captions: (block.captions || []).filter((_, i) => i !== imageIndex), alts: (block.alts || []).filter((_, i) => i !== imageIndex) })}>删除</button>
+                </figcaption>
               </figure>
             ))}
           </div>
@@ -681,5 +748,26 @@ function FlowBlock({
         </div>
       )}
     </article>
+  );
+}
+
+function AutoTextarea({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    node.style.height = "auto";
+    node.style.height = `${Math.max(46, node.scrollHeight)}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      rows={1}
+    />
   );
 }
