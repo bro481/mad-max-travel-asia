@@ -50,26 +50,26 @@ export default function AdminHome() {
         </Link>
       </div>
       <div className="metrics">
-        <div>
+        <Link href="/admin/inquiries">
           <span>今日咨询</span>
           <b>{stats.today}</b>
           <small>今天新收到的需求</small>
-        </div>
-        <div>
+        </Link>
+        <Link href="/admin/inquiries">
           <span>待回复</span>
           <b>{stats.pending}</b>
           <small>需要尽快联系</small>
-        </div>
-        <div>
+        </Link>
+        <Link href="/admin/packages">
           <span>本月成交</span>
           <b>{stats.deals}</b>
           <small>本月已确认客户</small>
-        </div>
-        <div>
+        </Link>
+        <Link href="/admin/properties">
           <span>上线房源</span>
           <b>{stats.published}</b>
           <small>共 {stats.total} 套房源</small>
-        </div>
+        </Link>
       </div>
       <section className="admin-panel quick">
         <div>

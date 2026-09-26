@@ -709,6 +709,7 @@
 .gift-small-modal footer{display:flex;gap:12px;justify-content:flex-end}
 .gift-bundle-modal{width:min(900px,94vw)}
 .gift-list-tools{display:grid;gap:10px;grid-template-columns:170px 150px minmax(220px,1fr);margin-bottom:16px}.gift-list-tools select,.gift-list-tools input{background:#fff;border:1px solid var(--a-line);border-radius:11px;color:var(--a-ink);font:inherit;font-weight:800;padding:12px 14px}.gift-row-actions{align-items:center;display:flex;gap:8px;justify-content:flex-end}.gift-row-actions details{position:relative}.gift-row-actions summary{border:1px solid var(--a-line);border-radius:9px;color:var(--a-muted);cursor:pointer;list-style:none;padding:7px 10px}.gift-row-actions summary::-webkit-details-marker{display:none}.gift-row-actions details>div{background:#fff;border:1px solid var(--a-line);border-radius:10px;box-shadow:0 16px 40px rgba(20,32,40,.14);display:grid;gap:2px;min-width:130px;padding:6px;position:absolute;right:0;top:36px;z-index:20}.gift-row-actions details button{border:0!important;border-radius:7px!important;color:var(--a-ink)!important;padding:8px!important;text-align:left}.gift-row-actions details button.danger{color:#a34b42!important}
+.mobile-menu-delete{display:none!important}
 @media (max-width: 1150px) {
   .service-product-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -755,7 +756,26 @@
     overflow: auto;
     margin-bottom: 12px;
   }
-  .service-list-tools,.new-service-grid,.service-fee-summary{grid-template-columns:1fr}.service-table-card{overflow:auto}.service-table-row{grid-template-columns:minmax(240px,1.6fr) 90px 110px 90px 86px 160px;min-width:860px}.new-service-panel{padding:18px}.category-table-card{overflow:auto}.category-table.row{grid-template-columns:50px 170px 140px 230px 90px 180px;min-width:860px}
+  .service-list-tools,.new-service-grid,.service-fee-summary{grid-template-columns:1fr}
+  .service-subnav{display:flex;overflow-x:auto;padding-bottom:2px}
+  .service-subnav a{flex:0 0 auto;min-height:44px}
+  .service-table-card{background:transparent;border:0;border-radius:0;display:grid;gap:12px;overflow:visible}
+  .service-table-head{background:#fff;border:1px solid var(--a-line);border-radius:16px;padding:16px}
+  .service-table-title{display:none}
+  .service-table-row{background:#fff;border:1px solid var(--a-line);border-radius:16px;display:grid;gap:12px;grid-template-columns:1fr;min-width:0;padding:14px}
+  .service-table-name{gap:12px;grid-template-columns:24px 78px minmax(0,1fr)}
+  .service-table-name img,.service-table-name i{border-radius:12px;height:62px;width:78px}
+  .service-table-row>span{align-items:center;color:#66737c;display:flex;font-size:13px;gap:8px;justify-content:space-between}
+  .service-table-row>span:nth-of-type(1)::before{content:"城市";color:#9aa4aa;font-weight:800}
+  .service-table-row>span:nth-of-type(2)::before{content:"分类";color:#9aa4aa;font-weight:800}
+  .service-table-row>span:nth-of-type(3)::before{content:"类型";color:#9aa4aa;font-weight:800}
+  .service-table-row>span:nth-of-type(4)::before{content:"状态";color:#9aa4aa;font-weight:800}
+  .service-row-actions{border-top:1px solid #edf1f1;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;justify-content:stretch;padding-top:12px}
+  .service-row-actions a,.service-row-actions button,.service-row-actions summary{align-items:center;border:1px solid var(--a-line);border-radius:12px;display:flex;font-size:14px;font-weight:900;justify-content:center;min-height:44px;padding:0 12px;text-align:center}
+  .service-row-actions .delete-inline{display:none}
+  .service-row-actions .mobile-menu-delete{display:flex!important;color:#a34b42!important}
+  .service-row-actions details>div{bottom:calc(100% + 8px);top:auto}
+  .new-service-panel{padding:18px}.category-table-card{overflow:auto}.category-table.row{grid-template-columns:50px 170px 140px 230px 90px 180px;min-width:860px}
 }
 
 /* Private-car editor: mirror the public page instead of the database shape. */

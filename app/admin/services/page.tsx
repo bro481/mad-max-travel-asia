@@ -250,6 +250,7 @@ export default function ServiceList() {
                   <button onClick={() => updateStatus(item, item.status === "published" ? "hidden" : "published")}>
                     {item.status === "published" ? "隐藏服务" : "发布服务"}
                   </button>
+                  <button className="danger mobile-menu-delete" onClick={() => remove(item)}>删除服务</button>
                 </div>
               </details>
             </nav>
