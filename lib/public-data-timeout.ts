@@ -2,7 +2,7 @@ export async function withPublicDataTimeout<T>(
   promise: Promise<T>,
   fallback: T | (() => T),
   label: string,
-  timeoutMs = 30000,
+  timeoutMs = Number(process.env.PUBLIC_DATA_TIMEOUT_MS || 1200),
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const fallbackValue = () => (typeof fallback === "function" ? (fallback as () => T)() : fallback);

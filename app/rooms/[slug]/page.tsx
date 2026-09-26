@@ -40,11 +40,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function RoomPage({params}:{params:Promise<{slug:string}>}){
   const {slug}=await params;
+  const { rooms } = await import("../../data");
+  const fallbackRoom = rooms.find((item) => item.id === slug);
   if (process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.NODE_ENV === "development") {
-    const { rooms } = await import("../../data");
-    const room = rooms.find((item) => item.id === slug);
-    if (!room)return <main className="not-found"><h1>Room not found</h1><Link className="button" href="/#stays">Explore our stays</Link></main>;
-    return <RoomDetail room={room}/>;
+    if (!fallbackRoom)return <main className="not-found"><h1>Room not found</h1><Link className="button" href="/#stays">Explore our stays</Link></main>;
+    return <RoomDetail room={fallbackRoom}/>;
   }
 
   let dbRoom = null;
@@ -58,6 +58,7 @@ export default async function RoomPage({params}:{params:Promise<{slug:string}>})
     dbRoom = property ? propertyToRoom(property) : null;
   } catch {}
   if(dbRoom)return <RoomDetail room={dbRoom}/>;
+  if(fallbackRoom)return <RoomDetail room={fallbackRoom}/>;
   return (
     <main className="not-found">
       <h1>Room temporarily unavailable</h1>

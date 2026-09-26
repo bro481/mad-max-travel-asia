@@ -187,7 +187,10 @@ export default async function Page({
 }) {
   const { slug } = await params;
   const { city, service: previewService, route: previewRoute } = await searchParams;
-  const serviceFromDatabase = await loadServiceCategory(slug);
+  const [serviceFromDatabase, managedServices] = await Promise.all([
+    loadServiceCategory(slug),
+    slug === "private-car" ? loadManagedServices(slug) : Promise.resolve([] as ServiceItem[]),
+  ]);
   const service =
     serviceFromDatabase ||
     staticServices.find((fallback) => fallback.slug === slug) ||
@@ -201,8 +204,6 @@ export default async function Page({
         </Link>
       </main>
     );
-  let managedServices: ServiceItem[] = [];
-  if (slug === "private-car") managedServices = await loadManagedServices(slug);
   return (
     <ServiceDetail
       service={service}

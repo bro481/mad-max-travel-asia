@@ -37,16 +37,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const item = await loadPackage(slug);
-  const properties = await withPublicDataTimeout(
-    listProperties(),
-    () => staticPropertyRecords(),
-    "Public package linked properties query",
-  );
-  const services = await withPublicDataTimeout(
-    listServiceItems(),
-    () => staticServiceItemRecords(),
-    "Public package linked services query",
-  );
+  const [properties, services] = await Promise.all([
+    withPublicDataTimeout(
+      listProperties(),
+      () => staticPropertyRecords(),
+      "Public package linked properties query",
+    ),
+    withPublicDataTimeout(
+      listServiceItems(),
+      () => staticServiceItemRecords(),
+      "Public package linked services query",
+    ),
+  ]);
   if (!item) notFound();
   return (
     <PackageDetailPage

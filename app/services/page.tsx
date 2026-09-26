@@ -10,21 +10,23 @@ async function loadPublicServices() {
   const { listServices, staticServiceCategories } = await import("../../db/services");
   const { listDestinations, staticDestinations } = await import("../../db/destinations");
   const { listServiceItems } = await import("../../db/service-items");
-  const services = await withPublicDataTimeout(
-    listServices(),
-    () => staticServiceCategories(),
-    "Public services categories query",
-  );
-  const destinationSettings = await withPublicDataTimeout(
-    listDestinations(true),
-    staticDestinations,
-    "Public services destinations query",
-  );
-  const managed = await withPublicDataTimeout(
-    listServiceItems(),
-    [],
-    "Public service items query",
-  );
+  const [services, destinationSettings, managed] = await Promise.all([
+    withPublicDataTimeout(
+      listServices(),
+      () => staticServiceCategories(),
+      "Public services categories query",
+    ),
+    withPublicDataTimeout(
+      listDestinations(true),
+      staticDestinations,
+      "Public services destinations query",
+    ),
+    withPublicDataTimeout(
+      listServiceItems(),
+      [],
+      "Public service items query",
+    ),
+  ]);
   return {
     services,
     destinationSettings,

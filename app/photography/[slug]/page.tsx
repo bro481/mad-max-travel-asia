@@ -34,12 +34,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = await loadArticle(slug);
-  const articles = await withPublicDataTimeout(
-    listTravelGuides(),
-    () => staticTravelGuides(),
-    "Public related travel guides query",
-  );
+  const [article, articles] = await Promise.all([
+    loadArticle(slug),
+    withPublicDataTimeout(
+      listTravelGuides(),
+      () => staticTravelGuides(),
+      "Public related travel guides query",
+    ),
+  ]);
   if (!article) notFound();
   const related = articles.filter((item) => item.status === "published" && item.city === article.city && item.slug !== article.slug);
 
