@@ -1,19 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { ChangeEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import { bundles as pickBundles, products as pickProducts } from "../../picks/data";
 
 type GiftTab = "商品列表" | "商品分类" | "精选组合" | "领取与寄送" | "页面设置";
-type ProductStep = "基础信息" | "图片" | "规格与价格" | "商品说明" | "获取方式" | "发布";
+type ProductStep = "基本信息" | "图片与价格" | "详情" | "获取方式";
 type Status = "草稿" | "已上线" | "已隐藏";
 
 type GiftCategory = { id: string; nameZh: string; nameEn: string; sortOrder: number; status: "显示" | "隐藏" };
-type GiftSpec = { id: string; name: string; price: number; available: boolean };
+type PriceMode = "固定价" | "起价" | "价格咨询";
+type GiftBagMode = "继承全局" | "支持礼袋" | "不支持礼袋";
+type GiftSpec = { id: string; name: string; price: number; available: boolean; priceMode?: PriceMode };
 type GiftProduct = {
   id: string; nameZh: string; nameEn: string; categoryId: string; shortIntro: string; recommendationTag: string;
   images: string[]; specs: GiftSpec[]; suitableFor: string; simpleDescription: string; usageNote: string; extraNote: string;
-  useDefaultDelivery: boolean; obtainMethods: string[]; giftBag: boolean; giftBagNote: string; pickupRegions: string[];
+  useDefaultDelivery: boolean; obtainMethods: string[]; giftBag: boolean; giftBagMode?: GiftBagMode; giftBagNote: string; pickupRegions: string[];
+  availability?: "可预订" | "暂不可订";
   status: Status; sortOrder: number;
 };
 type GiftBundle = {
@@ -29,9 +31,11 @@ type GiftSettings = {
 
 const STORAGE_KEY = "mad-max-gift-admin-v1";
 const tabs: GiftTab[] = ["商品列表", "商品分类", "精选组合", "领取与寄送", "页面设置"];
-const productSteps: ProductStep[] = ["基础信息", "图片", "规格与价格", "商品说明", "获取方式", "发布"];
+const productSteps: ProductStep[] = ["基本信息", "图片与价格", "详情", "获取方式"];
 const obtainOptions = ["住宿期间领取", "接送期间领取", "包车 / 行程期间领取", "马来西亚境内配送", "回国后可咨询寄送"];
 const pickupRegionOptions = ["不限地区", "吉隆坡", "亚庇", "仙本那"];
+const tagPresets = ["第一次来推荐", "适合送长辈", "行李箱好带", "在家也能煮", "小朋友喜欢", "老客常回购"];
+const audiencePresets = ["自用", "长辈", "同事", "朋友", "小朋友"];
 
 const seedCategories: GiftCategory[] = [
   { id: "drink", nameZh: "咖啡茶饮", nameEn: "Coffee & Tea", sortOrder: 1, status: "显示" },
@@ -47,7 +51,7 @@ const seedProducts: GiftProduct[] = pickProducts.map((item) => ({
   shortIntro: item.descriptionZh,
   recommendationTag: item.tagZh,
   images: item.images,
-  specs: [{ id: `${item.id}-spec-1`, name: item.quantityZh || item.specsZh || "标准规格", price: item.price, available: true }],
+  specs: [{ id: `${item.id}-spec-1`, name: item.quantityZh || item.specsZh || "标准规格", price: item.price, available: true, priceMode: "起价" }],
   suitableFor: item.audienceZh,
   simpleDescription: item.descriptionZh,
   usageNote: item.specsZh,
@@ -55,8 +59,10 @@ const seedProducts: GiftProduct[] = pickProducts.map((item) => ({
   useDefaultDelivery: true,
   obtainMethods: ["住宿期间领取", "接送期间领取", "包车 / 行程期间领取", "回国后可咨询寄送"],
   giftBag: item.noteZh.includes("礼袋"),
+  giftBagMode: "继承全局",
   giftBagNote: "如需送人，可提前告诉我们。",
   pickupRegions: ["不限地区"],
+  availability: "可预订",
   status: item.visible ? "已上线" : "草稿",
   sortOrder: item.sortOrder,
 }));
@@ -107,8 +113,10 @@ function uid(prefix: string) {
 function priceLabel(specs: GiftSpec[]) {
   const available = specs.filter((spec) => spec.available);
   if (!available.length) return "价格咨询";
+  if (available.every((spec) => spec.priceMode === "价格咨询")) return "价格咨询";
   const min = Math.min(...available.map((spec) => Number(spec.price) || 0));
-  return `¥${min}${available.length > 1 ? " 起" : ""}`;
+  const suffix = available.length > 1 || available.some((spec) => (spec.priceMode || "起价") === "起价") ? " 起" : "";
+  return `¥${min}${suffix}`;
 }
 
 function cloneProduct(product: GiftProduct): GiftProduct {
@@ -122,11 +130,17 @@ export default function GiftsAdminPage() {
   const [bundles, setBundles] = useState<GiftBundle[]>(seedBundles);
   const [settings, setSettings] = useState<GiftSettings>(seedSettings);
   const [editingProduct, setEditingProduct] = useState<GiftProduct | null>(null);
-  const [productStep, setProductStep] = useState<ProductStep>("基础信息");
+  const [productStep, setProductStep] = useState<ProductStep>("基本信息");
   const [editingCategory, setEditingCategory] = useState<GiftCategory | null>(null);
   const [editingBundle, setEditingBundle] = useState<GiftBundle | null>(null);
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("全部分类");
+  const [statusFilter, setStatusFilter] = useState("全部状态");
+  const [search, setSearch] = useState("");
+  const [dragProductId, setDragProductId] = useState<string | null>(null);
+  const [dragCategoryId, setDragCategoryId] = useState<string | null>(null);
+  const [dragImageIndex, setDragImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -150,6 +164,20 @@ export default function GiftsAdminPage() {
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item])), [categories]);
   const sortedProducts = useMemo(() => [...products].sort((a, b) => a.sortOrder - b.sortOrder), [products]);
+  const visibleProducts = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return sortedProducts
+      .filter((product) => categoryFilter === "全部分类" || product.categoryId === categoryFilter)
+      .filter((product) => statusFilter === "全部状态" || product.status === statusFilter)
+      .filter((product) => {
+        if (!keyword) return true;
+        return [product.nameZh, product.nameEn, product.shortIntro, product.simpleDescription, product.recommendationTag]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(keyword);
+      });
+  }, [sortedProducts, categoryFilter, statusFilter, search]);
   const sortedBundles = useMemo(() => [...bundles].sort((a, b) => a.sortOrder - b.sortOrder), [bundles]);
 
   const openNewProduct = () => {
@@ -161,7 +189,7 @@ export default function GiftsAdminPage() {
       shortIntro: "",
       recommendationTag: "",
       images: [],
-      specs: [{ id: uid("spec"), name: "标准规格", price: 0, available: true }],
+      specs: [{ id: uid("spec"), name: "标准规格", price: 0, available: true, priceMode: "起价" }],
       suitableFor: "",
       simpleDescription: "",
       usageNote: "",
@@ -169,12 +197,14 @@ export default function GiftsAdminPage() {
       useDefaultDelivery: true,
       obtainMethods: ["住宿期间领取", "接送期间领取"],
       giftBag: settings.giftBagDefault,
+      giftBagMode: "继承全局",
       giftBagNote: settings.giftBagNote,
       pickupRegions: ["不限地区"],
+      availability: "可预订",
       status: "草稿",
       sortOrder: products.length + 1,
     });
-    setProductStep("基础信息");
+    setProductStep("基本信息");
   };
 
   const saveProduct = () => {
@@ -225,6 +255,15 @@ export default function GiftsAdminPage() {
     setEditingProduct({ ...editingProduct, images });
   };
 
+  const moveImageTo = (from: number, to: number) => {
+    if (!editingProduct || from === to) return;
+    const images = [...editingProduct.images];
+    const [moving] = images.splice(from, 1);
+    images.splice(to, 0, moving);
+    setEditingProduct({ ...editingProduct, images });
+    setDragImageIndex(null);
+  };
+
   const setCover = (index: number) => {
     if (!editingProduct) return;
     const images = [...editingProduct.images];
@@ -232,35 +271,75 @@ export default function GiftsAdminPage() {
     if (cover) setEditingProduct({ ...editingProduct, images: [cover, ...images] });
   };
 
+  const swapProducts = (targetId: string) => {
+    if (!dragProductId || dragProductId === targetId) return;
+    const source = products.find((item) => item.id === dragProductId);
+    const target = products.find((item) => item.id === targetId);
+    setDragProductId(null);
+    if (!source || !target) return;
+    setProducts((current) => current.map((item) => {
+      if (item.id === source.id) return { ...item, sortOrder: target.sortOrder };
+      if (item.id === target.id) return { ...item, sortOrder: source.sortOrder };
+      return item;
+    }));
+  };
+
+  const swapCategories = (targetId: string) => {
+    if (!dragCategoryId || dragCategoryId === targetId) return;
+    const source = categories.find((item) => item.id === dragCategoryId);
+    const target = categories.find((item) => item.id === targetId);
+    setDragCategoryId(null);
+    if (!source || !target) return;
+    setCategories((current) => current.map((item) => {
+      if (item.id === source.id) return { ...item, sortOrder: target.sortOrder };
+      if (item.id === target.id) return { ...item, sortOrder: source.sortOrder };
+      return item;
+    }));
+  };
+
   return <>
     <div className="admin-head">
-      <div><p>当地服务 · 伴手礼</p><h1>伴手礼后台</h1><span>轻商品展示后台：只维护商品、分类、组合、获取方式和页面文案。</span></div>
+      <div><p>大马特产</p><h1>大马特产后台</h1><span>轻商品展示后台：只维护商品、分类、组合、获取方式和页面文案。</span></div>
       {(tab === "商品列表" || tab === "商品分类" || tab === "精选组合") && <button className="admin-primary" onClick={tab === "商品分类" ? () => setEditingCategory({ id: uid("cat"), nameZh: "新分类", nameEn: "New Category", sortOrder: categories.length + 1, status: "显示" }) : tab === "精选组合" ? () => setEditingBundle({ id: uid("bundle"), nameZh: "新组合", nameEn: "New Bundle", recommendationTag: "", intro: "", coverImage: "", items: [], price: 0, useDefaultDelivery: true, status: "草稿", sortOrder: bundles.length + 1 }) : openNewProduct}>＋ {tab === "商品分类" ? "新增分类" : tab === "精选组合" ? "新增组合" : "新建商品"}</button>}
     </div>
 
-    <div className="service-subnav"><Link href="/admin/services">服务列表</Link><Link className="active" href="/admin/gifts">伴手礼</Link></div>
     <div className="gift-admin-tabs">{tabs.map((item) => <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>{item}</button>)}</div>
     {message && <div className="gift-admin-message">{message}<button onClick={() => setMessage("")}>×</button></div>}
 
     {tab === "商品列表" && <section className="gift-admin-card">
       <div className="gift-admin-card-head"><div><h2>商品列表</h2><p>商品名称左侧是封面缩略图；规格最低价自动生成“¥xx 起”。</p></div><span>{products.length} 个商品</span></div>
+      <div className="gift-list-tools">
+        <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+          <option value="全部分类">全部分类</option>
+          {categories.map((category) => <option key={category.id} value={category.id}>{category.nameZh}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option>全部状态</option>
+          <option>草稿</option>
+          <option>已上线</option>
+          <option>已隐藏</option>
+        </select>
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索商品..." />
+      </div>
       <div className="gift-product-table">
-        <div className="gift-product-row header"><span>商品</span><span>分类</span><span>价格</span><span>获取方式</span><span>状态</span><span>排序</span><span>操作</span></div>
-        {sortedProducts.map((product) => <div className="gift-product-row" key={product.id}>
-          <div className="gift-product-name">{product.images[0] ? <img src={product.images[0]} alt="" /> : <i>暂无图</i>}<div><b>{product.nameZh}</b><small>{product.shortIntro || "还没有卡片短介绍"}</small></div></div>
+        <div className="gift-product-row header"><span>商品</span><span>分类</span><span>价格</span><span>状态</span><span>操作</span></div>
+        {visibleProducts.map((product) => <div className="gift-product-row" draggable key={product.id} onDragStart={() => setDragProductId(product.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => swapProducts(product.id)}>
+          <div className="gift-product-name">{product.images[0] ? <img src={product.images[0]} alt="" /> : <i>暂无图</i>}<div><b>{product.nameZh}</b><small>{product.shortIntro || "还没有商品简介"}</small></div></div>
           <span>{categoryMap.get(product.categoryId)?.nameZh ?? product.categoryId}</span>
           <b>{priceLabel(product.specs)}</b>
-          <small>{product.useDefaultDelivery ? "使用默认规则" : product.obtainMethods.slice(0, 2).join(" / ")}</small>
           <em className={product.status === "已上线" ? "online" : ""}>{product.status}</em>
-          <span>{product.sortOrder}</span>
-          <nav><button onClick={() => { setEditingProduct(product); setProductStep("基础信息"); }}>编辑</button><button onClick={() => { setEditingProduct(product); setProductStep("图片"); }}>预览</button><button onClick={() => { const copy = cloneProduct(product); setProducts((current) => [...current, copy]); setEditingProduct(copy); setMessage("已复制商品，新副本为草稿。"); }}>复制</button><button onClick={() => setProducts((current) => current.map((item) => item.id === product.id ? { ...item, status: "已隐藏" } : item))}>隐藏</button></nav>
+          <nav className="gift-row-actions"><button onClick={() => { setEditingProduct(product); setProductStep("基本信息"); }}>编辑</button><button onClick={() => { setEditingProduct(product); setProductStep("图片与价格"); }}>预览</button><details><summary>···</summary><div><button onClick={() => { const copy = cloneProduct(product); setProducts((current) => [...current, copy]); setEditingProduct(copy); setProductStep("基本信息"); setMessage("已复制商品，新副本为草稿。"); }}>复制商品</button><button onClick={() => setProducts((current) => current.map((item) => item.id === product.id ? { ...item, status: item.status === "已上线" ? "已隐藏" : "已上线" } : item))}>{product.status === "已上线" ? "隐藏商品" : "上线商品"}</button><button className="danger" onClick={() => confirm(`确认删除「${product.nameZh}」？`) && setProducts((current) => current.filter((item) => item.id !== product.id))}>删除商品</button></div></details></nav>
         </div>)}
+        {!visibleProducts.length && <p className="empty-state">没有符合筛选条件的商品。</p>}
       </div>
     </section>}
 
     {tab === "商品分类" && <section className="gift-admin-card">
       <div className="gift-admin-card-head"><div><h2>商品分类</h2><p>控制前台“咖啡茶饮 / 零食 / 伴手礼”等筛选，不写死在前端。</p></div></div>
-      <div className="gift-simple-table">{[...categories].sort((a, b) => a.sortOrder - b.sortOrder).map((category) => <article key={category.id}><b>{category.sortOrder}</b><div><h3>{category.nameZh}</h3><p>{category.nameEn}</p></div><span>{products.filter((item) => item.categoryId === category.id).length} 个商品</span><em>{category.status}</em><button onClick={() => setEditingCategory(category)}>编辑</button><button onClick={() => setCategories((current) => current.map((item) => item.id === category.id ? { ...item, status: item.status === "显示" ? "隐藏" : "显示" } : item))}>{category.status === "显示" ? "隐藏" : "显示"}</button></article>)}</div>
+      <div className="gift-simple-table">{[...categories].sort((a, b) => a.sortOrder - b.sortOrder).map((category) => {
+        const onlineCount = products.filter((item) => item.categoryId === category.id && item.status === "已上线").length;
+        return <article draggable key={category.id} onDragStart={() => setDragCategoryId(category.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => swapCategories(category.id)}><b className="drag-handle">≡</b><div><h3>{category.nameZh}</h3><p>{category.nameEn}</p></div><span>{onlineCount ? `${onlineCount} 个已上线商品` : "0 个已上线商品 · 前台自动隐藏"}</span><em>{category.status}</em><button onClick={() => setEditingCategory(category)}>编辑</button><button onClick={() => setCategories((current) => current.map((item) => item.id === category.id ? { ...item, status: item.status === "显示" ? "隐藏" : "显示" } : item))}>{category.status === "显示" ? "隐藏" : "显示"}</button></article>;
+      })}</div>
     </section>}
 
     {tab === "精选组合" && <section className="gift-admin-card">
@@ -296,28 +375,26 @@ export default function GiftsAdminPage() {
       <div className="gift-two-column"><Field label="标题" value={settings.helperTitle} onChange={(value) => setSettings({ ...settings, helperTitle: value })} /><Field label="按钮" value={settings.helperButton} onChange={(value) => setSettings({ ...settings, helperButton: value })} /><Field wide label="说明" value={settings.helperDescription} onChange={(value) => setSettings({ ...settings, helperDescription: value })} /></div>
     </SettingsPanel>}
 
-    {editingProduct && <ProductEditor product={editingProduct} setProduct={setEditingProduct} step={productStep} setStep={setProductStep} categories={categories} categoryMap={categoryMap} uploading={uploading} onUpload={handleProductImageUpload} onSave={saveProduct} onClose={() => setEditingProduct(null)} moveImage={moveImage} setCover={setCover} settings={settings} />}
+    {editingProduct && <ProductEditor product={editingProduct} setProduct={setEditingProduct} step={productStep} setStep={setProductStep} categories={categories} categoryMap={categoryMap} uploading={uploading} onUpload={handleProductImageUpload} onSave={saveProduct} onClose={() => setEditingProduct(null)} dragImageIndex={dragImageIndex} setDragImageIndex={setDragImageIndex} moveImageTo={moveImageTo} settings={settings} />}
     {editingCategory && <CategoryModal category={editingCategory} setCategory={setEditingCategory} onSave={saveCategory} onClose={() => setEditingCategory(null)} />}
     {editingBundle && <BundleModal bundle={editingBundle} setBundle={setEditingBundle} products={products} onSave={saveBundle} onClose={() => setEditingBundle(null)} />}
   </>;
 }
 
-function ProductEditor({ product, setProduct, step, setStep, categories, categoryMap, uploading, onUpload, onSave, onClose, moveImage, setCover, settings }: { product: GiftProduct; setProduct: (product: GiftProduct) => void; step: ProductStep; setStep: (step: ProductStep) => void; categories: GiftCategory[]; categoryMap: Map<string, GiftCategory>; uploading: boolean; onUpload: (event: ChangeEvent<HTMLInputElement>) => void; onSave: () => void; onClose: () => void; moveImage: (index: number, direction: -1 | 1) => void; setCover: (index: number) => void; settings: GiftSettings }) {
+function ProductEditor({ product, setProduct, step, setStep, categories, categoryMap, uploading, onUpload, onSave, onClose, dragImageIndex, setDragImageIndex, moveImageTo, settings }: { product: GiftProduct; setProduct: (product: GiftProduct) => void; step: ProductStep; setStep: (step: ProductStep) => void; categories: GiftCategory[]; categoryMap: Map<string, GiftCategory>; uploading: boolean; onUpload: (event: ChangeEvent<HTMLInputElement>) => void; onSave: () => void; onClose: () => void; dragImageIndex: number | null; setDragImageIndex: (index: number | null) => void; moveImageTo: (from: number, to: number) => void; settings: GiftSettings }) {
   return <div className="gift-modal" onClick={onClose}><div className="gift-product-editor" onClick={(event) => event.stopPropagation()}>
-    <header><div><p>商品编辑</p><h2>{product.nameZh}</h2><span>{categoryMap.get(product.categoryId)?.nameZh} · {product.status}</span></div><button onClick={onClose}>×</button></header>
+    <header><div><p>商品编辑</p><h2>{product.nameZh}</h2><span>{categoryMap.get(product.categoryId)?.nameZh} · {product.status}</span></div><div className="gift-editor-head-actions"><button onClick={onSave}>保存</button><button onClick={() => setProduct({ ...product, status: "已上线" })}>发布</button><button onClick={onClose}>×</button></div></header>
     <div className="gift-editor-layout">
-      <aside>{productSteps.map((item) => <button key={item} className={step === item ? "active" : ""} onClick={() => setStep(item)}><b>{productSteps.indexOf(item) + 1}</b>{item}</button>)}</aside>
+      <aside>{productSteps.map((item) => <button key={item} className={step === item ? "active" : ""} onClick={() => setStep(item)}>{item}</button>)}</aside>
       <main>
-        {step === "基础信息" && <div className="gift-two-column"><label><span>分类</span><select value={product.categoryId} onChange={(event) => setProduct({ ...product, categoryId: event.target.value })}>{categories.map((item) => <option key={item.id} value={item.id}>{item.nameZh}</option>)}</select></label><Field label="推荐标签（前台只显示一个）" value={product.recommendationTag} onChange={(value) => setProduct({ ...product, recommendationTag: value })} /><Field label="中文名称" value={product.nameZh} onChange={(value) => setProduct({ ...product, nameZh: value })} /><Field label="英文名称" value={product.nameEn} onChange={(value) => setProduct({ ...product, nameEn: value })} /><Field wide textarea label="卡片短介绍" value={product.shortIntro} onChange={(value) => setProduct({ ...product, shortIntro: value })} /></div>}
-        {step === "图片" && <div><label className="gift-upload"><input type="file" multiple accept="image/*" onChange={onUpload} /><span>{uploading ? "上传中..." : "＋ 上传商品图片"}</span></label><p className="gift-hint">第一张图片作为列表封面和详情弹窗初始图片；支持设为封面、排序和删除。</p><div className="gift-image-grid">{product.images.map((image, index) => <article key={`${image}-${index}`}><img src={image} alt="" /><b>{index === 0 ? "当前封面" : `图片 ${index + 1}`}</b><nav><button onClick={() => setCover(index)}>设为封面</button><button onClick={() => moveImage(index, -1)}>上移</button><button onClick={() => moveImage(index, 1)}>下移</button><button onClick={() => setProduct({ ...product, images: product.images.filter((_, itemIndex) => itemIndex !== index) })}>删除</button></nav></article>)}</div></div>}
-        {step === "规格与价格" && <div className="gift-repeat-list"><button onClick={() => setProduct({ ...product, specs: [...product.specs, { id: uid("spec"), name: "新规格", price: 0, available: true }] })}>＋ 添加规格</button>{product.specs.map((spec) => <article key={spec.id}><Field label="规格名称" value={spec.name} onChange={(value) => setProduct({ ...product, specs: product.specs.map((item) => item.id === spec.id ? { ...item, name: value } : item) })} /><label><span>价格（人民币）</span><input type="number" value={spec.price} onChange={(event) => setProduct({ ...product, specs: product.specs.map((item) => item.id === spec.id ? { ...item, price: Number(event.target.value) } : item) })} /></label><label className="gift-check"><input type="checkbox" checked={spec.available} onChange={(event) => setProduct({ ...product, specs: product.specs.map((item) => item.id === spec.id ? { ...item, available: event.target.checked } : item) })} /> 可咨询</label><button onClick={() => setProduct({ ...product, specs: product.specs.filter((item) => item.id !== spec.id) })}>删除规格</button></article>)}</div>}
-        {step === "商品说明" && <div className="gift-two-column"><Field wide label="适合" value={product.suitableFor} onChange={(value) => setProduct({ ...product, suitableFor: value })} /><Field wide textarea label="简短说明" value={product.simpleDescription} onChange={(value) => setProduct({ ...product, simpleDescription: value })} /><Field wide textarea label="食用 / 使用说明（可选）" value={product.usageNote} onChange={(value) => setProduct({ ...product, usageNote: value })} /><Field wide textarea label="补充说明（可选）" value={product.extraNote} onChange={(value) => setProduct({ ...product, extraNote: value })} /></div>}
-        {step === "获取方式" && <div className="gift-two-column"><label className="gift-check wide"><input type="checkbox" checked={product.useDefaultDelivery} onChange={(event) => setProduct({ ...product, useDefaultDelivery: event.target.checked })} /> 使用默认领取与寄送规则：{settings.travelTitle} / {settings.shippingTitle}</label><div className="gift-choice-list wide">{obtainOptions.map((method) => <label key={method}><input type="checkbox" checked={product.obtainMethods.includes(method)} onChange={(event) => setProduct({ ...product, obtainMethods: event.target.checked ? [...product.obtainMethods, method] : product.obtainMethods.filter((item) => item !== method) })} />{method}</label>)}</div><label className="gift-check"><input type="checkbox" checked={product.giftBag} onChange={(event) => setProduct({ ...product, giftBag: event.target.checked })} /> 支持礼袋</label><Field label="礼袋说明" value={product.giftBagNote} onChange={(value) => setProduct({ ...product, giftBagNote: value })} /><div className="gift-choice-list wide"><b>可领取地区</b>{pickupRegionOptions.map((region) => <label key={region}><input type="checkbox" checked={product.pickupRegions.includes(region)} onChange={(event) => setProduct({ ...product, pickupRegions: event.target.checked ? [...product.pickupRegions, region] : product.pickupRegions.filter((item) => item !== region) })} />{region}</label>)}</div></div>}
-        {step === "发布" && <div className="gift-publish-check">{[["商品名称", Boolean(product.nameZh)], ["商品分类", Boolean(product.categoryId)], ["商品封面", product.images.length > 0], ["至少一个规格", product.specs.length > 0], ["价格", product.specs.some((spec) => spec.price > 0)], ["获取方式", product.useDefaultDelivery || product.obtainMethods.length > 0], ["商品说明", Boolean(product.simpleDescription || product.shortIntro)]].map(([label, ok]) => <p key={String(label)} className={ok ? "ok" : ""}>{ok ? "✓" : "○"} {label}</p>)}<label><span>状态</span><select value={product.status} onChange={(event) => setProduct({ ...product, status: event.target.value as Status })}><option>草稿</option><option>已上线</option><option>已隐藏</option></select></label><label><span>排序</span><input type="number" value={product.sortOrder} onChange={(event) => setProduct({ ...product, sortOrder: Number(event.target.value) })} /></label></div>}
+        {step === "基本信息" && <div className="gift-two-column"><label><span>分类</span><select value={product.categoryId} onChange={(event) => setProduct({ ...product, categoryId: event.target.value })}>{categories.map((item) => <option key={item.id} value={item.id}>{item.nameZh}</option>)}</select></label><label><span>推荐标签</span><select value={product.recommendationTag} onChange={(event) => setProduct({ ...product, recommendationTag: event.target.value })}><option value="">不显示</option>{tagPresets.map((tag) => <option key={tag}>{tag}</option>)}</select></label><Field label="中文名称" value={product.nameZh} onChange={(value) => setProduct({ ...product, nameZh: value })} /><Field label="英文名称" value={product.nameEn} onChange={(value) => setProduct({ ...product, nameEn: value })} /><Field wide textarea label="商品简介" value={product.shortIntro} onChange={(value) => setProduct({ ...product, shortIntro: value, simpleDescription: value })} /><label><span>可咨询状态</span><select value={product.availability || "可预订"} onChange={(event) => setProduct({ ...product, availability: event.target.value as GiftProduct["availability"] })}><option>可预订</option><option>暂不可订</option></select></label><label><span>状态</span><select value={product.status} onChange={(event) => setProduct({ ...product, status: event.target.value as Status })}><option>草稿</option><option>已上线</option><option>已隐藏</option></select></label></div>}
+        {step === "图片与价格" && <div><label className="gift-upload"><input type="file" multiple accept="image/*" onChange={onUpload} /><span>{uploading ? "上传中..." : "＋ 上传商品图片"}</span></label><p className="gift-hint">前台显示比例 4:3 · 第一张图片作为商品封面；拖动图片调整顺序。</p><div className="gift-image-grid">{product.images.map((image, index) => <article className={dragImageIndex === index ? "dragging" : ""} draggable key={`${image}-${index}`} onDragStart={() => setDragImageIndex(index)} onDragOver={(event) => event.preventDefault()} onDrop={() => dragImageIndex !== null && moveImageTo(dragImageIndex, index)}><img src={image} alt="" /><b>{index === 0 ? "★ 封面" : `图片 ${index + 1}`}</b><nav><button onClick={() => setProduct({ ...product, images: product.images.filter((_, itemIndex) => itemIndex !== index) })}>删除</button></nav></article>)}</div><div className="gift-repeat-list gift-spec-list"><button onClick={() => setProduct({ ...product, specs: [...product.specs, { id: uid("spec"), name: "新规格", price: 0, available: true, priceMode: "起价" }] })}>＋ 添加规格</button>{product.specs.map((spec) => <article key={spec.id}><Field label="规格名称" value={spec.name} onChange={(value) => setProduct({ ...product, specs: product.specs.map((item) => item.id === spec.id ? { ...item, name: value } : item) })} /><label><span>价格显示方式</span><select value={spec.priceMode || "起价"} onChange={(event) => setProduct({ ...product, specs: product.specs.map((item) => item.id === spec.id ? { ...item, priceMode: event.target.value as PriceMode } : item) })}><option>固定价</option><option>起价</option><option>价格咨询</option></select></label>{(spec.priceMode || "起价") !== "价格咨询" && <label><span>价格（人民币）</span><input type="number" value={spec.price} onChange={(event) => setProduct({ ...product, specs: product.specs.map((item) => item.id === spec.id ? { ...item, price: Number(event.target.value) } : item) })} /></label>}<label className="gift-check"><input type="checkbox" checked={spec.available} onChange={(event) => setProduct({ ...product, specs: product.specs.map((item) => item.id === spec.id ? { ...item, available: event.target.checked } : item) })} /> 可咨询预订</label><button onClick={() => setProduct({ ...product, specs: product.specs.filter((item) => item.id !== spec.id) })}>删除规格</button></article>)}</div></div>}
+        {step === "详情" && <div className="gift-two-column"><label className="wide"><span>适合谁</span><div className="gift-choice-list inline">{audiencePresets.map((tag) => <label key={tag}><input type="checkbox" checked={product.suitableFor.split(/[、,，]/).map((x) => x.trim()).includes(tag)} onChange={(event) => { const current = product.suitableFor.split(/[、,，]/).map((x) => x.trim()).filter(Boolean); setProduct({ ...product, suitableFor: event.target.checked ? [...current, tag].join("、") : current.filter((item) => item !== tag).join("、") }); }} />{tag}</label>)}</div></label><Field wide textarea label="商品说明" value={product.simpleDescription || product.shortIntro} onChange={(value) => setProduct({ ...product, simpleDescription: value })} /><details className="gift-more-settings wide"><summary>更多说明</summary><Field wide textarea label="食用 / 使用说明（可选）" value={product.usageNote} onChange={(value) => setProduct({ ...product, usageNote: value })} /><Field wide textarea label="补充说明（可选）" value={product.extraNote} onChange={(value) => setProduct({ ...product, extraNote: value })} /></details></div>}
+        {step === "获取方式" && <div className="gift-two-column"><fieldset className="gift-choice-list wide"><legend>获取方式</legend><label><input type="radio" checked={product.useDefaultDelivery} onChange={() => setProduct({ ...product, useDefaultDelivery: true })} />使用全局领取与寄送规则：{settings.travelTitle} / {settings.shippingTitle}</label><label><input type="radio" checked={!product.useDefaultDelivery} onChange={() => setProduct({ ...product, useDefaultDelivery: false })} />自定义</label></fieldset>{!product.useDefaultDelivery && <><div className="gift-choice-list wide">{obtainOptions.map((method) => <label key={method}><input type="checkbox" checked={product.obtainMethods.includes(method)} onChange={(event) => setProduct({ ...product, obtainMethods: event.target.checked ? [...product.obtainMethods, method] : product.obtainMethods.filter((item) => item !== method) })} />{method}</label>)}</div><div className="gift-choice-list wide"><b>可领取城市</b>{pickupRegionOptions.map((region) => <label key={region}><input type="checkbox" checked={product.pickupRegions.includes(region)} onChange={(event) => setProduct({ ...product, pickupRegions: event.target.checked ? [...product.pickupRegions, region] : product.pickupRegions.filter((item) => item !== region) })} />{region}</label>)}</div></>}<label><span>礼袋</span><select value={product.giftBagMode || "继承全局"} onChange={(event) => setProduct({ ...product, giftBagMode: event.target.value as GiftBagMode, giftBag: event.target.value === "继承全局" ? settings.giftBagDefault : event.target.value === "支持礼袋" })}><option>继承全局</option><option>支持礼袋</option><option>不支持礼袋</option></select></label><Field label="礼袋说明" value={product.giftBagNote} onChange={(value) => setProduct({ ...product, giftBagNote: value })} /></div>}
       </main>
       <aside className="gift-product-preview">{product.images[0] ? <img src={product.images[0]} alt="" /> : <span>暂无图片</span>}<small>{product.recommendationTag || "推荐标签"}</small><h3>{product.nameZh}</h3><p>{product.shortIntro || product.simpleDescription}</p><b>{priceLabel(product.specs)}</b></aside>
     </div>
-    <footer><button onClick={onClose}>取消</button><button className="admin-primary" onClick={onSave}>保存商品</button></footer>
+    <footer><span>排序请回到商品列表拖拽调整；发布前缺字段时系统会保留为草稿。</span><button onClick={onClose}>取消</button><button className="admin-primary" onClick={onSave}>保存商品</button></footer>
   </div></div>;
 }
 

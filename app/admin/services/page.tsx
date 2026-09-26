@@ -173,7 +173,6 @@ export default function ServiceList() {
         <Link className="active" href="/admin/services">服务列表</Link>
         <Link href="/admin/services/categories">分类管理</Link>
         <Link href="/admin/settings">页面设置</Link>
-        <Link href="/admin/gifts">伴手礼</Link>
       </div>
       {notice && <p className="lead-notice">{notice}</p>}
       <section className="service-list-tools" aria-label="服务筛选">
