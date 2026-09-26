@@ -385,6 +385,11 @@ export function updateLocalServiceItem(id: number, item: ServiceItem) {
   return next;
 }
 
+export function deleteLocalServiceItem(id: number) {
+  items = loadItems().filter((current) => current.id !== id);
+  saveItems();
+}
+
 export function createLocalServiceItem(item: Partial<ServiceItem>) {
   const id = Math.max(0, ...items.map((current) => current.id)) + 1;
   const base = items[0];

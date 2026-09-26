@@ -137,6 +137,19 @@ export default function ServiceList() {
     window.location.assign(`/admin/services/${c.id}`);
   };
 
+  const remove = async (x: ServiceItem) => {
+    if (!window.confirm(`确定删除「${x.nameZh}」吗？删除后不可恢复。`)) return;
+    setNotice("正在删除…");
+    const r = await fetch(`/api/admin/service-items/${x.id}`, { method: "DELETE" });
+    if (!r.ok) {
+      const result = (await r.json().catch(() => ({}))) as { error?: string };
+      setNotice(result.error || "删除失败，请刷新后重试。");
+      return;
+    }
+    setNotice("✓ 服务已删除");
+    load();
+  };
+
   const swapOrder = async (targetId: number) => {
     if (!draggingId || draggingId === targetId) return;
     const source = items.find((item) => item.id === draggingId);
@@ -236,6 +249,7 @@ export default function ServiceList() {
                   <button onClick={() => updateStatus(item, item.status === "published" ? "hidden" : "published")}>
                     {item.status === "published" ? "隐藏服务" : "发布服务"}
                   </button>
+                  <button className="danger" onClick={() => remove(item)}>删除服务</button>
                 </div>
               </details>
             </nav>

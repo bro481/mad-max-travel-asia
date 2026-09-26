@@ -431,3 +431,8 @@ export async function getAdminServiceItemBySlug(slug: string) {
     .first();
   return r ? mapServiceItem(r as Record<string, unknown>) : null;
 }
+
+export async function deleteServiceItem(id: number) {
+  await ensureServiceItems();
+  await env.DB.prepare("DELETE FROM service_items WHERE id=?").bind(id).run();
+}

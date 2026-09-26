@@ -3,11 +3,13 @@ import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../../chatgpt-auth";
 import {
+  deleteServiceItem,
   getAdminServiceItemBySlug,
   getServiceItem,
   staticServiceItemRecords,
 } from "../../../../../db/service-items";
 import {
+  deleteLocalServiceItem,
   getLocalServiceItem,
   getLocalServiceItemBySlug,
   updateLocalServiceItem,
@@ -142,5 +144,34 @@ export async function PUT(
     return NextResponse.json({ ok: true });
   } catch (error) {
     return dbError(error);
+  }
+}
+
+export async function DELETE(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  if (!(await getChatGPTUser()))
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+  if (useLocalServiceItems()) {
+    deleteLocalServiceItem(numericId);
+    revalidatePublicContent("services");
+    return NextResponse.json({ ok: true });
+  }
+  try {
+    await deleteServiceItem(numericId);
+    revalidatePublicContent("services");
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Failed to delete service item", error);
+    return NextResponse.json(
+      { error: "删除服务失败：数据库暂时连接不上，请稍后再试。" },
+      { status: 503 },
+    );
   }
 }
