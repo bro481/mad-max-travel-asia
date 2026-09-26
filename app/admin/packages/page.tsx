@@ -15,7 +15,7 @@ import type { DestinationRecord } from "../../../db/destinations";
 import type { PropertyRecord } from "../../../db/properties";
 import type { ServiceItem } from "../../../db/service-items";
 
-type AdminTab = "basic" | "itinerary" | "arrangements" | "fees" | "english";
+type AdminTab = "info" | "itinerary" | "services" | "publish";
 type SaveProgress = { active: boolean; percent: number; label: string; error?: string };
 type ImageTarget =
   | { type: "cover" }
@@ -26,9 +26,9 @@ type ImageTarget =
   | { type: "arrangement"; section: "stay" | "vehicle"; index?: number };
 
 const nodeTypes = [
+  { value: "experience", label: "景点/活动", icon: "📍" },
   { value: "transport", label: "交通", icon: "🚗" },
-  { value: "stay", label: "入住动作", icon: "🏨" },
-  { value: "experience", label: "体验", icon: "🌴" },
+  { value: "stay", label: "住宿", icon: "🏨" },
   { value: "food", label: "餐饮", icon: "🍴" },
   { value: "flight", label: "航班", icon: "✈️" },
   { value: "free", label: "自由活动", icon: "☀️" },
@@ -204,7 +204,7 @@ export default function AdminPackagesPage() {
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<SaveProgress>({ active: false, percent: 0, label: "" });
   const [message, setMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<AdminTab>("basic");
+  const [activeTab, setActiveTab] = useState<AdminTab>("info");
   const [activeDay, setActiveDay] = useState(0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -261,7 +261,7 @@ export default function AdminPackagesPage() {
   }, []);
 
   const resetEditorChrome = () => {
-    setActiveTab("basic");
+    setActiveTab("info");
     setActiveDay(0);
     setMenuOpen(false);
   };
@@ -601,25 +601,23 @@ export default function AdminPackagesPage() {
         </aside>
 
         <section className="admin-package-form package-workspace">
-          <div className="package-completion">
-            <strong>完成度 {completion}%</strong>
-            <div><span style={{ width: `${completion}%` }} /></div>
-            {issues.slice(0, 3).map((issue) => <small key={issue}>⚠ {issue}</small>)}
-          </div>
+          <details className={issues.length ? "package-publish-check warn" : "package-publish-check"}>
+            <summary>{issues.length ? `⚠ 发布前还缺 ${issues.length} 项` : "✓ 内容完整"}</summary>
+            {issues.length ? <ul>{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : <p>基础内容已经完整，可以预览或发布。</p>}
+          </details>
 
           <nav className="package-editor-tabs" aria-label="套餐编辑区">
             {[
-              ["basic", "基本信息"],
-              ["itinerary", "每日行程"],
-              ["arrangements", "套餐安排"],
-              ["fees", "费用说明"],
-              ["english", "英文"],
+              ["info", "套餐信息"],
+              ["itinerary", "行程安排"],
+              ["services", "套餐服务"],
+              ["publish", "发布设置"],
             ].map(([key, label]) => (
               <button key={key} className={activeTab === key ? "active" : ""} type="button" onClick={() => setActiveTab(key as AdminTab)}>{label}</button>
             ))}
           </nav>
 
-          {activeTab === "basic" && (
+          {activeTab === "info" && (
             <div className="package-tab-panel">
               <div className="admin-form-grid">
                 <label><span>套餐名称</span><input value={draft.nameZh} onChange={(event) => setField("nameZh", event.target.value)} placeholder="吉隆坡 + 马六甲" /></label>
@@ -685,11 +683,10 @@ export default function AdminPackagesPage() {
               </div>
 
               <details className="package-collapse" open={advancedOpen} onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}>
-                <summary>高级设置</summary>
+                <summary>更多文案设置</summary>
                 <div className="admin-form-grid">
-                  <label><span>Slug</span><input value={draft.slug} onChange={(event) => setField("slug", event.target.value)} placeholder="默认按英文套餐名自动生成" /></label>
-                  <label><span>详情页副标题</span><input value={draft.subtitleZh} onChange={(event) => setField("subtitleZh", event.target.value)} /></label>
-                  <label className="wide"><span>Hero 氛围文案</span><textarea value={draft.heroTextZh} onChange={(event) => setField("heroTextZh", event.target.value)} /></label>
+                  <label><span>详情页副标题（选填）</span><input value={draft.subtitleZh} onChange={(event) => setField("subtitleZh", event.target.value)} placeholder={`${draft.days}天${draft.nights}晚 · 经典城市之旅`} /></label>
+                  <label className="wide"><span>Hero 文案（选填）</span><textarea value={draft.heroTextZh} onChange={(event) => setField("heroTextZh", event.target.value)} /></label>
                 </div>
               </details>
             </div>
@@ -805,28 +802,8 @@ export default function AdminPackagesPage() {
             </div>
           )}
 
-          {activeTab === "arrangements" && (
+          {activeTab === "services" && (
             <div className="package-tab-panel">
-              <section className="package-display-options">
-                <h3>前台显示控制</h3>
-                {[
-                  ["heroGallery", "顶部图库"],
-                  ["tags", "套餐特色"],
-                  ["itinerary", "每日行程"],
-                  ["arrangements", "这趟已经帮你安排好"],
-                  ["fees", "费用说明"],
-                ].map(([key, label]) => (
-                  <label key={key}>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(draft.displayOptions[key as keyof TravelPackageDisplayOptions])}
-                      onChange={(event) => updateDisplayOption(key as keyof TravelPackageDisplayOptions, event.target.checked)}
-                    />
-                    <span>{label}</span>
-                  </label>
-                ))}
-              </section>
-
               <ArrangementBlock
                 title="住宿安排"
                 enabled={draft.arrangements.stay.visible}
@@ -904,11 +881,7 @@ export default function AdminPackagesPage() {
                   <label className="wide"><span>说明</span><input value={draft.arrangements.support.descriptionZh} onChange={(event) => updateArrangement("support", { descriptionZh: event.target.value })} /></label>
                 </div>
               </ArrangementBlock>
-            </div>
-          )}
 
-          {activeTab === "fees" && (
-            <div className="package-tab-panel">
               <section className="fee-section"><div><h3>费用包含</h3><button type="button" onClick={() => setField("includes", includeTemplate)}>套用模板：标准省心套餐</button></div><SortableTextList value={draft.includes} onChange={(value) => setField("includes", value)} /></section>
               <section className="fee-section"><div><h3>费用不包含</h3><button type="button" onClick={() => setField("excludes", excludeTemplate)}>套用默认</button></div><SortableTextList value={draft.excludes} onChange={(value) => setField("excludes", value)} /></section>
               <details className="package-collapse" open={priceTiersOpen} onToggle={(event) => setPriceTiersOpen(event.currentTarget.open)}>
@@ -929,21 +902,18 @@ export default function AdminPackagesPage() {
                   <label><span>注意事项</span><textarea value={draft.notesZh} onChange={(event) => setField("notesZh", event.target.value)} /></label>
                 </div>
               </details>
-              <section className="fee-section package-inquiry-settings">
-                <div><h3>咨询设置</h3><small>前台固定咨询栏和弹窗复制文案会使用这里。</small></div>
-                <div className="admin-form-grid">
-                  <label><span>咨询按钮文字</span><input value={draft.inquirySettings.buttonTextZh} onChange={(event) => setField("inquirySettings", { ...draft.inquirySettings, buttonTextZh: event.target.value })} /></label>
-                  <label><span>咨询标题模板</span><input value={draft.inquirySettings.titleTemplateZh} onChange={(event) => setField("inquirySettings", { ...draft.inquirySettings, titleTemplateZh: event.target.value })} /></label>
-                </div>
-                <small>可用变量：{"{套餐名称}"}、{"{天数}"}、{"{晚数}"}、{"{城市}"}</small>
-                <SortableTextList value={draft.inquirySettings.promptFields} onChange={(promptFields) => setField("inquirySettings", { ...draft.inquirySettings, promptFields })} />
-              </section>
             </div>
           )}
 
-          {activeTab === "english" && (
+          {activeTab === "publish" && (
             <div className="package-tab-panel">
-              <button type="button" className="admin-secondary" onClick={() => { setField("nameEn", draft.nameEn || draft.cityComboEn || draft.nameZh); setMessage("已按现有英文城市名生成基础英文占位，完整 AI 翻译后续接入。"); }}>根据中文生成英文</button>
+              <section className="package-publish-section">
+                <div>
+                  <h3>英文版本</h3>
+                  <small>图片、价格、行程结构共用中文版本；这里只维护需要翻译的文字。</small>
+                </div>
+                <button type="button" className="admin-secondary" onClick={() => { setField("nameEn", draft.nameEn || draft.cityComboEn || draft.nameZh); setMessage("已按现有英文城市名生成基础英文占位，完整 AI 翻译后续接入。"); }}>根据中文生成英文</button>
+              </section>
               <div className="admin-form-grid english-grid">
                 <label><span>英文套餐名称</span><input value={draft.nameEn} onChange={(event) => setField("nameEn", event.target.value)} /></label>
                 <label><span>英文一句话简介</span><input value={draft.summaryEn} onChange={(event) => setField("summaryEn", event.target.value)} /></label>
@@ -967,6 +937,46 @@ export default function AdminPackagesPage() {
                   </details>
                 ))}
               </div>
+              <details className="package-collapse">
+                <summary>SEO 与链接</summary>
+                <div className="admin-form-grid">
+                  <label><span>Slug</span><input value={draft.slug} onChange={(event) => setField("slug", event.target.value)} placeholder="默认按英文套餐名自动生成" /></label>
+                  <label><span>排序</span><input type="number" value={draft.sortOrder} onChange={(event) => setField("sortOrder", Number(event.target.value))} /></label>
+                </div>
+              </details>
+              <details className="package-collapse">
+                <summary>高级设置：前台模块显示</summary>
+                <section className="package-display-options compact">
+                  {[
+                    ["heroGallery", "顶部图库"],
+                    ["tags", "套餐特色"],
+                    ["itinerary", "每日行程"],
+                    ["arrangements", "套餐服务"],
+                    ["fees", "费用说明"],
+                  ].map(([key, label]) => (
+                    <label key={key}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(draft.displayOptions[key as keyof TravelPackageDisplayOptions])}
+                        onChange={(event) => updateDisplayOption(key as keyof TravelPackageDisplayOptions, event.target.checked)}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </section>
+              </details>
+              <details className="package-collapse">
+                <summary>高级设置：覆盖咨询文案</summary>
+                <section className="fee-section package-inquiry-settings">
+                  <div><h3>咨询设置</h3><small>默认建议在全站咨询设置中统一管理；这里只用于特殊套餐覆盖。</small></div>
+                  <div className="admin-form-grid">
+                    <label><span>咨询按钮文字</span><input value={draft.inquirySettings.buttonTextZh} onChange={(event) => setField("inquirySettings", { ...draft.inquirySettings, buttonTextZh: event.target.value })} /></label>
+                    <label><span>咨询标题模板</span><input value={draft.inquirySettings.titleTemplateZh} onChange={(event) => setField("inquirySettings", { ...draft.inquirySettings, titleTemplateZh: event.target.value })} /></label>
+                  </div>
+                  <small>可用变量：{"{套餐名称}"}、{"{天数}"}、{"{晚数}"}、{"{城市}"}</small>
+                  <SortableTextList value={draft.inquirySettings.promptFields} onChange={(promptFields) => setField("inquirySettings", { ...draft.inquirySettings, promptFields })} />
+                </section>
+              </details>
             </div>
           )}
         </section>
@@ -1086,18 +1096,29 @@ function InlineArray({ value, onChange, compact = false }: { value: string[]; on
 }
 
 function SortableTextList({ value, onChange }: { value: string[]; onChange: (value: string[]) => void }) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= value.length || from === to) return;
+    const next = [...value];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onChange(next);
+  };
   return (
     <div className="sortable-text-list">
       {value.map((item, index) => (
-        <div key={index}>
-          <span aria-hidden="true">☰</span>
+        <div
+          key={index}
+          draggable
+          onDragStart={() => setDragIndex(index)}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={() => {
+            if (dragIndex !== null) move(dragIndex, index);
+            setDragIndex(null);
+          }}
+        >
+          <span aria-hidden="true" title="拖动排序">☰</span>
           <input value={item} onChange={(event) => onChange(value.map((x, i) => (i === index ? event.target.value : x)))} placeholder="填写一项" />
-          <button type="button" onClick={() => {
-            if (index <= 0) return;
-            const next = [...value];
-            [next[index - 1], next[index]] = [next[index], next[index - 1]];
-            onChange(next);
-          }} disabled={index === 0}>上移</button>
           <button type="button" onClick={() => onChange(value.filter((_, i) => i !== index))}>删除</button>
         </div>
       ))}
@@ -1279,10 +1300,12 @@ function ScheduleEditor({ day, dayIndex, services, properties, updateSlot, updat
           );
         })}
       </div>
-      <div className="schedule-add-row">
-        <span>+ 添加行程</span>
-        {nodeTypes.map((type) => <button key={type.value} type="button" onClick={() => addSlot(type.value as TravelPackageSchedule["nodeType"])}>{type.icon} {type.label}</button>)}
-      </div>
+      <details className="schedule-add-menu">
+        <summary>+ 添加安排</summary>
+        <div>
+          {nodeTypes.map((type) => <button key={type.value} type="button" onClick={() => addSlot(type.value as TravelPackageSchedule["nodeType"])}>{type.icon} {type.label}</button>)}
+        </div>
+      </details>
     </div>
   );
 }
