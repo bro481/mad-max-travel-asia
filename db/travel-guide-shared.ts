@@ -4,6 +4,7 @@ export type TravelGuideCategory = "城市漫游" | "行程参考" | "美食推�
 
 export type TravelGuideBlock =
   | { type: "heading"; text: string }
+  | { type: "subheading"; text: string }
   | { type: "paragraph"; text: string }
   | { type: "image"; image: string; caption?: string }
   | { type: "gallery"; images: string[]; caption?: string; captions?: string[]; alts?: string[] }
@@ -31,11 +32,13 @@ export type TravelGuideArticle = {
   summaryEn: string;
   coverImage: string;
   imageLabel: string;
+  tags: string[];
   readMinutes: number;
   sortOrder: number;
   featured: boolean;
   status: TravelGuideStatus;
   contentBlocks: TravelGuideBlock[];
+  contentBlocksEn?: TravelGuideBlock[];
   updatedAt: string;
 };
 

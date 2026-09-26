@@ -27,6 +27,7 @@ const staticGuideSeeds: Omit<TravelGuideArticle, "id" | "updatedAt">[] = [
     summaryEn: "From modern landmarks to old lanes, feel the city's layered rhythm.",
     coverImage: image("photo-1596422846543-75c6fc197f07"),
     imageLabel: "KUALA LUMPUR",
+    tags: ["第一次去", "半天～1天", "免费景点为主", "适合自由行"],
     readMinutes: 4,
     sortOrder: 1,
     featured: true,
@@ -43,6 +44,7 @@ const staticGuideSeeds: Omit<TravelGuideArticle, "id" | "updatedAt">[] = [
     summaryEn: "Old shops, cafes, street snacks and evening light in one easy walk.",
     coverImage: guideDefaultImages["kl-chinatown-slow-walk"] || image("photo-1584515933487-779824d29309"),
     imageLabel: "CHINATOWN",
+    tags: ["老街散步", "傍晚更舒服", "适合自由行"],
     readMinutes: 3,
     sortOrder: 2,
     featured: false,
@@ -59,6 +61,7 @@ const staticGuideSeeds: Omit<TravelGuideArticle, "id" | "updatedAt">[] = [
     summaryEn: "Line up the beach, dinner and return ride for an easier sunset.",
     coverImage: image("photo-1507525428034-b723cf961d3e"),
     imageLabel: "SUNSET",
+    tags: ["日落", "时间安排", "适合自由行"],
     readMinutes: 4,
     sortOrder: 1,
     featured: true,
@@ -75,6 +78,7 @@ const staticGuideSeeds: Omit<TravelGuideArticle, "id" | "updatedAt">[] = [
     summaryEn: "Boats, weather, gear and transfers shape how the sea day feels.",
     coverImage: image("photo-1544550285-f813152fb2fd"),
     imageLabel: "ISLAND DAY",
+    tags: ["跳岛准备", "海岛", "实用提醒"],
     readMinutes: 5,
     sortOrder: 1,
     featured: true,
@@ -91,6 +95,7 @@ const staticGuideSeeds: Omit<TravelGuideArticle, "id" | "updatedAt">[] = [
     summaryEn: "Leave space between Dutch Square, the river and Jonker Street.",
     coverImage: image("photo-1580537659466-0a9bfa916a54"),
     imageLabel: "MELAKA",
+    tags: ["一日游", "古城慢走", "适合自由行"],
     readMinutes: 4,
     sortOrder: 1,
     featured: true,
@@ -110,11 +115,13 @@ const createArticlesSql = `CREATE TABLE IF NOT EXISTS travel_guide_articles (
   summary_en TEXT NOT NULL DEFAULT '',
   cover_image TEXT NOT NULL DEFAULT '',
   image_label TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '[]',
   read_minutes INTEGER NOT NULL DEFAULT 4,
   sort_order INTEGER NOT NULL DEFAULT 99,
   featured INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'draft',
   content_blocks TEXT NOT NULL DEFAULT '[]',
+  content_blocks_en TEXT NOT NULL DEFAULT '[]',
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`;
 
@@ -162,11 +169,13 @@ function mapArticle(row: Record<string, unknown>): TravelGuideArticle {
     summaryEn: String(row.summary_en || ""),
     coverImage: String(row.cover_image || ""),
     imageLabel: String(row.image_label || ""),
+    tags: parseJson<string[]>(row.tags, []),
     readMinutes: Number(row.read_minutes || 4),
     sortOrder: Number(row.sort_order || 99),
     featured: Boolean(Number(row.featured || 0)),
     status: row.status === "published" ? "published" : "draft",
     contentBlocks: parseJson<TravelGuideBlock[]>(row.content_blocks, []),
+    contentBlocksEn: parseJson<TravelGuideBlock[]>(row.content_blocks_en, []),
     updatedAt: String(row.updated_at || ""),
   };
 }
@@ -190,6 +199,7 @@ export function staticTravelGuides(): TravelGuideArticle[] {
 export async function ensureTravelGuides() {
   await env.DB.prepare(createArticlesSql).run();
   await env.DB.prepare(createSettingsSql).run();
+  await ensureTravelGuideArticleColumns();
   await env.DB.prepare(
     `INSERT OR IGNORE INTO travel_guide_settings(id, hero_image, hero_title_zh, hero_title_en, hero_description_zh, hero_description_en, hero_script)
      VALUES(1,?,?,?,?,?,?)`,
@@ -207,6 +217,20 @@ export async function ensureTravelGuides() {
   if ((count?.total || 0) > 0) return;
   for (const item of staticTravelGuides()) {
     await createTravelGuideArticle(item);
+  }
+}
+
+async function ensureTravelGuideArticleColumns() {
+  const columns = [
+    "ALTER TABLE travel_guide_articles ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE travel_guide_articles ADD COLUMN content_blocks_en TEXT NOT NULL DEFAULT '[]'",
+  ];
+  for (const sql of columns) {
+    try {
+      await env.DB.prepare(sql).run();
+    } catch {
+      // Column already exists or the current adapter does not support ALTER in this context.
+    }
   }
 }
 
@@ -275,14 +299,15 @@ export async function updateTravelGuideSettings(input: Partial<TravelGuideSettin
 
 export async function createTravelGuideArticle(input: Partial<TravelGuideArticle>) {
   await env.DB.prepare(createArticlesSql).run();
+  await ensureTravelGuideArticleColumns();
   let slug = slugify(String(input.slug || input.titleEn || input.titleZh || ""));
   let n = 1;
   while (await env.DB.prepare("SELECT id FROM travel_guide_articles WHERE slug=?").bind(slug).first()) {
     slug = `${slugify(String(input.slug || input.titleEn || input.titleZh || ""))}-${++n}`;
   }
   const result = await env.DB.prepare(
-    `INSERT INTO travel_guide_articles(slug,title_zh,title_en,city,category,summary_zh,summary_en,cover_image,image_label,read_minutes,sort_order,featured,status,content_blocks)
-     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO travel_guide_articles(slug,title_zh,title_en,city,category,summary_zh,summary_en,cover_image,image_label,tags,read_minutes,sort_order,featured,status,content_blocks,content_blocks_en)
+     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   )
     .bind(
       slug,
@@ -294,11 +319,13 @@ export async function createTravelGuideArticle(input: Partial<TravelGuideArticle
       input.summaryEn || "",
       input.coverImage || "",
       input.imageLabel || "",
+      JSON.stringify(input.tags || []),
       Number(input.readMinutes || 4),
       Number(input.sortOrder || 99),
       input.featured ? 1 : 0,
       input.status === "published" ? "published" : "draft",
       JSON.stringify(input.contentBlocks || []),
+      JSON.stringify(input.contentBlocksEn || []),
     )
     .run();
   return { id: Number(result.meta.last_row_id), slug };
@@ -307,7 +334,7 @@ export async function createTravelGuideArticle(input: Partial<TravelGuideArticle
 export async function updateTravelGuideArticle(id: number, input: Partial<TravelGuideArticle>) {
   await ensureTravelGuides();
   await env.DB.prepare(
-    `UPDATE travel_guide_articles SET slug=?,title_zh=?,title_en=?,city=?,category=?,summary_zh=?,summary_en=?,cover_image=?,image_label=?,read_minutes=?,sort_order=?,featured=?,status=?,content_blocks=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    `UPDATE travel_guide_articles SET slug=?,title_zh=?,title_en=?,city=?,category=?,summary_zh=?,summary_en=?,cover_image=?,image_label=?,tags=?,read_minutes=?,sort_order=?,featured=?,status=?,content_blocks=?,content_blocks_en=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
   )
     .bind(
       slugify(String(input.slug || input.titleEn || input.titleZh || `guide-${id}`)),
@@ -319,11 +346,13 @@ export async function updateTravelGuideArticle(id: number, input: Partial<Travel
       input.summaryEn || "",
       input.coverImage || "",
       input.imageLabel || "",
+      JSON.stringify(input.tags || []),
       Number(input.readMinutes || 4),
       Number(input.sortOrder || 99),
       input.featured ? 1 : 0,
       input.status === "published" ? "published" : "draft",
       JSON.stringify(input.contentBlocks || []),
+      JSON.stringify(input.contentBlocksEn || []),
       id,
     )
     .run();

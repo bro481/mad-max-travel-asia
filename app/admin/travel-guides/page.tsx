@@ -6,6 +6,7 @@ import type { TravelGuideArticle, TravelGuideBlock, TravelGuideSettings, TravelG
 import { defaultGuideSettings, guideCategories, guideCities } from "../../../db/travel-guide-shared";
 
 type AdminSection = "list" | "editor" | "settings";
+type EditorTab = "basic" | "content" | "english" | "advanced";
 type BlockType = TravelGuideBlock["type"];
 type SaveState = "saved" | "dirty" | "saving";
 
@@ -20,21 +21,25 @@ const emptyArticle: TravelGuideArticle = {
   summaryEn: "",
   coverImage: "",
   imageLabel: "",
+  tags: [],
   readMinutes: 4,
   sortOrder: 99,
   featured: false,
   status: "draft",
   contentBlocks: [{ type: "paragraph", text: "" }],
+  contentBlocksEn: [],
   updatedAt: "",
 };
 
-const specialBlocks: { label: string; text: string }[] = [
-  { label: "当地提醒", text: "当地提醒：" },
-  { label: "注意事项", text: "注意事项：" },
-  { label: "地点信息", text: "地点信息：" },
-  { label: "费用参考", text: "费用参考：" },
-  { label: "交通建议", text: "交通建议：" },
-  { label: "MAD MAX推荐", text: "MAD MAX 推荐：" },
+const specialBlocks: { label: string; type: BlockType; text?: string; items?: string[] }[] = [
+  { label: "图集", type: "gallery" },
+  { label: "分割线", type: "divider" },
+  { label: "当地提醒", type: "quote", text: "当地提醒：" },
+  { label: "注意事项", type: "quote", text: "注意事项：" },
+  { label: "地点信息", type: "list", items: ["适合时间：", "建议停留：", "顺路安排："] },
+  { label: "费用参考", type: "quote", text: "费用参考：" },
+  { label: "交通建议", type: "quote", text: "交通建议：" },
+  { label: "MAD MAX推荐", type: "quote", text: "MAD MAX 推荐：" },
 ];
 
 function clone<T>(value: T): T {
@@ -74,6 +79,16 @@ function estimateReadMinutes(blocks: TravelGuideBlock[]) {
   return Math.max(1, Math.ceil(compact.length / 420));
 }
 
+function cleanBlocks(blocks: TravelGuideBlock[] = []) {
+  return blocks.filter((block) => {
+    if (block.type === "divider") return true;
+    if (block.type === "image") return Boolean(block.image);
+    if (block.type === "gallery") return block.images.some(Boolean);
+    if (block.type === "list") return block.items.some(Boolean);
+    return Boolean(block.text.trim());
+  });
+}
+
 function statusLabel(status: TravelGuideStatus) {
   return status === "published" ? "已发布" : "草稿";
 }
@@ -84,6 +99,7 @@ export default function AdminTravelGuidesPage() {
   const [draft, setDraft] = useState<TravelGuideArticle>(() => clone(emptyArticle));
   const [settings, setSettings] = useState<TravelGuideSettings>(defaultGuideSettings);
   const [section, setSection] = useState<AdminSection>("list");
+  const [editorTab, setEditorTab] = useState<EditorTab>("basic");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -92,6 +108,7 @@ export default function AdminTravelGuidesPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [focusedBlock, setFocusedBlock] = useState(0);
+  const [dragBlock, setDragBlock] = useState<number | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [lastSavedAt, setLastSavedAt] = useState("");
   const didLoadDraft = useRef(false);
@@ -149,29 +166,28 @@ export default function AdminTravelGuidesPage() {
 
   const setField = <K extends keyof TravelGuideArticle>(key: K, value: TravelGuideArticle[K]) => setDraft((current) => ({ ...current, [key]: value }));
 
-  const updateBlock = (index: number, block: TravelGuideBlock) => {
-    setDraft((current) => ({ ...current, contentBlocks: current.contentBlocks.map((item, i) => (i === index ? block : item)) }));
+  const updateBlock = (index: number, block: TravelGuideBlock, key: "contentBlocks" | "contentBlocksEn" = "contentBlocks") => {
+    setDraft((current) => ({ ...current, [key]: (current[key] || []).map((item, i) => (i === index ? block : item)) }));
   };
 
-  const moveBlock = (index: number, dir: -1 | 1) => {
+  const moveBlockTo = (from: number, to: number, key: "contentBlocks" | "contentBlocksEn" = "contentBlocks") => {
     setDraft((current) => {
-      const next = [...current.contentBlocks];
-      const target = index + dir;
-      if (target < 0 || target >= next.length) return current;
-      const [block] = next.splice(index, 1);
-      next.splice(target, 0, block);
-      setFocusedBlock(target);
-      return { ...current, contentBlocks: next };
+      const next = [...(current[key] || [])];
+      if (to < 0 || to >= next.length || from === to) return current;
+      const [block] = next.splice(from, 1);
+      next.splice(to, 0, block);
+      setFocusedBlock(to);
+      return { ...current, [key]: next };
     });
   };
 
-  const insertBlock = (type: BlockType, presetText = "", afterIndex = focusedBlock) => {
+  const insertBlock = (type: BlockType, presetText = "", afterIndex = focusedBlock, key: "contentBlocks" | "contentBlocksEn" = "contentBlocks", presetItems?: string[]) => {
     setDraft((current) => {
-      const next = [...current.contentBlocks];
+      const next = [...(current[key] || [])];
       const index = Math.min(Math.max(afterIndex + 1, 0), next.length);
-      next.splice(index, 0, newBlock(type, presetText));
+      next.splice(index, 0, presetItems ? { type: "list", items: presetItems } : newBlock(type, presetText));
       window.setTimeout(() => setFocusedBlock(index), 0);
-      return { ...current, contentBlocks: next };
+      return { ...current, [key]: next };
     });
   };
 
@@ -199,16 +215,12 @@ export default function AdminTravelGuidesPage() {
   const normalizedDraft = (status?: TravelGuideStatus) => ({
     ...draft,
     slug: draft.slug || slugify(draft.titleEn || draft.titleZh) || `guide-${Date.now()}`,
+    tags: (draft.tags || []).map((tag) => tag.trim()).filter(Boolean).slice(0, 8),
     readMinutes: estimatedReadMinutes,
     sortOrder: Number(draft.sortOrder || 99),
     status: status || draft.status,
-    contentBlocks: draft.contentBlocks.filter((block) => {
-      if (block.type === "divider") return true;
-      if (block.type === "image") return Boolean(block.image);
-      if (block.type === "gallery") return block.images.some(Boolean);
-      if (block.type === "list") return block.items.some(Boolean);
-      return Boolean(block.text.trim());
-    }),
+    contentBlocks: cleanBlocks(draft.contentBlocks),
+    contentBlocksEn: cleanBlocks(draft.contentBlocksEn || []),
   });
 
   const refresh = async (id?: number | "new") => {
@@ -293,6 +305,7 @@ export default function AdminTravelGuidesPage() {
     setSelectedId(item.id);
     setDraft(clone(item));
     setFocusedBlock(0);
+    setEditorTab("basic");
     setSaveState("saved");
     setSection("editor");
   };
@@ -302,6 +315,7 @@ export default function AdminTravelGuidesPage() {
     setSelectedId("new");
     setDraft(clone(emptyArticle));
     setFocusedBlock(0);
+    setEditorTab("basic");
     setSaveState("saved");
     setSection("editor");
   };
@@ -314,21 +328,28 @@ export default function AdminTravelGuidesPage() {
         <div>
           <Link href="/admin">← 管理后台</Link>
           <h1>{section === "editor" ? draft.titleZh || "新建攻略" : "旅行攻略"}</h1>
-          <p>{section === "editor" ? `${cityName(draft.city)} · ${draft.category} · 约 ${estimatedReadMinutes} 分钟阅读` : "攻略列表 → 打开某篇攻略 → 自由编辑文章"}</p>
+          <p>{section === "editor" ? `${cityName(draft.city)} · ${draft.category} · 约 ${estimatedReadMinutes} 分钟阅读` : "管理攻略内容"}</p>
         </div>
         <div>
-          {section !== "editor" && <button className="admin-secondary" type="button" onClick={() => setSection("list")}>攻略管理</button>}
-          {section !== "settings" && <button className="admin-secondary" type="button" onClick={() => setSection("settings")}>页面设置</button>}
-          <Link className="admin-secondary" href="/photography" target="_blank">查看前台</Link>
+          {section !== "editor" && section !== "settings" && <Link className="admin-secondary" href="/photography" target="_blank">查看前台</Link>}
           {section === "editor" ? (
             <>
-              <button className="admin-secondary" type="button" onClick={() => saveArticle("draft")} disabled={saving}>保存草稿</button>
-              <button className="admin-primary" type="button" onClick={() => saveArticle("published")} disabled={saving}>{saving ? "保存中..." : "保存并发布"}</button>
+              <Link className="admin-secondary" href={draft.slug ? `/photography/${draft.slug}` : "/photography"} target="_blank">预览</Link>
+              <button className="admin-primary" type="button" onClick={() => saveArticle("published")} disabled={saving}>{saving ? "保存中..." : draft.status === "published" ? "更新发布" : "发布"}</button>
             </>
           ) : section === "settings" ? (
-            <button className="admin-primary" type="button" onClick={saveSettings} disabled={saving}>{saving ? "保存中..." : "保存页面设置"}</button>
+            <>
+              <button className="admin-secondary" type="button" onClick={() => setSection("list")}>返回列表</button>
+              <button className="admin-primary" type="button" onClick={saveSettings} disabled={saving}>{saving ? "保存中..." : "保存页面设置"}</button>
+            </>
           ) : (
-            <button className="admin-primary" type="button" onClick={createArticle}>+ 新建攻略</button>
+            <>
+              <details className="guide-top-more">
+                <summary>···</summary>
+                <button type="button" onClick={() => setSection("settings")}>页面设置</button>
+              </details>
+              <button className="admin-primary" type="button" onClick={createArticle}>+ 新建攻略</button>
+            </>
           )}
         </div>
       </div>
@@ -339,10 +360,9 @@ export default function AdminTravelGuidesPage() {
         <section className="admin-guide-panel guide-list-manager">
           <div className="guide-manager-head">
             <div>
-              <h2>攻略管理</h2>
-              <p>只保留一个主列表，点击文章进入独立编辑页。</p>
+              <h2>攻略列表</h2>
+              <p>筛选、搜索，然后打开单篇文章编辑。</p>
             </div>
-            <button className="admin-primary" type="button" onClick={createArticle}>+ 新建攻略</button>
           </div>
           <div className="guide-toolbar">
             <select value={filterCity} onChange={(event) => setFilterCity(event.target.value)}>
@@ -394,54 +414,57 @@ export default function AdminTravelGuidesPage() {
             </div>
           </div>
 
-          <div className="guide-edit-section">
+          <nav className="guide-editor-tabs" aria-label="攻略编辑区">
+            {[
+              ["basic", "基础信息"],
+              ["content", "文章正文"],
+              ["english", "English"],
+              ["advanced", "高级设置"],
+            ].map(([key, label]) => (
+              <button key={key} className={editorTab === key ? "active" : ""} type="button" onClick={() => setEditorTab(key as EditorTab)}>{label}</button>
+            ))}
+          </nav>
+
+          {editorTab === "basic" && <div className="guide-edit-section">
             <h2>基础信息</h2>
             <div className="admin-form-grid guide-form-grid">
               <label><span>中文标题</span><input value={draft.titleZh} onChange={(event) => setField("titleZh", event.target.value)} /></label>
-              <label><span>英文标题（可选）</span><input value={draft.titleEn} onChange={(event) => setField("titleEn", event.target.value)} /></label>
               <label><span>所属城市</span><select value={draft.city} onChange={(event) => setField("city", event.target.value as TravelGuideArticle["city"])}>{guideCities.map((city) => <option value={city.key} key={city.key}>{city.zh}</option>)}</select></label>
               <label><span>分类</span><select value={draft.category} onChange={(event) => setField("category", event.target.value as TravelGuideArticle["category"])}>{guideCategories.map((category) => <option value={category} key={category}>{category}</option>)}</select></label>
               <label className="wide"><span>一句话简介</span><textarea value={draft.summaryZh} onChange={(event) => setField("summaryZh", event.target.value)} /></label>
-              <label className="wide"><span>英文简介（可选）</span><textarea value={draft.summaryEn} onChange={(event) => setField("summaryEn", event.target.value)} /></label>
             </div>
+            <TagInput value={draft.tags || []} onChange={(tags) => setField("tags", tags)} />
             <div className="guide-cover-field">
               <div>{draft.coverImage ? <img src={draft.coverImage} alt="" /> : <span>封面图片</span>}</div>
               <section>
-                <b>封面图片</b>
+                <b>封面</b>
                 <p>用于攻略列表和详情页顶部展示。建议横图，后台统一固定比例预览。</p>
                 <label><input type="file" accept="image/*" onChange={(event) => uploadImage(event, (url) => setField("coverImage", url))} />更换图片</label>
-                <input value={draft.coverImage} onChange={(event) => setField("coverImage", event.target.value)} placeholder="图片地址（可选）" />
               </section>
             </div>
-            <details className="advanced-settings guide-advanced">
-              <summary>高级设置</summary>
-              <div className="admin-form-grid guide-form-grid">
-                <label><span>图片英文装饰文字</span><input value={draft.imageLabel} onChange={(event) => setField("imageLabel", event.target.value.toUpperCase())} placeholder="KUALA LUMPUR" /></label>
-                <label><span>URL Slug</span><input value={draft.slug} onChange={(event) => setField("slug", event.target.value)} placeholder="可留空自动生成" /></label>
-                <label><span>排序</span><input type="number" value={draft.sortOrder} onChange={(event) => setField("sortOrder", Number(event.target.value))} /></label>
-                <label><span>预计阅读时间</span><input readOnly value={`自动计算：约 ${estimatedReadMinutes} 分钟`} /></label>
-                <label className="admin-switch"><input type="checkbox" checked={draft.featured} onChange={(event) => setField("featured", event.target.checked)} /> 设为当前城市推荐</label>
-              </div>
-            </details>
-          </div>
+          </div>}
 
-          <div className="guide-edit-section">
+          {editorTab === "content" && <div className="guide-edit-section">
             <div className="guide-editor-toolbar">
               <div>
                 <h2>文章正文</h2>
-                <p>像写文章一样连续编辑；图片、提醒和分割线会插入到当前段落后面。</p>
+                <p>快速浏览会自动读取 H2，不需要额外维护目录。</p>
               </div>
               <nav>
                 <button type="button" onClick={() => insertBlock("paragraph")}>正文</button>
                 <button type="button" onClick={() => insertBlock("heading")}>H2</button>
+                <button type="button" onClick={() => insertBlock("subheading")}>H3</button>
                 <button type="button" onClick={() => insertBlock("list")}>列表</button>
                 <button type="button" onClick={() => insertBlock("image")}>图片</button>
-                <button type="button" onClick={() => insertBlock("gallery")}>图集</button>
-                <button type="button" onClick={() => insertBlock("divider")}>分割线</button>
+                <details className="guide-insert-menu">
+                  <summary>+ 插入</summary>
+                  <div>
+                    {specialBlocks.map((item) => (
+                      <button key={item.label} type="button" onClick={() => insertBlock(item.type, item.text || "", focusedBlock, "contentBlocks", item.items)}>{item.label}</button>
+                    ))}
+                  </div>
+                </details>
               </nav>
-            </div>
-            <div className="guide-special-toolbar">
-              {specialBlocks.map((item) => <button key={item.label} type="button" onClick={() => insertBlock("quote", item.text)}>{item.label}</button>)}
             </div>
             <div className="guide-free-editor">
               {draft.contentBlocks.map((block, index) => (
@@ -451,7 +474,12 @@ export default function AdminTravelGuidesPage() {
                   block={block}
                   index={index}
                   updateBlock={updateBlock}
-                  moveBlock={moveBlock}
+                  draggable
+                  onDragStart={() => setDragBlock(index)}
+                  onDrop={() => {
+                    if (dragBlock !== null) moveBlockTo(dragBlock, index);
+                    setDragBlock(null);
+                  }}
                   removeBlock={() => setField("contentBlocks", draft.contentBlocks.filter((_, i) => i !== index))}
                   uploadImage={uploadImage}
                   onFocus={() => setFocusedBlock(index)}
@@ -459,7 +487,64 @@ export default function AdminTravelGuidesPage() {
               ))}
               <button className="guide-add-paragraph" type="button" onClick={() => insertBlock("paragraph", "", draft.contentBlocks.length - 1)}>+ 继续写正文</button>
             </div>
-          </div>
+          </div>}
+
+          {editorTab === "english" && <div className="guide-edit-section">
+            <div className="guide-editor-toolbar">
+              <div>
+                <h2>English</h2>
+                <p>图片和结构可以沿用中文；需要时再人工调整英文正文。</p>
+              </div>
+              <nav>
+                <button type="button" onClick={() => {
+                  setField("titleEn", draft.titleEn || draft.titleZh);
+                  setField("summaryEn", draft.summaryEn || draft.summaryZh);
+                  setField("contentBlocksEn", draft.contentBlocksEn?.length ? draft.contentBlocksEn : clone(draft.contentBlocks));
+                }}>根据中文生成英文</button>
+                <button type="button" onClick={() => insertBlock("paragraph", "", (draft.contentBlocksEn || []).length - 1, "contentBlocksEn")}>+ 英文段落</button>
+              </nav>
+            </div>
+            <div className="admin-form-grid guide-form-grid">
+              <label><span>英文标题</span><input value={draft.titleEn} onChange={(event) => setField("titleEn", event.target.value)} /></label>
+              <label className="wide"><span>英文简介</span><textarea value={draft.summaryEn} onChange={(event) => setField("summaryEn", event.target.value)} /></label>
+            </div>
+            <div className="guide-free-editor">
+              {(draft.contentBlocksEn || []).map((block, index) => (
+                <FlowBlock
+                  key={index}
+                  active={focusedBlock === index}
+                  block={block}
+                  index={index}
+                  updateBlock={(blockIndex, nextBlock) => updateBlock(blockIndex, nextBlock, "contentBlocksEn")}
+                  draggable
+                  onDragStart={() => setDragBlock(index)}
+                  onDrop={() => {
+                    if (dragBlock !== null) moveBlockTo(dragBlock, index, "contentBlocksEn");
+                    setDragBlock(null);
+                  }}
+                  removeBlock={() => setField("contentBlocksEn", (draft.contentBlocksEn || []).filter((_, i) => i !== index))}
+                  uploadImage={uploadImage}
+                  onFocus={() => setFocusedBlock(index)}
+                />
+              ))}
+            </div>
+          </div>}
+
+          {editorTab === "advanced" && <div className="guide-edit-section">
+            <h2>高级设置</h2>
+            <div className="admin-form-grid guide-form-grid">
+              <label><span>图片英文装饰文字</span><input value={draft.imageLabel} onChange={(event) => setField("imageLabel", event.target.value.toUpperCase())} placeholder="KUALA LUMPUR" /></label>
+              <label><span>URL Slug</span><input value={draft.slug} onChange={(event) => setField("slug", event.target.value)} placeholder="可留空自动生成" /></label>
+              <label><span>排序</span><input type="number" value={draft.sortOrder} onChange={(event) => setField("sortOrder", Number(event.target.value))} /></label>
+              <label><span>预计阅读时间</span><input readOnly value={`自动计算：约 ${estimatedReadMinutes} 分钟`} /></label>
+              <label><span>封面图片地址</span><input value={draft.coverImage} onChange={(event) => setField("coverImage", event.target.value)} placeholder="特殊情况才需要手动粘贴" /></label>
+              <label className="admin-switch"><input type="checkbox" checked={draft.featured} onChange={(event) => setField("featured", event.target.checked)} /> 设为当前城市推荐</label>
+            </div>
+            <div className="guide-advanced-note">
+              <b>自动生成</b>
+              <p>快速浏览来自正文 H2；阅读时间来自正文字数；底部 CTA 和继续看看使用全站默认逻辑。</p>
+            </div>
+          </div>}
 
           {selectedId !== "new" && <button className="admin-danger" type="button" onClick={remove}>删除攻略</button>}
         </section>
@@ -485,9 +570,37 @@ export default function AdminTravelGuidesPage() {
         <div className="guide-sticky-save">
           <span>{saveState === "dirty" ? "有未保存更改" : saveState === "saving" ? "保存中..." : lastSavedAt ? `已保存 ${lastSavedAt}` : "已保存"}</span>
           <Link href={draft.slug ? `/photography/${draft.slug}` : "/photography"} target="_blank">预览</Link>
-          <button type="button" onClick={() => saveArticle("draft")} disabled={saving}>保存</button>
         </div>
       )}
+    </div>
+  );
+}
+
+function TagInput({ value, onChange }: { value: string[]; onChange: (value: string[]) => void }) {
+  const [draftTag, setDraftTag] = useState("");
+  const add = () => {
+    const tag = draftTag.trim();
+    if (!tag || value.includes(tag)) return;
+    onChange([...value, tag]);
+    setDraftTag("");
+  };
+  return (
+    <div className="guide-tag-input">
+      <span>攻略标签</span>
+      <div>
+        {value.map((tag) => <button key={tag} type="button" onClick={() => onChange(value.filter((item) => item !== tag))}>{tag} ×</button>)}
+        <input
+          value={draftTag}
+          onChange={(event) => setDraftTag(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            add();
+          }}
+          placeholder="输入后回车"
+        />
+      </div>
+      <small>前台最多显示前 4 个，例如：第一次去、半天～1天、适合自由行。</small>
     </div>
   );
 }
@@ -497,29 +610,41 @@ function FlowBlock({
   index,
   active,
   updateBlock,
-  moveBlock,
   removeBlock,
   uploadImage,
   onFocus,
+  draggable,
+  onDragStart,
+  onDrop,
 }: {
   block: TravelGuideBlock;
   index: number;
   active: boolean;
   updateBlock: (index: number, block: TravelGuideBlock) => void;
-  moveBlock: (index: number, dir: -1 | 1) => void;
   removeBlock: () => void;
   uploadImage: (event: ChangeEvent<HTMLInputElement>, apply: (url: string) => void) => void;
   onFocus: () => void;
+  draggable?: boolean;
+  onDragStart?: () => void;
+  onDrop?: () => void;
 }) {
   return (
-    <article className={`guide-flow-block ${block.type} ${active ? "active" : ""}`} onFocus={onFocus} onClick={onFocus}>
+    <article
+      className={`guide-flow-block ${block.type} ${active ? "active" : ""}`}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={onDrop}
+      onFocus={onFocus}
+      onClick={onFocus}
+    >
       <aside>
-        <button type="button" aria-label="上移" onClick={() => moveBlock(index, -1)}>↑</button>
-        <button type="button" aria-label="下移" onClick={() => moveBlock(index, 1)}>↓</button>
+        <span title="拖动排序">☰</span>
         <button type="button" aria-label="删除" onClick={removeBlock}>×</button>
       </aside>
 
       {block.type === "heading" && <input className="guide-flow-heading" value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="小标题，例如：最推荐的时间" />}
+      {block.type === "subheading" && <input className="guide-flow-subheading" value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="三级标题" />}
       {block.type === "paragraph" && <textarea value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="继续写正文..." />}
       {block.type === "quote" && <textarea value={block.text} onChange={(event) => updateBlock(index, { ...block, text: event.target.value })} placeholder="当地提醒、注意事项、交通建议..." />}
       {block.type === "divider" && <hr />}

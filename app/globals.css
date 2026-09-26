@@ -2947,6 +2947,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .guide-chapter-nav.sticky div{width:min(820px,100%);margin:0 auto}
 .guide-chapter-nav.sticky button{padding-bottom:7px;font-size:12px}
 .guide-place-heading{scroll-margin-top:146px}
+.guide-detail-subheading{margin:20px 0 10px 44px;color:#173049;font:650 21px/1.35 var(--serif)}
 .guide-detail-body>p{margin-bottom:12px;line-height:1.72}
 .guide-info-list{grid-template-columns:1fr;gap:6px;padding:11px 13px;border-radius:10px;background:rgba(246,239,230,.54)}
 .guide-info-list li{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:baseline;padding-left:0}
@@ -3008,6 +3009,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .guide-chapter-nav button span{font-size:9.5px}
   .guide-chapter-nav.sticky{top:56px;padding:8px 24px 7px}
   .guide-place-heading{scroll-margin-top:124px}
+  .guide-detail-subheading{margin-left:32px;font-size:18px}
   .guide-detail-gallery .prev,.guide-detail-gallery .next{width:28px;height:28px;font-size:22px;background:rgba(17,22,26,.25)}
   .guide-photo-viewer{padding:50px 14px 78px}
   .guide-photo-prev,.guide-photo-next{width:36px;height:36px;font-size:28px}

@@ -109,7 +109,7 @@ function Logo() {
 function hasRealContent(blocks: TravelGuideBlock[]) {
   return blocks.some((block) => {
     if (block.type === "paragraph") return block.text.trim() && !block.text.includes("详情页视觉稿确认后");
-    if (block.type === "heading" || block.type === "quote") return Boolean(block.text.trim());
+    if (block.type === "heading" || block.type === "subheading" || block.type === "quote") return Boolean(block.text.trim());
     if (block.type === "image") return Boolean(block.image);
     if (block.type === "gallery") return block.images.some(Boolean);
     if (block.type === "list") return block.items.some(Boolean);
@@ -152,6 +152,7 @@ function defaultBlocks(article: TravelGuideArticle): TravelGuideBlock[] {
 }
 
 function guideTags(article: TravelGuideArticle) {
+  if (article.tags?.length) return article.tags.slice(0, 4);
   if (article.slug === "first-time-kuala-lumpur") return ["第一次去", "半天～1天", "免费景点为主", "适合自由行"];
   if (article.category === "住宿推荐") return ["住宿区域", "自由行", "按预算选择"];
   if (article.category === "行程参考") return ["路线参考", "时间安排", "适合自由行"];
@@ -598,6 +599,7 @@ export function GuideDetailPage({ article, related }: { article: TravelGuideArti
               );
             }
             if (block.type === "paragraph") return <p key={index}>{block.text}</p>;
+            if (block.type === "subheading") return <h3 className="guide-detail-subheading" key={index}>{block.text}</h3>;
             if (block.type === "image") return <Gallery key={index} images={[block.image]} caption={block.caption} />;
             if (block.type === "gallery") return <Gallery key={index} images={block.images} caption={block.caption} captions={block.captions} alts={block.alts} />;
             if (block.type === "quote") return <aside className="guide-local-note" key={index}><b>MAD MAX · 当地提醒</b><p>{block.text}</p></aside>;
