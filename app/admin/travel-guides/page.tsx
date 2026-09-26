@@ -448,9 +448,9 @@ export default function AdminTravelGuidesPage() {
           <nav className="guide-editor-tabs" aria-label="攻略编辑区">
             {[
               ["basic", "基础信息"],
-              ["content", "文章正文"],
+              ["content", "正文内容"],
               ["english", "English"],
-              ["advanced", "高级设置"],
+              ["advanced", "更多设置"],
             ].map(([key, label]) => (
               <button key={key} className={editorTab === key ? "active" : ""} type="button" onClick={() => setEditorTab(key as EditorTab)}>{label}</button>
             ))}
@@ -478,14 +478,15 @@ export default function AdminTravelGuidesPage() {
           {editorTab === "content" && <div className="guide-edit-section">
             <div className="guide-editor-toolbar">
               <div>
-                <h2>文章正文</h2>
-                <p>快速浏览会自动读取 H2，不需要额外维护目录。</p>
+                <div className="guide-editor-kicker">新版编辑器 v2</div>
+                <h2>正文内容</h2>
+                <p>连续写作、随时插图，快速浏览会自动读取 H2。</p>
               </div>
               <nav>
                 <button type="button" onClick={() => insertBlock("paragraph")}>正文</button>
                 <button type="button" onClick={() => insertBlock("heading")}>H2</button>
                 <button type="button" onClick={() => insertBlock("subheading")}>H3</button>
-                <button type="button" onClick={() => formatFocusedText("bold")}>B</button>
+                <button type="button" onClick={() => formatFocusedText("bold")}>粗体B</button>
                 <button type="button" onClick={() => formatFocusedText("link")}>链接</button>
                 <button type="button" onClick={() => insertBlock("list")}>列表</button>
                 <button type="button" onClick={() => formatFocusedText("highlight")}>高亮</button>
