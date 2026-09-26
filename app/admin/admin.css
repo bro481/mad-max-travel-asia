@@ -374,6 +374,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.admin-user small {
+  color: #65757d;
+  font-size: 9px;
+  margin-top: 5px;
+}
 .admin-user a {
   font-size: 11px;
   color: #91a0a8;

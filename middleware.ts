@@ -25,7 +25,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
   if (hasAdminSessionCookie(request)) {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+    return response;
   }
   const loginUrl = request.nextUrl.clone();
   loginUrl.pathname = "/admin/login";

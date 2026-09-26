@@ -3,6 +3,8 @@ import Link from "next/link";
 import "./admin.css";
 import "./services/services-admin.css";
 
+const ADMIN_UI_VERSION = "admin-ui-2026-09-26-9b6e8e1";
+
 export default async function AdminLayout({
   children,
 }: {
@@ -58,6 +60,7 @@ export default async function AdminLayout({
         </nav>
         <div className="admin-user">
           <b>管理员后台</b>
+          <small>{ADMIN_UI_VERSION}</small>
           <Link href="/">返回前台</Link>
           <Link href="/api/admin/logout?return_to=/">退出登录</Link>
         </div>
