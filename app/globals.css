@@ -3351,8 +3351,6 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 /* Native page sharing: lightweight entry, no custom share pages or generated assets. */
 .content-title-row{display:flex;align-items:center;gap:14px;justify-content:space-between}
 .content-title-row h1{min-width:0}
-.native-share-wrap{position:relative;display:inline-grid;place-items:center;flex:0 0 auto}
-.native-share-notice{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:max-content;max-width:min(260px,72vw);padding:9px 12px;border-radius:10px;background:rgba(31,40,51,.94);color:#fff;font-size:13px;line-height:1.45;box-shadow:0 10px 24px rgba(22,28,38,.18)}
 .light-share-button{display:grid;place-items:center;flex:0 0 auto;width:36px;height:36px;padding:0;border:0;border-radius:50%;background:transparent;color:#8a633d;cursor:pointer}
 .light-share-button svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .light-share-button:hover{background:rgba(198,150,94,.08);color:#5e4a38}
