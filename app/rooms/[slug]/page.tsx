@@ -33,7 +33,8 @@ async function roomForSlug(slug: string) {
       `Room list query: ${slug}`,
       4500,
     );
-    const listedProperty = properties.find((item) => item.slug === slug && item.status === "published");
+    const publicProperties = properties.length ? properties : staticPropertyRecords();
+    const listedProperty = publicProperties.find((item) => item.slug === slug && item.status === "published");
     if (listedProperty) return propertyToRoom(listedProperty);
   } catch {}
   return room;
