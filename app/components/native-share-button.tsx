@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent, ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 
 type NativeShareButtonProps = {
   title?: string;
@@ -42,6 +42,7 @@ export function NativeShareButton({
   children,
   "aria-label": ariaLabel,
 }: NativeShareButtonProps) {
+  const [notice, setNotice] = useState("");
   const currentUrl = () => new URL(url || window.location.href, window.location.href).toString();
   const weChatUrl = () => {
     const next = new URL(currentUrl());
@@ -81,6 +82,16 @@ export function NativeShareButton({
     setMeta('meta[name="twitter:image"]', "name", "twitter:image", payload.img_url);
   }
 
+  function showNotice(message: string) {
+    setNotice(message);
+    window.setTimeout(() => setNotice(""), 2600);
+  }
+
+  async function copyShareText(targetUrl: string, targetTitle: string, targetText: string) {
+    const content = [targetTitle, targetText, targetUrl].filter(Boolean).join("\n");
+    await navigator.clipboard?.writeText(content).catch(() => undefined);
+  }
+
   function shareToWeChat(payload: WeChatBridgePayload) {
     const bridge = window.WeixinJSBridge;
     if (!bridge?.invoke) return false;
@@ -90,7 +101,10 @@ export function NativeShareButton({
     bridge.on?.("menu:share:timeline", () => {
       bridge.invoke?.("shareTimeline", payload, () => undefined);
     });
-    bridge.invoke("sendAppMessage", payload, () => undefined);
+    bridge.invoke("sendAppMessage", payload, (response) => {
+      const message = String((response as { err_msg?: unknown })?.err_msg || "");
+      if (message && !/ok/i.test(message)) showNotice("已准备好当前房源，请点右上角转发给朋友");
+    });
     return true;
   }
 
@@ -112,33 +126,44 @@ export function NativeShareButton({
       type: "link" as const,
       dataUrl: "",
     };
-
-    if (isWeChat()) {
-      syncDocumentShareMeta(wechatPayload);
-      if (shareToWeChat(wechatPayload)) return;
-      document.addEventListener("WeixinJSBridgeReady", () => {
-        syncDocumentShareMeta(wechatPayload);
-        shareToWeChat(wechatPayload);
-      }, { once: true });
-      return;
-    }
+    syncDocumentShareMeta(wechatPayload);
 
     const shareData = {
       title: targetTitle,
       text: targetText,
       url: targetUrl,
     };
+
     if (navigator.share) {
-      await navigator.share(shareData).catch(() => undefined);
+      const shared = await navigator.share(shareData).then(() => true).catch(() => false);
+      if (shared) return;
+    }
+
+    if (isWeChat()) {
+      if (shareToWeChat(wechatPayload)) {
+        showNotice("已准备好当前房源，请点右上角转发给朋友");
+        return;
+      }
+      document.addEventListener("WeixinJSBridgeReady", () => {
+        syncDocumentShareMeta(wechatPayload);
+        shareToWeChat(wechatPayload);
+      }, { once: true });
+      await copyShareText(targetUrl, targetTitle, targetText);
+      showNotice("已复制当前房源链接，请点右上角转发给朋友");
       return;
     }
-    await navigator.clipboard?.writeText(targetUrl).catch(() => undefined);
+
+    await copyShareText(targetUrl, targetTitle, targetText);
+    showNotice("已复制当前房源链接");
   }
 
   return (
-    <button className={className} type="button" onClick={share} aria-label={ariaLabel || title || "分享当前页面"}>
-      {children || <ShareIcon />}
-    </button>
+    <span className="native-share-wrap">
+      <button className={className} type="button" onClick={share} aria-label={ariaLabel || title || "分享当前页面"}>
+        {children || <ShareIcon />}
+      </button>
+      {notice ? <span className="native-share-notice" role="status">{notice}</span> : null}
+    </span>
   );
 }
 
