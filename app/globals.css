@@ -3348,6 +3348,15 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .detail-final-cta .button{height:48px;min-height:48px;margin-top:11px}
 }
 
+/* Malaysia Picks: keep the browsing controls subordinate to the products. */
+@media(max-width:700px){
+  .picks-section-heading{gap:7px;margin-bottom:8px}
+  .picks-section-heading span:first-child{width:18px}
+  .picks-section-heading h2{font-size:19px;line-height:1.1}
+  .picks-products-section .pick-tabs{gap:8px;margin-bottom:12px}
+  .picks-products-section .pick-tabs button{height:38px;min-width:auto;padding:0 16px;font-size:12px}
+}
+
 /* Native page sharing: lightweight entry, no custom share pages or generated assets. */
 .content-title-row{display:flex;align-items:center;gap:14px;justify-content:space-between}
 .content-title-row h1{min-width:0}
