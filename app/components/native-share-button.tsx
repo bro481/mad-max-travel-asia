@@ -20,12 +20,15 @@ type WeChatBridgePayload = {
   img_url: string;
   img_width: string;
   img_height: string;
+  type: "link";
+  dataUrl: string;
 };
 
 declare global {
   interface Window {
     WeixinJSBridge?: {
       invoke?: (name: string, payload: WeChatBridgePayload, callback?: (response: unknown) => void) => void;
+      on?: (name: string, callback: () => void) => void;
     };
   }
 }
@@ -40,6 +43,11 @@ export function NativeShareButton({
   "aria-label": ariaLabel,
 }: NativeShareButtonProps) {
   const currentUrl = () => new URL(url || window.location.href, window.location.href).toString();
+  const weChatUrl = () => {
+    const next = new URL(currentUrl());
+    next.searchParams.set("wxshare", "1");
+    return next.toString();
+  };
   const absoluteUrl = (value?: string) => {
     const next = value || "";
     if (!next) return "";
@@ -51,9 +59,37 @@ export function NativeShareButton({
   const shareTitle = () => title || metaContent('meta[property="og:title"]') || document.title;
   const isWeChat = () => /MicroMessenger/i.test(navigator.userAgent);
 
+  const setMeta = (selector: string, attr: "name" | "property", key: string, content: string) => {
+    let item = document.querySelector<HTMLMetaElement>(selector);
+    if (!item) {
+      item = document.createElement("meta");
+      item.setAttribute(attr, key);
+      document.head.appendChild(item);
+    }
+    item.setAttribute("content", content);
+  };
+
+  function syncDocumentShareMeta(payload: WeChatBridgePayload) {
+    document.title = payload.title;
+    setMeta('meta[name="description"]', "name", "description", payload.desc);
+    setMeta('meta[property="og:title"]', "property", "og:title", payload.title);
+    setMeta('meta[property="og:description"]', "property", "og:description", payload.desc);
+    setMeta('meta[property="og:image"]', "property", "og:image", payload.img_url);
+    setMeta('meta[property="og:url"]', "property", "og:url", payload.link);
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", payload.title);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", payload.desc);
+    setMeta('meta[name="twitter:image"]', "name", "twitter:image", payload.img_url);
+  }
+
   function shareToWeChat(payload: WeChatBridgePayload) {
     const bridge = window.WeixinJSBridge;
     if (!bridge?.invoke) return false;
+    bridge.on?.("menu:share:appmessage", () => {
+      bridge.invoke?.("sendAppMessage", payload, () => undefined);
+    });
+    bridge.on?.("menu:share:timeline", () => {
+      bridge.invoke?.("shareTimeline", payload, () => undefined);
+    });
     bridge.invoke("sendAppMessage", payload, () => undefined);
     return true;
   }
@@ -61,7 +97,7 @@ export function NativeShareButton({
   async function share(event: MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-    const targetUrl = currentUrl();
+    const targetUrl = isWeChat() ? weChatUrl() : currentUrl();
     const targetTitle = shareTitle();
     const targetText = shareText();
     const targetImage = shareImage();
@@ -73,11 +109,17 @@ export function NativeShareButton({
       img_url: targetImage,
       img_width: "120",
       img_height: "120",
+      type: "link" as const,
+      dataUrl: "",
     };
 
     if (isWeChat()) {
+      syncDocumentShareMeta(wechatPayload);
       if (shareToWeChat(wechatPayload)) return;
-      document.addEventListener("WeixinJSBridgeReady", () => shareToWeChat(wechatPayload), { once: true });
+      document.addEventListener("WeixinJSBridgeReady", () => {
+        syncDocumentShareMeta(wechatPayload);
+        shareToWeChat(wechatPayload);
+      }, { once: true });
       return;
     }
 
