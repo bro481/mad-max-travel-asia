@@ -462,6 +462,7 @@ export function RoomDetailModal({
               title={`${room.name[lang]}｜MAD MAX`}
               text={roomShareText}
               url={roomShareUrl}
+              image={images[photo] || images[0]}
               aria-label={`${room.name[lang]} ${lang === "zh" ? "分享" : "Share"}`}
             />
           </div>
