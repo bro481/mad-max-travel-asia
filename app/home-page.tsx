@@ -367,8 +367,6 @@ export function RoomDetailModal({
   const priceNote = room.description[lang] ? space?.priceNote || (lang === "zh" ? "价格随入住日期调整" : "Price varies by stay date") : "";
   const roomShareUrl = `/stay/${room.id}`;
   const roomShareText = `${room.bedrooms}房${room.bathrooms}卫 · ${room.location[lang]} · ${room.area[lang]}`;
-  const roomShareTitle = `${room.name[lang]}｜MAD MAX`;
-  const roomShareImage = images[photo] || images[0];
   const coreAmenityKeys = ["High-speed WiFi", "Air Conditioning", "Fully Equipped Kitchen", "Washer"];
   const coreAmenities = coreAmenityKeys
     .map((key) => room.amenities.find((item) => item.name.en === key))
@@ -417,50 +415,6 @@ export function RoomDetailModal({
     { key: "nearby", zh: "周边", en: "Nearby" },
   ];
   useEffect(() => setTab(initialTab), [initialTab]);
-  useEffect(() => {
-    const previousTitle = document.title;
-    const previousMeta = new Map<string, string | null>();
-    const selectors = [
-      'meta[name="description"]',
-      'meta[property="og:title"]',
-      'meta[property="og:description"]',
-      'meta[property="og:image"]',
-      'meta[property="og:url"]',
-      'meta[name="twitter:title"]',
-      'meta[name="twitter:description"]',
-      'meta[name="twitter:image"]',
-    ];
-    const setMeta = (selector: string, attr: "name" | "property", key: string, content: string) => {
-      let item = document.querySelector<HTMLMetaElement>(selector);
-      if (!item) {
-        item = document.createElement("meta");
-        item.setAttribute(attr, key);
-        document.head.appendChild(item);
-      }
-      if (!previousMeta.has(selector)) previousMeta.set(selector, item.getAttribute("content"));
-      item.setAttribute("content", content);
-    };
-    const absolute = (value: string) => new URL(value, window.location.href).toString();
-    document.title = roomShareTitle;
-    setMeta('meta[name="description"]', "name", "description", roomShareText);
-    setMeta('meta[property="og:title"]', "property", "og:title", roomShareTitle);
-    setMeta('meta[property="og:description"]', "property", "og:description", roomShareText);
-    setMeta('meta[property="og:image"]', "property", "og:image", absolute(roomShareImage));
-    setMeta('meta[property="og:url"]', "property", "og:url", absolute(roomShareUrl));
-    setMeta('meta[name="twitter:title"]', "name", "twitter:title", roomShareTitle);
-    setMeta('meta[name="twitter:description"]', "name", "twitter:description", roomShareText);
-    setMeta('meta[name="twitter:image"]', "name", "twitter:image", absolute(roomShareImage));
-    return () => {
-      document.title = previousTitle;
-      for (const selector of selectors) {
-        const item = document.querySelector<HTMLMetaElement>(selector);
-        if (!item || !previousMeta.has(selector)) continue;
-        const value = previousMeta.get(selector);
-        if (value === null) item.remove();
-        else item.setAttribute("content", value);
-      }
-    };
-  }, [roomShareTitle, roomShareText, roomShareImage, roomShareUrl]);
 
   return (
     <div className="room-detail-modal" role="dialog" aria-modal="true" onMouseDown={onClose}>
@@ -505,10 +459,9 @@ export function RoomDetailModal({
           <div className="room-modal-title-row">
             <h2>{room.name[lang]}</h2>
             <NativeShareButton
-              title={roomShareTitle}
+              title={`${room.name[lang]}｜MAD MAX`}
               text={roomShareText}
               url={roomShareUrl}
-              image={roomShareImage}
               aria-label={`${room.name[lang]} ${lang === "zh" ? "分享" : "Share"}`}
             />
           </div>
