@@ -10,20 +10,38 @@ export async function generateStaticParams() {
   return rooms.map((room) => ({ slug: room.id }));
 }
 
+async function fallbackRoom(slug: string) {
+  const { rooms } = await import("../../data");
+  return rooms.find((item) => item.id === slug) || null;
+}
+
+async function roomForSlug(slug: string) {
+  let room = await fallbackRoom(slug);
+  if (process.env.NODE_ENV === "development") return room;
+  try {
+    const { getPublishedPropertyBySlug, listProperties, propertyToRoom, staticPropertyRecords } = await import("../../../db/properties");
+    const property = await withPublicDataTimeout(
+      getPublishedPropertyBySlug(slug),
+      null,
+      `Room direct query: ${slug}`,
+      4500,
+    );
+    if (property) return propertyToRoom(property);
+    const properties = await withPublicDataTimeout(
+      listProperties(),
+      staticPropertyRecords,
+      `Room list query: ${slug}`,
+      4500,
+    );
+    const listedProperty = properties.find((item) => item.slug === slug && item.status === "published");
+    if (listedProperty) return propertyToRoom(listedProperty);
+  } catch {}
+  return room;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const fallback = async () => {
-    const { rooms } = await import("../../data");
-    return rooms.find((item) => item.id === slug) || null;
-  };
-  let room = await fallback();
-  if (process.env.NODE_ENV !== "development") {
-    try {
-      const { getPublishedPropertyBySlug, propertyToRoom } = await import("../../../db/properties");
-      const property = await withPublicDataTimeout(getPublishedPropertyBySlug(slug), null, `Room metadata query: ${slug}`);
-      if (property) room = propertyToRoom(property);
-    } catch {}
-  }
+  const room = await roomForSlug(slug);
   if (!room) return {};
   const title = room.name.zh;
   const description = `${room.bedrooms}房${room.bathrooms}卫 · ${room.location.zh} · ${room.area.zh}`;
@@ -40,25 +58,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function RoomPage({params}:{params:Promise<{slug:string}>}){
   const {slug}=await params;
-  const { rooms } = await import("../../data");
-  const fallbackRoom = rooms.find((item) => item.id === slug);
   if (process.env.LOCAL_BROWSER_PREVIEW === "1" || process.env.NODE_ENV === "development") {
-    if (!fallbackRoom)return <main className="not-found"><h1>Room not found</h1><Link className="button" href="/#stays">Explore our stays</Link></main>;
-    return <RoomDetail room={fallbackRoom}/>;
+    const room = await fallbackRoom(slug);
+    if (!room)return <main className="not-found"><h1>Room not found</h1><Link className="button" href="/#stays">Explore our stays</Link></main>;
+    return <RoomDetail room={room}/>;
   }
 
-  let dbRoom = null;
-  try {
-    const { getPublishedPropertyBySlug, propertyToRoom } = await import("../../../db/properties");
-    const property = await withPublicDataTimeout(
-      getPublishedPropertyBySlug(slug),
-      null,
-      `Public room detail query: ${slug}`,
-    );
-    dbRoom = property ? propertyToRoom(property) : null;
-  } catch {}
-  if(dbRoom)return <RoomDetail room={dbRoom}/>;
-  if(fallbackRoom)return <RoomDetail room={fallbackRoom}/>;
+  const room = await roomForSlug(slug);
+  if(room)return <RoomDetail room={room}/>;
   return (
     <main className="not-found">
       <h1>Room temporarily unavailable</h1>

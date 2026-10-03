@@ -15,13 +15,22 @@ async function roomForSlug(slug: string) {
     return fallbackRoom(slug);
   }
   try {
-    const { getPublishedPropertyBySlug, propertyToRoom } = await import("../../../db/properties");
+    const { getPublishedPropertyBySlug, listProperties, propertyToRoom, staticPropertyRecords } = await import("../../../db/properties");
     const property = await withPublicDataTimeout(
       getPublishedPropertyBySlug(slug),
       null,
-      `Stay room metadata query: ${slug}`,
+      `Stay room metadata direct query: ${slug}`,
+      4500,
     );
     if (property) return propertyToRoom(property);
+    const properties = await withPublicDataTimeout(
+      listProperties(),
+      staticPropertyRecords,
+      `Stay room metadata list query: ${slug}`,
+      4500,
+    );
+    const listedProperty = properties.find((item) => item.slug === slug && item.status === "published");
+    if (listedProperty) return propertyToRoom(listedProperty);
   } catch {}
   return fallbackRoom(slug);
 }
@@ -59,21 +68,37 @@ export default async function StayRoomPage({
     return <HomePage rooms={rooms} destinations={staticDestinations} initialRoomId={slug} />;
   }
 
-  const [{ staticDestinations, listDestinations }, { listProperties, propertyToRoom }] = await Promise.all([
+  const [
+    { staticDestinations, listDestinations },
+    { getPublishedPropertyBySlug, listProperties, propertyToRoom, staticPropertyRecords },
+  ] = await Promise.all([
     import("../../../db/destinations"),
     import("../../../db/properties"),
   ]);
-  const pageDestinations = await withPublicDataTimeout(
-    listDestinations(true),
-    staticDestinations,
-    "Stay room destinations query",
-  );
-  const properties = await withPublicDataTimeout(
-    listProperties(),
-    [],
-    "Stay room properties query",
-  );
-  const pageRooms: Room[] = properties
+  const [pageDestinations, properties, currentProperty] = await Promise.all([
+    withPublicDataTimeout(
+      listDestinations(true),
+      staticDestinations,
+      "Stay room destinations query",
+      2500,
+    ),
+    withPublicDataTimeout(
+      listProperties(),
+      staticPropertyRecords,
+      "Stay room properties query",
+      4500,
+    ),
+    withPublicDataTimeout(
+      getPublishedPropertyBySlug(slug),
+      null,
+      `Stay room current property query: ${slug}`,
+      4500,
+    ),
+  ]);
+  const mergedProperties = currentProperty
+    ? [currentProperty, ...properties.filter((item) => item.slug !== currentProperty.slug)]
+    : properties;
+  const pageRooms: Room[] = mergedProperties
     .filter((item) => item.status === "published")
     .map((item) => propertyToRoom(item, pageDestinations));
   return <HomePage rooms={pageRooms} destinations={pageDestinations} initialRoomId={slug} />;
