@@ -17,8 +17,18 @@ if printf '%s' "$html" | grep -Eq 'images\.unsplash\.com/photo-1600566753086-00f
   exit 1
 fi
 
+if printf '%s' "$html" | grep -Eq 'aria-label="吉隆坡城市公寓"|alt="吉隆坡城市公寓'; then
+  echo "ERROR: Homepage rendered the old demo room card."
+  exit 1
+fi
+
 if printf '%s' "$html" | grep -q '房源暂时无法加载'; then
   echo "ERROR: Homepage is showing the empty room fallback."
+  exit 1
+fi
+
+if ! printf '%s' "$html" | grep -q '伊顿公寓'; then
+  echo "ERROR: Homepage did not render the uploaded Eaton property records."
   exit 1
 fi
 

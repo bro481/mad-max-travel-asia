@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { rooms } from "../app/data";
 import { staticDestinations, type DestinationRecord } from "./destinations";
 import type {Room,Localized} from "../app/data";
+import cachedPropertyRecords from "./property-cache.json";
 
 export type StayReminder = { icon:string; text:string };
 export type NearbyPlace = { name:string; nameEn?:string; type:string; transport?:string; duration?:string; durationValue?:number; durationUnit?:string; distance:string; icon?:string; visible?:boolean };
@@ -79,7 +80,7 @@ export async function listProperties(){return readWithSchemaFallback(async()=>{c
 export async function getProperty(id:number){return readWithSchemaFallback(async()=>{const row=await env.DB.prepare("SELECT * FROM properties WHERE id=?").bind(id).first();return row?mapProperty(row as Record<string,unknown>):null;});}
 export async function getPublishedPropertyBySlug(slug:string){return readWithSchemaFallback(async()=>{const row=await env.DB.prepare("SELECT * FROM properties WHERE slug=? AND status='published'").bind(slug).first();return row?mapProperty(row as Record<string,unknown>):null;});}
 
-export function staticPropertyRecords(): PropertyRecord[] {
+function roomFallbackRecords(): PropertyRecord[] {
   return rooms.map((room, index) => ({
     id: index + 1,
     slug: room.id,
@@ -122,6 +123,25 @@ export function staticPropertyRecords(): PropertyRecord[] {
     status: "published",
     updatedAt: "",
   }));
+}
+
+function isPropertyRecord(value: unknown): value is PropertyRecord {
+  const item = value as Partial<PropertyRecord>;
+  return Boolean(
+    item &&
+      typeof item.id === "number" &&
+      typeof item.slug === "string" &&
+      typeof item.nameZh === "string" &&
+      Array.isArray(item.images),
+  );
+}
+
+export function staticPropertyRecords(): PropertyRecord[] {
+  const propertyCache: unknown = cachedPropertyRecords;
+  const cached = Array.isArray(propertyCache)
+    ? propertyCache.filter(isPropertyRecord)
+    : [];
+  return cached.length ? cached : roomFallbackRecords();
 }
 
 const cityNamesFromDestinations=(destinations:DestinationRecord[]):Record<string,Localized>=>Object.fromEntries(destinations.map((item)=>[item.nameZh,{zh:item.nameZh,en:item.nameEn||item.nameZh}]));
