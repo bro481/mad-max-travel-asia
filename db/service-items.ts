@@ -48,9 +48,11 @@ export type ServiceItem = {
   updatedAt: string;
 };
 export type CharterScenario = {
-  icon: string;
+  icon?: string;
+  image?: string;
   title: string;
   intro: string;
+  tag?: string;
   sortOrder?: number;
   visible?: boolean;
 };
@@ -157,10 +159,10 @@ const defaultSteps = [
   { title: "轻松出发", description: "按约定时间开始服务" },
 ];
 export const defaultCharterScenarios: CharterScenario[] = [
-  { icon: "👨‍👩‍👧", title: "家庭出行", intro: "老人、小孩同行，不用频繁换车，旅程更轻松。", sortOrder: 1, visible: true },
-  { icon: "🌏", title: "第一次来大马", intro: "不熟悉路线，有当地司机帮你安排更省心。", sortOrder: 2, visible: true },
-  { icon: "⏰", title: "时间比较有限", intro: "一天安排多个地点，减少交通浪费。", sortOrder: 3, visible: true },
-  { icon: "🧳", title: "行李较多", intro: "机场、酒店之间出行，不需要拖着行李换车。", sortOrder: 4, visible: true },
+  { image: image("photo-1549317661-bd32c8ce0db2"), title: "家庭出行", intro: "老人、小孩同行，少换乘，行程会轻松很多。", tag: "少折腾 · 更省体力", sortOrder: 1, visible: true },
+  { image: image("photo-1596422846543-75c6fc197f07"), title: "第一次来大马", intro: "对路线不熟，可以把几个想去的地方顺成一天。", tag: "少做交通功课 · 路线更顺", sortOrder: 2, visible: true },
+  { image: image("photo-1494526585095-c41746248156"), title: "一天想去多个地方", intro: "景点比较分散时，包车能减少等车和换乘时间。", tag: "多点行程 · 更省时间", sortOrder: 3, visible: true },
+  { image: image("photo-1436491865332-7a61a109cc05"), title: "带着行李移动", intro: "机场、酒店之间移动，不用一路拖着行李换车。", tag: "机场 · 酒店 · 更方便", sortOrder: 4, visible: true },
 ];
 const privateCarRoutes: ServiceRoutePlan[] = [
   {
@@ -428,14 +430,21 @@ export function mapServiceItem(r: Record<string, unknown>): ServiceItem {
   };
 }
 export function normalizeCharterScenarios(items: CharterScenario[]) {
+  const oldTitles = new Set(["时间比较有限", "行李较多"]);
   return items
-    .map((item, index) => ({
-      icon: String(item.icon || "✓"),
-      title: String(item.title || "适用场景"),
-      intro: String(item.intro || ""),
-      sortOrder: Number(item.sortOrder || index + 1),
-      visible: item.visible !== false,
-    }))
+    .map((item, index) => {
+      const fallback = defaultCharterScenarios[index] || defaultCharterScenarios[0];
+      const useFallbackCopy = !item.image && (!item.tag || oldTitles.has(String(item.title || "")));
+      return {
+        icon: String(item.icon || ""),
+        image: String(item.image || fallback.image || ""),
+        title: String(useFallbackCopy ? fallback.title : item.title || fallback.title),
+        intro: String(useFallbackCopy ? fallback.intro : item.intro || fallback.intro),
+        tag: String(item.tag || fallback.tag || ""),
+        sortOrder: Number(item.sortOrder || index + 1),
+        visible: item.visible !== false,
+      };
+    })
     .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
 }
 export async function listServiceItems(all = false) {

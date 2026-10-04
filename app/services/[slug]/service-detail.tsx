@@ -25,10 +25,10 @@ type Route = {
 const photo = (id: string, w = 1200) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
 const defaultCharterScenarios = [
-  { icon: "👨‍👩‍👧", title: "家庭出行", intro: "老人、小孩同行，不用频繁换车，旅程更轻松。", sortOrder: 1, visible: true },
-  { icon: "🌏", title: "第一次来大马", intro: "不熟悉路线，有当地司机帮你安排更省心。", sortOrder: 2, visible: true },
-  { icon: "⏰", title: "时间比较有限", intro: "一天安排多个地点，减少交通浪费。", sortOrder: 3, visible: true },
-  { icon: "🧳", title: "行李较多", intro: "机场、酒店之间出行，不需要拖着行李换车。", sortOrder: 4, visible: true },
+  { image: photo("photo-1549317661-bd32c8ce0db2"), title: "家庭出行", intro: "老人、小孩同行，少换乘，行程会轻松很多。", tag: "少折腾 · 更省体力", sortOrder: 1, visible: true },
+  { image: photo("photo-1596422846543-75c6fc197f07"), title: "第一次来大马", intro: "对路线不熟，可以把几个想去的地方顺成一天。", tag: "少做交通功课 · 路线更顺", sortOrder: 2, visible: true },
+  { image: photo("photo-1494526585095-c41746248156"), title: "一天想去多个地方", intro: "景点比较分散时，包车能减少等车和换乘时间。", tag: "多点行程 · 更省时间", sortOrder: 3, visible: true },
+  { image: photo("photo-1436491865332-7a61a109cc05"), title: "带着行李移动", intro: "机场、酒店之间移动，不用一路拖着行李换车。", tag: "机场 · 酒店 · 更方便", sortOrder: 4, visible: true },
 ];
 const routes: Route[] = [
   {
@@ -257,11 +257,13 @@ export function ServiceDetail({
     [stopIndex, setStopIndex] = useState(0),
     [stopPhotoIndex, setStopPhotoIndex] = useState(0),
     [activeRouteIndex, setActiveRouteIndex] = useState(0),
+    [activeScenarioIndex, setActiveScenarioIndex] = useState(0),
     [hideStickyCta, setHideStickyCta] = useState(false),
     [menu, setMenu] = useState(false);
   const modalThumbsRef = useRef<HTMLDivElement>(null);
   const routeTrackRef = useRef<HTMLDivElement>(null);
   const routeNavItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const scenarioTrackRef = useRef<HTMLDivElement>(null);
   const finalCtaRef = useRef<HTMLElement>(null);
   const zh = lang === "zh",
     l = zh ? 0 : 1;
@@ -931,6 +933,7 @@ export function ServiceDetail({
   const charterScenarioCards = (activeManagedService?.charterScenarios?.length ? activeManagedService.charterScenarios : defaultCharterScenarios)
     .filter((item) => item.visible !== false)
     .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+  const scenarioCards = charterScenarioCards.length ? charterScenarioCards : defaultCharterScenarios;
   const heroTitle = zh
     ? activeManagedService?.nameZh || cityInfo.hero[0]
     : activeManagedService?.nameEn || activeManagedService?.nameZh || cityInfo.hero[1];
@@ -1037,6 +1040,19 @@ export function ServiceDetail({
         : bestIndex;
     }, 0);
     setActiveRouteIndex((current) => (current === nextIndex ? current : nextIndex));
+  };
+  const syncActiveScenarioFromScroll = () => {
+    const track = scenarioTrackRef.current;
+    if (!track) return;
+    const cards = Array.from(track.children) as HTMLElement[];
+    if (!cards.length) return;
+    const nextIndex = cards.reduce((bestIndex, card, index) => {
+      const bestCard = cards[bestIndex];
+      return Math.abs(card.offsetLeft - track.scrollLeft) < Math.abs(bestCard.offsetLeft - track.scrollLeft)
+        ? index
+        : bestIndex;
+    }, 0);
+    setActiveScenarioIndex((current) => (current === nextIndex ? current : nextIndex));
   };
   useEffect(() => {
     const target = finalCtaRef.current;
@@ -1194,20 +1210,25 @@ export function ServiceDetail({
         <section className="charter-scenarios-section">
           <div className="charter-scenarios-head">
             <div>
-              <h2>{zh ? "为什么选择私人包车" : "Why choose a private car"}</h2>
+              <h2>{zh ? "这些情况，包车会更省心" : "When a private car helps"}</h2>
               <p>
                 {zh
-                  ? "根据你的旅行情况，包车可以让行程更轻松。"
-                  : "A private car can make the day easier around your travel situation."}
+                  ? "根据同行人数和行程安排，看看你是否更适合包车。"
+                  : "See whether a private car fits your group and route plan."}
               </p>
             </div>
+            <span>{Math.min(activeScenarioIndex + 1, scenarioCards.length)} / {scenarioCards.length}</span>
           </div>
-          <div className="charter-scenarios-scroll">
-            {charterScenarioCards.map((item, index) => (
+          <div className="charter-scenarios-scroll" ref={scenarioTrackRef} onScroll={syncActiveScenarioFromScroll}>
+            {scenarioCards.map((item, index) => (
               <article className="charter-scenario-card" key={`${item.title}-${index}`}>
-                <i aria-hidden="true">{item.icon || "✓"}</i>
-                <b>{item.title}</b>
-                <p>{item.intro}</p>
+                <img src={item.image || defaultCharterScenarios[index]?.image || defaultCharterScenarios[0].image} alt="" loading="lazy" decoding="async" />
+                <div>
+                  <small>{String(index + 1).padStart(2, "0")}</small>
+                  <b>{item.title}</b>
+                  <p>{item.intro}</p>
+                  <em>{item.tag || defaultCharterScenarios[index]?.tag || ""}</em>
+                </div>
               </article>
             ))}
           </div>

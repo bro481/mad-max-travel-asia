@@ -963,18 +963,20 @@ function InquiryPicker({
 }
 
 const defaultCharterScenarioItems: CharterScenario[] = [
-  { icon: "👨‍👩‍👧", title: "家庭出行", intro: "老人、小孩同行，不用频繁换车，旅程更轻松。", sortOrder: 1, visible: true },
-  { icon: "🌏", title: "第一次来大马", intro: "不熟悉路线，有当地司机帮你安排更省心。", sortOrder: 2, visible: true },
-  { icon: "⏰", title: "时间比较有限", intro: "一天安排多个地点，减少交通浪费。", sortOrder: 3, visible: true },
-  { icon: "🧳", title: "行李较多", intro: "机场、酒店之间出行，不需要拖着行李换车。", sortOrder: 4, visible: true },
+  { image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=900&q=84", title: "家庭出行", intro: "老人、小孩同行，少换乘，行程会轻松很多。", tag: "少折腾 · 更省体力", sortOrder: 1, visible: true },
+  { image: "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=900&q=84", title: "第一次来大马", intro: "对路线不熟，可以把几个想去的地方顺成一天。", tag: "少做交通功课 · 路线更顺", sortOrder: 2, visible: true },
+  { image: "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=900&q=84", title: "一天想去多个地方", intro: "景点比较分散时，包车能减少等车和换乘时间。", tag: "多点行程 · 更省时间", sortOrder: 3, visible: true },
+  { image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=900&q=84", title: "带着行李移动", intro: "机场、酒店之间移动，不用一路拖着行李换车。", tag: "机场 · 酒店 · 更方便", sortOrder: 4, visible: true },
 ];
 
 function normalizeScenarioItems(items: CharterScenario[]) {
   return (items.length ? items : defaultCharterScenarioItems)
     .map((item, index) => ({
-      icon: item.icon || "✓",
-      title: item.title || "适用场景",
-      intro: item.intro || "",
+      icon: item.icon || "",
+      image: item.image || defaultCharterScenarioItems[index]?.image || defaultCharterScenarioItems[0].image,
+      title: item.title || defaultCharterScenarioItems[index]?.title || "适用场景",
+      intro: item.intro || defaultCharterScenarioItems[index]?.intro || "",
+      tag: item.tag || defaultCharterScenarioItems[index]?.tag || "",
       sortOrder: Number(item.sortOrder || index + 1),
       visible: item.visible !== false,
     }))
@@ -1010,12 +1012,12 @@ function CharterScenariosEditor({
         <div className="route-plan-head">
           <div>
             <h3>包车优势场景</h3>
-            <p>前台显示在“为什么选择私人包车”，使用轻量横向卡片，不作为主展示模块。</p>
+            <p>前台显示在“这些情况，包车会更省心”，使用轻量横向卡片，不作为主展示模块。</p>
           </div>
           <button
             type="button"
             onClick={() => {
-              sync([...scenarios, { icon: "✓", title: "新场景", intro: "一句话说明这个场景为什么适合包车。", visible: true }]);
+              sync([...scenarios, { image: defaultCharterScenarioItems[0].image, title: "新场景", intro: "一句话说明这个场景为什么适合包车。", tag: "更轻松 · 更省心", visible: true }]);
               setEditing(scenarios.length);
             }}
           >
@@ -1042,10 +1044,10 @@ function CharterScenariosEditor({
             >
               <div className="charter-scenario-summary">
                 <span className="route-drag-handle" aria-hidden="true">≡</span>
-                <i aria-hidden="true">{item.icon}</i>
+                <i aria-hidden="true">{item.image ? <img src={item.image} alt="" /> : "图"}</i>
                 <p>
                   <b>{item.title}</b>
-                  <small>{item.intro || "简介待填写"}</small>
+                  <small>{item.intro || "简介待填写"}{item.tag ? ` · ${item.tag}` : ""}</small>
                 </p>
                 <em>{item.visible === false ? "已隐藏" : "前台显示"}</em>
                 <nav>
@@ -1057,14 +1059,17 @@ function CharterScenariosEditor({
               </div>
               {editing === index && (
                 <div className="charter-scenario-form">
-                  <Field n="图标 / emoji">
-                    <input value={item.icon} onChange={(event) => update(index, { icon: event.target.value })} />
+                  <Field n="场景图片 URL">
+                    <input value={item.image || ""} onChange={(event) => update(index, { image: event.target.value })} />
                   </Field>
                   <Field n="标题">
                     <input value={item.title} onChange={(event) => update(index, { title: event.target.value })} />
                   </Field>
                   <Field n="简介">
                     <input value={item.intro} onChange={(event) => update(index, { intro: event.target.value })} />
+                  </Field>
+                  <Field n="底部提示">
+                    <input value={item.tag || ""} onChange={(event) => update(index, { tag: event.target.value })} />
                   </Field>
                   <button
                     className="danger"
