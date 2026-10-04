@@ -246,6 +246,7 @@ const seedItems: ServiceItem[] = [
         internalNote: "",
       },
     ],
+    charterScenarios: [],
     priceMode: "咨询报价",
     price: 0,
     priceUnit: "每次",
