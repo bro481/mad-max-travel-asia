@@ -14,6 +14,7 @@ import { LocalServiceOfferCard } from "../../../components/local-service-offer-c
 import type { DestinationRecord } from "../../../../db/destinations";
 import type { ServiceCategory } from "../../../../db/services";
 import type {
+  CharterScenario,
   ServiceItem,
   ServiceRouteNode,
   ServiceRoutePlan,
@@ -21,7 +22,7 @@ import type {
 import { TransferEditor } from "./transfer-editor";
 
 const defaultTabs = ["基本信息", "服务图片", "内容", "行程安排", "咨询", "发布"];
-const routeTabs = ["基本信息", "车型", "热门路线", "费用与咨询"];
+const routeTabs = ["基本信息", "车型", "热门路线", "详情设置", "费用与咨询"];
 const inquiryFieldOptions = ["日期", "同行人数", "出发地点", "想去的地方", "接送地点", "儿童人数", "行李数量", "特殊需求"];
 
 export default function ServiceEditor() {
@@ -534,6 +535,12 @@ export default function ServiceEditor() {
             </>
           )}
           {tab === 3 && isPrivateCar && (
+            <CharterScenariosEditor
+              items={d.charterScenarios || []}
+              onChange={(items) => set("charterScenarios", items)}
+            />
+          )}
+          {tab === 4 && isPrivateCar && (
             <FeesAndInquiryPanel
               data={d}
               onChange={(fields, required) => setMany({ inquiryFields: fields, inquiryRequired: required })}
@@ -952,6 +959,130 @@ function InquiryPicker({
         </div>
       ))}
     </div>
+  );
+}
+
+const defaultCharterScenarioItems: CharterScenario[] = [
+  { icon: "👨‍👩‍👧", title: "家庭出行", intro: "老人、小孩同行，不用频繁换车，旅程更轻松。", sortOrder: 1, visible: true },
+  { icon: "🌏", title: "第一次来大马", intro: "不熟悉路线，有当地司机帮你安排更省心。", sortOrder: 2, visible: true },
+  { icon: "⏰", title: "时间比较有限", intro: "一天安排多个地点，减少交通浪费。", sortOrder: 3, visible: true },
+  { icon: "🧳", title: "行李较多", intro: "机场、酒店之间出行，不需要拖着行李换车。", sortOrder: 4, visible: true },
+];
+
+function normalizeScenarioItems(items: CharterScenario[]) {
+  return (items.length ? items : defaultCharterScenarioItems)
+    .map((item, index) => ({
+      icon: item.icon || "✓",
+      title: item.title || "适用场景",
+      intro: item.intro || "",
+      sortOrder: Number(item.sortOrder || index + 1),
+      visible: item.visible !== false,
+    }))
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+}
+
+function CharterScenariosEditor({
+  items,
+  onChange,
+}: {
+  items: CharterScenario[];
+  onChange: (items: CharterScenario[]) => void;
+}) {
+  const [editing, setEditing] = useState<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const scenarios = normalizeScenarioItems(items);
+  const sync = (next: CharterScenario[]) =>
+    onChange(next.map((item, index) => ({ ...item, sortOrder: index + 1 })));
+  const update = (index: number, patch: Partial<CharterScenario>) =>
+    sync(scenarios.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
+  const move = (index: number, step: number) => {
+    const nextIndex = index + step;
+    if (nextIndex < 0 || nextIndex >= scenarios.length) return;
+    const next = [...scenarios];
+    const [item] = next.splice(index, 1);
+    next.splice(nextIndex, 0, item);
+    sync(next);
+  };
+  return (
+    <>
+      <Head title="详情设置" text="管理包车详情页里的辅助成交内容，解释哪些旅行情况更适合私人包车。" />
+      <section className="charter-scenario-editor">
+        <div className="route-plan-head">
+          <div>
+            <h3>包车优势场景</h3>
+            <p>前台显示在“为什么选择私人包车”，使用轻量横向卡片，不作为主展示模块。</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              sync([...scenarios, { icon: "✓", title: "新场景", intro: "一句话说明这个场景为什么适合包车。", visible: true }]);
+              setEditing(scenarios.length);
+            }}
+          >
+            ＋ 添加场景
+          </button>
+        </div>
+        <div className="charter-scenario-list">
+          {scenarios.map((item, index) => (
+            <article
+              className={dragIndex === index ? "dragging" : ""}
+              draggable
+              key={`${item.title}-${index}`}
+              onDragStart={() => setDragIndex(index)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => {
+                if (dragIndex === null || dragIndex === index) return;
+                const next = [...scenarios];
+                const [moving] = next.splice(dragIndex, 1);
+                next.splice(index, 0, moving);
+                sync(next);
+                setDragIndex(null);
+              }}
+              onDragEnd={() => setDragIndex(null)}
+            >
+              <div className="charter-scenario-summary">
+                <span className="route-drag-handle" aria-hidden="true">≡</span>
+                <i aria-hidden="true">{item.icon}</i>
+                <p>
+                  <b>{item.title}</b>
+                  <small>{item.intro || "简介待填写"}</small>
+                </p>
+                <em>{item.visible === false ? "已隐藏" : "前台显示"}</em>
+                <nav>
+                  <button type="button" onClick={() => move(index, -1)} disabled={index === 0}>上移</button>
+                  <button type="button" onClick={() => move(index, 1)} disabled={index === scenarios.length - 1}>下移</button>
+                  <button type="button" onClick={() => update(index, { visible: item.visible === false })}>{item.visible === false ? "显示" : "隐藏"}</button>
+                  <button type="button" onClick={() => setEditing(editing === index ? null : index)}>{editing === index ? "收起" : "编辑"}</button>
+                </nav>
+              </div>
+              {editing === index && (
+                <div className="charter-scenario-form">
+                  <Field n="图标 / emoji">
+                    <input value={item.icon} onChange={(event) => update(index, { icon: event.target.value })} />
+                  </Field>
+                  <Field n="标题">
+                    <input value={item.title} onChange={(event) => update(index, { title: event.target.value })} />
+                  </Field>
+                  <Field n="简介">
+                    <input value={item.intro} onChange={(event) => update(index, { intro: event.target.value })} />
+                  </Field>
+                  <button
+                    className="danger"
+                    type="button"
+                    onClick={() => {
+                      sync(scenarios.filter((_, itemIndex) => itemIndex !== index));
+                      setEditing(null);
+                    }}
+                  >
+                    删除场景
+                  </button>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
 

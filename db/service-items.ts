@@ -39,12 +39,20 @@ export type ServiceItem = {
   otherAreaNote: string;
   vehicleDisplayMode: string;
   vehicles: { image:string; nameZh:string; nameEn:string; people:string; luggage:string; description:string; price:number; visible:boolean; internalNote:string; halfDayPrice?:number; fullDayPrice?:number; priceMode?:string }[];
+  charterScenarios: CharterScenario[];
   priceMode: string;
   price: number;
   priceUnit: string;
   priceNote: string;
   status: "draft" | "published" | "hidden";
   updatedAt: string;
+};
+export type CharterScenario = {
+  icon: string;
+  title: string;
+  intro: string;
+  sortOrder?: number;
+  visible?: boolean;
 };
 export type ServiceRouteNode = {
   nameZh?: string;
@@ -147,6 +155,12 @@ const defaultSteps = [
   { title: "告诉我们行程", description: "提供日期、地点和人数" },
   { title: "确认安排", description: "确认车辆或行程细节" },
   { title: "轻松出发", description: "按约定时间开始服务" },
+];
+export const defaultCharterScenarios: CharterScenario[] = [
+  { icon: "👨‍👩‍👧", title: "家庭出行", intro: "老人、小孩同行，不用频繁换车，旅程更轻松。", sortOrder: 1, visible: true },
+  { icon: "🌏", title: "第一次来大马", intro: "不熟悉路线，有当地司机帮你安排更省心。", sortOrder: 2, visible: true },
+  { icon: "⏰", title: "时间比较有限", intro: "一天安排多个地点，减少交通浪费。", sortOrder: 3, visible: true },
+  { icon: "🧳", title: "行李较多", intro: "机场、酒店之间出行，不需要拖着行李换车。", sortOrder: 4, visible: true },
 ];
 const privateCarRoutes: ServiceRoutePlan[] = [
   {
@@ -254,6 +268,7 @@ export function staticServiceItemRecords(): ServiceItem[] {
     otherAreaNote: "其他区域可咨询",
     vehicleDisplayMode: "车型类别",
     vehicles: [],
+    charterScenarios: item.templateType === "route" ? defaultCharterScenarios : [],
     priceMode: "咨询报价",
     price: 0,
     priceUnit: "每次",
@@ -279,7 +294,7 @@ function defaultDestinationId(city: string) {
 }
 export async function ensureServiceItems() {
   await env.DB.prepare(sql).run();
-  const columns = [["destination_id", "INTEGER NOT NULL DEFAULT 0"],["category_id", "INTEGER NOT NULL DEFAULT 0"],["template_type", "TEXT NOT NULL DEFAULT ''"],["display_order", "INTEGER NOT NULL DEFAULT 99"],["route_section_title_zh", "TEXT NOT NULL DEFAULT '热门包车方案'"],["route_section_title_en", "TEXT NOT NULL DEFAULT 'Popular Private Car Routes'"],["route_section_intro_zh", "TEXT NOT NULL DEFAULT '以下路线仅作参考，可根据您的时间与兴趣灵活调整。'"],["route_section_intro_en", "TEXT NOT NULL DEFAULT 'These routes are examples and can be adjusted around your time and interests.'"],["inquiry_required", "TEXT NOT NULL DEFAULT '[]'"],["inquiry_prompt_fields", "TEXT NOT NULL DEFAULT '[]'"],["max_guests", "INTEGER NOT NULL DEFAULT 14"],["guest_note", "TEXT NOT NULL DEFAULT '根据同行人数及行李数量匹配合适车型'"],["airports", "TEXT NOT NULL DEFAULT '[]'"],["directions", "TEXT NOT NULL DEFAULT '[]'"],["service_areas", "TEXT NOT NULL DEFAULT '[]'"],["other_area_note", "TEXT NOT NULL DEFAULT '其他区域可咨询'"],["vehicle_display_mode", "TEXT NOT NULL DEFAULT '车型类别'"],["vehicles", "TEXT NOT NULL DEFAULT '[]'"]] as const;
+  const columns = [["destination_id", "INTEGER NOT NULL DEFAULT 0"],["category_id", "INTEGER NOT NULL DEFAULT 0"],["template_type", "TEXT NOT NULL DEFAULT ''"],["display_order", "INTEGER NOT NULL DEFAULT 99"],["route_section_title_zh", "TEXT NOT NULL DEFAULT '热门包车方案'"],["route_section_title_en", "TEXT NOT NULL DEFAULT 'Popular Private Car Routes'"],["route_section_intro_zh", "TEXT NOT NULL DEFAULT '以下路线仅作参考，可根据您的时间与兴趣灵活调整。'"],["route_section_intro_en", "TEXT NOT NULL DEFAULT 'These routes are examples and can be adjusted around your time and interests.'"],["inquiry_required", "TEXT NOT NULL DEFAULT '[]'"],["inquiry_prompt_fields", "TEXT NOT NULL DEFAULT '[]'"],["max_guests", "INTEGER NOT NULL DEFAULT 14"],["guest_note", "TEXT NOT NULL DEFAULT '根据同行人数及行李数量匹配合适车型'"],["airports", "TEXT NOT NULL DEFAULT '[]'"],["directions", "TEXT NOT NULL DEFAULT '[]'"],["service_areas", "TEXT NOT NULL DEFAULT '[]'"],["other_area_note", "TEXT NOT NULL DEFAULT '其他区域可咨询'"],["vehicle_display_mode", "TEXT NOT NULL DEFAULT '车型类别'"],["vehicles", "TEXT NOT NULL DEFAULT '[]'"],["charter_scenarios", "TEXT NOT NULL DEFAULT '[]'"]] as const;
   const info = await env.DB.prepare("PRAGMA table_info(service_items)").all<{name:string}>();
   const existing = new Set(info.results.map((x) => x.name));
   for (const [name, definition] of columns) if (!existing.has(name)) await env.DB.prepare(`ALTER TABLE service_items ADD COLUMN ${name} ${definition}`).run();
@@ -397,6 +412,13 @@ export function mapServiceItem(r: Record<string, unknown>): ServiceItem {
     otherAreaNote: String(r.other_area_note || "其他区域可咨询"),
     vehicleDisplayMode: String(r.vehicle_display_mode || "车型类别"),
     vehicles: j(r.vehicles),
+    charterScenarios: normalizeCharterScenarios(
+      j(r.charter_scenarios).length
+        ? j(r.charter_scenarios)
+        : String(r.template_type) === "route" || String(r.type) === "私人包车"
+          ? defaultCharterScenarios
+          : [],
+    ),
     priceMode: String(r.price_mode),
     price: Number(r.price),
     priceUnit: String(r.price_unit),
@@ -404,6 +426,17 @@ export function mapServiceItem(r: Record<string, unknown>): ServiceItem {
     status: r.status as ServiceItem["status"],
     updatedAt: String(r.updated_at),
   };
+}
+export function normalizeCharterScenarios(items: CharterScenario[]) {
+  return items
+    .map((item, index) => ({
+      icon: String(item.icon || "✓"),
+      title: String(item.title || "适用场景"),
+      intro: String(item.intro || ""),
+      sortOrder: Number(item.sortOrder || index + 1),
+      visible: item.visible !== false,
+    }))
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
 }
 export async function listServiceItems(all = false) {
   const x = await env.DB.prepare(

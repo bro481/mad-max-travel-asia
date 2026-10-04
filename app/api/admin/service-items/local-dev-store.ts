@@ -1,4 +1,5 @@
 import type { ServiceItem, ServiceRoutePlan } from "../../../../db/service-items";
+import { defaultCharterScenarios } from "../../../../db/service-items";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -336,6 +337,12 @@ function normalize(item: Partial<ServiceItem>, fallbackId = 1): ServiceItem {
           : isPrivateCar
             ? defaultPrivateCarVehicles()
             : [],
+    charterScenarios:
+      Array.isArray(item.charterScenarios) && item.charterScenarios.length
+        ? item.charterScenarios
+        : isPrivateCar
+          ? defaultCharterScenarios
+          : [],
     status: item.status || "draft",
     updatedAt: String(item.updatedAt || new Date().toISOString()),
   };
@@ -406,6 +413,7 @@ export function createLocalServiceItem(item: Partial<ServiceItem>) {
     routeSectionIntroZh: item.routeSectionIntroZh || (isRoute ? "以下路线仅作参考，可根据您的时间与兴趣灵活调整。" : ""),
     routeSectionIntroEn: item.routeSectionIntroEn || (isRoute ? "These routes are examples and can be adjusted around your time and interests." : ""),
     routes: Array.isArray(item.routes) && item.routes.length ? item.routes : isRoute ? defaultRoutePlans(item.city || base.city) : [],
+    charterScenarios: Array.isArray(item.charterScenarios) && item.charterScenarios.length ? item.charterScenarios : isRoute ? defaultCharterScenarios : [],
     status: "draft",
     updatedAt: new Date().toISOString(),
   } as ServiceItem;

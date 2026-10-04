@@ -2259,7 +2259,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .private-car-trust-strip i{grid-row:1/3;display:grid;place-items:center;width:21px;height:21px;border-radius:999px;background:#fff7ef;color:#b9783d;font-size:12px;font-style:normal;font-weight:900}
 .private-car-trust-strip b{color:#203140;font-size:12px;line-height:1.25}
 .private-car-trust-strip small{color:#7a858d;font-size:10px;line-height:1.35}
-.route-scenery-section,.charter-info-section{width:min(1320px,calc(100% - 48px));margin:auto}
+.route-scenery-section,.charter-scenarios-section,.charter-info-section{width:min(1320px,calc(100% - 48px));margin:auto}
 .route-scenery-section{padding:24px 0 32px}
 .route-scenery-head{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:17px}
 .route-scenery-head h2{margin:0 0 7px;font:600 31px var(--serif)}
@@ -2274,6 +2274,16 @@ button.offer-card{width:100%;font:inherit;color:inherit}
 .route-scenery-card span,.route-scenery-card small{position:absolute;z-index:1;left:13px;text-shadow:0 1px 8px rgba(0,0,0,.32)}
 .route-scenery-card span{bottom:31px;font-size:12px;font-weight:800}
 .route-scenery-card small{right:13px;bottom:11px;font-size:8.5px;font-weight:800;line-height:1.25;opacity:.9}
+.charter-scenarios-section{padding:20px 0 28px}
+.charter-scenarios-head{margin-bottom:14px}
+.charter-scenarios-head h2{margin:0 0 6px;font:600 28px var(--serif);color:#203140}
+.charter-scenarios-head p{margin:0;color:#68747d;font-size:12px;line-height:1.55}
+.charter-scenarios-scroll{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.charter-scenarios-scroll::-webkit-scrollbar{display:none}
+.charter-scenario-card{flex:0 0 270px;height:166px;padding:20px;border:1px solid #eadfd4;border-radius:16px;background:#fffdfb;scroll-snap-align:start}
+.charter-scenario-card i{display:grid;place-items:center;width:36px;height:36px;margin-bottom:16px;border-radius:999px;background:#f8f0e7;font-size:19px;font-style:normal}
+.charter-scenario-card b{display:block;color:#203140;font-size:17px;line-height:1.25}
+.charter-scenario-card p{margin:8px 0 0;color:#6d7881;font-size:12px;line-height:1.55}
 .charter-info-section{display:grid;grid-template-columns:.8fr 1.2fr;gap:22px;align-items:start;padding:18px 0 24px;border-top:1px solid #eadfd4}
 .charter-info-section h2{margin:2px 0 0;font:600 28px var(--serif)}
 .charter-info-section>div>p{margin:10px 2px 0;color:#8a9298;font-size:10px}
@@ -2324,7 +2334,7 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .private-car-trust-strip i{width:19px;height:19px;font-size:11px}
   .private-car-trust-strip b{font-size:11px}
   .private-car-trust-strip small{font-size:9px}
-  .route-scenery-section,.charter-info-section{width:calc(100% - 32px)}
+  .route-scenery-section,.charter-scenarios-section,.charter-info-section{width:calc(100% - 32px)}
   .route-scenery-section{padding:18px 0 22px}
   .route-scenery-head{align-items:start;margin-bottom:14px}
   .route-scenery-head h2{font-size:24px;margin-bottom:5px}
@@ -2334,6 +2344,15 @@ button.offer-card{width:100%;font:inherit;color:inherit}
   .route-scenery-card{flex-basis:164px;height:112px;border-radius:13px}
   .route-scenery-card span{left:11px;bottom:31px;font-size:11px}
   .route-scenery-card small{left:11px;right:10px;bottom:10px;font-size:7.5px;line-height:1.25}
+  .charter-scenarios-section{padding:16px 0 19px}
+  .charter-scenarios-head{margin-bottom:12px}
+  .charter-scenarios-head h2{font-size:22px;margin-bottom:5px}
+  .charter-scenarios-head p{font-size:11px}
+  .charter-scenarios-scroll{gap:12px;padding-right:34px}
+  .charter-scenario-card{flex-basis:270px;height:164px;padding:18px}
+  .charter-scenario-card i{width:34px;height:34px;margin-bottom:14px;font-size:18px}
+  .charter-scenario-card b{font-size:16px}
+  .charter-scenario-card p{font-size:11px;line-height:1.55}
   .charter-info-section{display:block;padding:15px 0 19px}
   .charter-info-section h2{font-size:23px;margin:0 0 10px}
   .charter-info-card article{grid-template-columns:23px minmax(0,1fr);gap:9px;padding:15px 15px}

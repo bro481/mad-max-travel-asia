@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../../chatgpt-auth";
 import {
   deleteServiceItem,
+  ensureServiceItems,
   getAdminServiceItemBySlug,
   getServiceItem,
   staticServiceItemRecords,
@@ -85,13 +86,14 @@ export async function PUT(
     return NextResponse.json({ ok: true });
   }
   try {
+    await ensureServiceItems();
     const current = isNumericId
       ? await getServiceItem(numericId)
       : await getAdminServiceItemBySlug(id);
     if (!current)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     await env.DB.prepare(
-      `UPDATE service_items SET slug=?,type=?,destination_id=?,city=?,category=?,category_id=?,template_type=?,display_order=?,name_zh=?,name_en=?,subtitle_zh=?,subtitle_en=?,intro_zh=?,intro_en=?,images=?,tags=?,steps=?,route_section_title_zh=?,route_section_title_en=?,route_section_intro_zh=?,route_section_intro_en=?,routes=?,timeline=?,inquiry_fields=?,inquiry_required=?,inquiry_prompt_fields=?,max_guests=?,guest_note=?,airports=?,directions=?,service_areas=?,other_area_note=?,vehicle_display_mode=?,vehicles=?,price_mode=?,price=?,price_unit=?,price_note=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+      `UPDATE service_items SET slug=?,type=?,destination_id=?,city=?,category=?,category_id=?,template_type=?,display_order=?,name_zh=?,name_en=?,subtitle_zh=?,subtitle_en=?,intro_zh=?,intro_en=?,images=?,tags=?,steps=?,route_section_title_zh=?,route_section_title_en=?,route_section_intro_zh=?,route_section_intro_en=?,routes=?,timeline=?,inquiry_fields=?,inquiry_required=?,inquiry_prompt_fields=?,max_guests=?,guest_note=?,airports=?,directions=?,service_areas=?,other_area_note=?,vehicle_display_mode=?,vehicles=?,charter_scenarios=?,price_mode=?,price=?,price_unit=?,price_note=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
     )
       .bind(
         b.slug,
@@ -132,6 +134,7 @@ export async function PUT(
         b.otherAreaNote || "",
         b.vehicleDisplayMode || "车型类别",
         JSON.stringify(b.vehicles || []),
+        JSON.stringify(b.charterScenarios || []),
         b.priceMode,
         Number(b.price || 0),
         b.priceUnit,

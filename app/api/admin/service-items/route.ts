@@ -3,6 +3,8 @@ import { env } from "cloudflare:workers";
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "../../../chatgpt-auth";
 import {
+  defaultCharterScenarios,
+  ensureServiceItems,
   listServiceItems,
   staticServiceItemRecords,
 } from "../../../../db/service-items";
@@ -52,6 +54,7 @@ export async function POST(r: Request) {
     return NextResponse.json({ id: item.id, slug: item.slug }, { status: 201 });
   }
   try {
+    await ensureServiceItems();
     const destination = (await listDestinations(true)).find(
       (item) => item.id === destinationId && item.status !== "hidden" && item.useForServices,
     );
@@ -101,7 +104,7 @@ export async function POST(r: Request) {
         ? ["计划日期", "同行人数", "接送地点", "特殊需求"]
         : ["计划日期", "出发地点", "目的地", "同行人数", "航班信息"];
     const x = await env.DB.prepare(
-      "INSERT INTO service_items(slug,type,destination_id,city,category,category_id,template_type,display_order,name_zh,name_en,steps,route_section_title_zh,route_section_title_en,route_section_intro_zh,route_section_intro_en,routes,timeline,inquiry_fields,status)VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      "INSERT INTO service_items(slug,type,destination_id,city,category,category_id,template_type,display_order,name_zh,name_en,steps,route_section_title_zh,route_section_title_en,route_section_intro_zh,route_section_intro_en,routes,timeline,inquiry_fields,charter_scenarios,status)VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     )
       .bind(
         slug,
@@ -122,6 +125,7 @@ export async function POST(r: Request) {
         JSON.stringify(routes),
         JSON.stringify(timeline),
         JSON.stringify(inquiryFields),
+        JSON.stringify(isCar ? defaultCharterScenarios : []),
         "draft",
       )
       .run();

@@ -24,6 +24,12 @@ type Route = {
 };
 const photo = (id: string, w = 1200) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=86`;
+const defaultCharterScenarios = [
+  { icon: "👨‍👩‍👧", title: "家庭出行", intro: "老人、小孩同行，不用频繁换车，旅程更轻松。", sortOrder: 1, visible: true },
+  { icon: "🌏", title: "第一次来大马", intro: "不熟悉路线，有当地司机帮你安排更省心。", sortOrder: 2, visible: true },
+  { icon: "⏰", title: "时间比较有限", intro: "一天安排多个地点，减少交通浪费。", sortOrder: 3, visible: true },
+  { icon: "🧳", title: "行李较多", intro: "机场、酒店之间出行，不需要拖着行李换车。", sortOrder: 4, visible: true },
+];
 const routes: Route[] = [
   {
     title: ["亚庇经典一日游", "Kota Kinabalu Classic Day"],
@@ -921,46 +927,10 @@ export function ServiceDetail({
       .replace("文化路线", "文化")
       .replace("路线", "");
   };
-  const findRouteIndex = (patterns: string[]) => {
-    const index = routeCards.findIndex((route) =>
-      patterns.some((pattern) => route.title[0].includes(pattern) || route.summary[0].includes(pattern)),
-    );
-    return index >= 0 ? index : 0;
-  };
   const heroImage = activeManagedService?.coverImage || activeManagedService?.images?.[0] || service.image || photo("photo-1549317661-bd32c8ce0db2");
-  const managedFootageImages = serviceImages(activeManagedService).slice(0, 8);
-  const sceneryFallback = [
-    {
-      label: zh ? "吉隆坡" : "Kuala Lumpur",
-      note: zh ? "市区地标 / 半日到一日" : "City icons / half to full day",
-      image: managedFootageImages[0] || photo("photo-1596422846543-75c6fc197f07", 700),
-      routeIndex: findRouteIndex(["经典", "吉隆坡"]),
-    },
-    {
-      label: zh ? "布城" : "Putrajaya",
-      note: zh ? "湖畔城市 / 半日可安排" : "Lakeside city / half-day friendly",
-      image: managedFootageImages[1] || photo("photo-1596422846543-75c6fc197f07", 701),
-      routeIndex: findRouteIndex(["布城", "Putrajaya"]),
-    },
-    {
-      label: zh ? "马六甲" : "Melaka",
-      note: zh ? "约2小时车程 / 一日往返" : "About 2 hours away / day trip",
-      image: managedFootageImages[2] || photo("photo-1507525428034-b723cf961d3e", 702),
-      routeIndex: findRouteIndex(["马六甲", "Melaka"]),
-    },
-    {
-      label: zh ? "云顶" : "Genting",
-      note: zh ? "高原休闲 / 可搭配黑风洞" : "Highland escape / pairs with Batu Caves",
-      image: managedFootageImages[3] || photo("photo-1500530855697-b586d89ba3ee", 703),
-      routeIndex: findRouteIndex(["云顶", "Genting"]),
-    },
-    {
-      label: zh ? "黑风洞" : "Batu Caves",
-      note: zh ? "吉隆坡周边 / 半日可安排" : "Near KL / half-day friendly",
-      image: managedFootageImages[4] || photo("photo-1552465011-b4e21bf6e79a", 704),
-      routeIndex: findRouteIndex(["黑风洞", "Batu"]),
-    },
-  ];
+  const charterScenarioCards = (activeManagedService?.charterScenarios?.length ? activeManagedService.charterScenarios : defaultCharterScenarios)
+    .filter((item) => item.visible !== false)
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
   const heroTitle = zh
     ? activeManagedService?.nameZh || cityInfo.hero[0]
     : activeManagedService?.nameEn || activeManagedService?.nameZh || cityInfo.hero[1];
@@ -1221,30 +1191,24 @@ export function ServiceDetail({
             ))}
           </div>
         </section> : null}
-        <section className="route-scenery-section">
-          <div className="route-scenery-head">
+        <section className="charter-scenarios-section">
+          <div className="charter-scenarios-head">
             <div>
-              <h2>{zh ? "包车还能去这些地方" : "Private car can go beyond the city"}</h2>
+              <h2>{zh ? "为什么选择私人包车" : "Why choose a private car"}</h2>
               <p>
                 {zh
-                  ? "不只市区，根据时间也可以安排周边路线。"
-                  : "Beyond the city, nearby routes can be shaped around your timing."}
+                  ? "根据你的旅行情况，包车可以让行程更轻松。"
+                  : "A private car can make the day easier around your travel situation."}
               </p>
             </div>
-            <a href="/photography">{zh ? "更多目的地" : "More places"} →</a>
           </div>
-          <div className="route-scenery-scroll">
-            {sceneryFallback.map((item) => (
-              <button
-                className="route-scenery-card"
-                key={item.label}
-                type="button"
-                onClick={() => scrollToRoute(item.routeIndex)}
-              >
-                <img src={item.image} alt={item.label} loading="lazy" decoding="async" />
-                <span>{item.label}</span>
-                <small>{item.note}</small>
-              </button>
+          <div className="charter-scenarios-scroll">
+            {charterScenarioCards.map((item, index) => (
+              <article className="charter-scenario-card" key={`${item.title}-${index}`}>
+                <i aria-hidden="true">{item.icon || "✓"}</i>
+                <b>{item.title}</b>
+                <p>{item.intro}</p>
+              </article>
             ))}
           </div>
         </section>
